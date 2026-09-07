@@ -14,6 +14,7 @@ Status: wymagania zatwierdzone przez właściciela projektu po wywiadzie Q1–Q2
 | [Plan i testy](06-plan-i-testy.md) | Trzy fazy, zadania, kryteria odbioru i macierz testów. |
 | [Wydania](07-wydania.md) | DMG, GitHub Releases, aktualizacje, MIT i opcjonalny Homebrew. |
 | [Rejestr decyzji](08-decyzje.md) | Zatwierdzone decyzje i drzewo zależności. |
+| [Praca z repozytorium](09-praca-z-repozytorium.md) | Lokalne hooki, Conventional Commits, instalacja i testy. |
 
 ## Jak czytać ustalenia
 
@@ -28,4 +29,3 @@ Wszystkie trzy fazy są częścią wizji. Nie należy aktywować obserwacji scho
 ## Granice opracowania
 
 Dokumentacja nie tworzy aplikacji, repozytorium zdalnego, opublikowanego wydania ani infrastruktury podpisywania. Nie ustalono terminów kalendarzowych bez pomiaru prac nad prototypami. Techniczne warunki przygotowania wydania są wymienione w [planie dystrybucji](07-wydania.md).
-

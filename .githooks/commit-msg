@@ -1,0 +1,46 @@
+#!/bin/sh
+# Validate the repository's Conventional Commits policy without external runtimes.
+set -eu
+
+if [ "$#" -ne 1 ] || [ ! -r "$1" ]; then
+    printf '%s\n' 'commit-msg: expected a readable commit message file.' >&2
+    exit 1
+fi
+
+# Match Git's comment handling, including core.commentChar. Do not modify the file.
+message=$(git stripspace --strip-comments < "$1") || exit 1
+
+if printf '%s\n' "$message" | LC_ALL=C awk '
+    NR == 1 {
+        header = tolower($0)
+        if (header !~ /^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([a-z0-9][a-z0-9._\/-]*\))?!?: [^[:space:]]/) {
+            invalid = 1
+        }
+    }
+    NR == 2 && $0 != "" { invalid = 1 }
+    /^BREAKING( CHANGE|-CHANGE):/ {
+        if ($0 !~ /^BREAKING( CHANGE|-CHANGE): [^[:space:]]/) invalid = 1
+    }
+    END { exit (NR == 0 || invalid) ? 1 : 0 }
+'; then
+    exit 0
+fi
+
+cat >&2 <<'MESSAGE'
+Commit rejected: use Conventional Commits.
+
+  <type>[(scope)][!]: <description>
+
+Types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert
+Scope: letters/digits, ".", "_", "/" or "-"; starts with a letter/digit.
+Separate the optional body/footer from the subject with a blank line.
+
+Examples:
+  docs: add project specification
+  feat(metrics): add CPU monitoring
+  fix(scroll): preserve trackpad gestures
+  refactor(core)!: replace the metrics interface
+
+See docs/09-praca-z-repozytorium.md.
+MESSAGE
+exit 1

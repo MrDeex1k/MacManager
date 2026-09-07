@@ -44,7 +44,16 @@ Start with the [Polish documentation index](docs/README.md), then the [product s
 
 These documents distinguish approved requirements, engineering choices, and capabilities that still require a prototype. They do not claim implementation or hardware validation has been completed.
 
+## Contributing
+
+Enable the repository-local Conventional Commits hook once after cloning:
+
+```sh
+./scripts/install-git-hooks.sh
+```
+
+This uses native Git hooks and system shell tools, with no Node.js or Husky dependencies. Invalid commit messages are rejected locally. Run `./scripts/test-git-hooks.sh` to verify the hook. See the [contribution workflow and enforcement limits](docs/09-praca-z-repozytorium.md).
+
 ## License
 
 [MIT](LICENSE). The commitment to free official releases does not restrict rights granted to third parties by the MIT license.
-
