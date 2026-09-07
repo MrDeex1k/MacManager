@@ -8,6 +8,10 @@ public final class PreferencesStore {
 
     @ObservationIgnored private let defaults: UserDefaults
 
+    public var publicIPEnabled: Bool {
+        didSet { defaults.set(publicIPEnabled, forKey: "preferences.publicIPEnabled") }
+    }
+
     public var language: AppLanguage {
         didSet {
             guard language != oldValue else { return }
@@ -17,6 +21,7 @@ public final class PreferencesStore {
 
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        publicIPEnabled = defaults.object(forKey: "preferences.publicIPEnabled") as? Bool ?? true
         language = defaults.string(forKey: Self.languageKey).flatMap(AppLanguage.init(rawValue:)) ?? .system
     }
 

@@ -19,6 +19,10 @@ enum AppSection: String, CaseIterable, Identifiable {
 @Observable
 final class AppState {
     let preferences: PreferencesStore
+    let network: NetworkService
+    @ObservationIgnored private var networkController: NetworkController?
+    @ObservationIgnored private var started = false
+    @ObservationIgnored private let testing = ProcessInfo.processInfo.arguments.contains("--ui-testing")
     var section: AppSection? = .overview
 
     init() {
@@ -29,10 +33,23 @@ final class AppState {
                 defaults.removePersistentDomain(forName: "dev.macmanager.MacManager.UITests")
             }
             preferences = PreferencesStore(defaults: defaults)
+            network = NetworkService(enabled: false)
             return
         }
         #endif
         preferences = PreferencesStore()
+        network = NetworkService(enabled: preferences.publicIPEnabled)
+    }
+
+    func startServices() {
+        guard !started else { return }
+        started = true
+        #if DEBUG
+        if testing { return }
+        #endif
+        let controller = NetworkController(service: network)
+        networkController = controller
+        controller.start()
     }
 
     var strings: AppStrings { AppStrings(languageCode: preferences.language.resolvedCode()) }

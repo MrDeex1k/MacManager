@@ -10,6 +10,7 @@ struct MacManagerApp: App {
         Window("Mac Manager", id: "main") {
             AppShellView()
                 .environment(state)
+                .task { state.startServices() }
                 .environment(\.locale, state.preferences.locale)
                 .preferredColorScheme(.dark)
                 .tint(AppTheme.accent)

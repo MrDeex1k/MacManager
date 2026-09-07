@@ -2,7 +2,7 @@
 
 Mac Manager is a free, open-source macOS utility for Apple Silicon. It brings system monitoring, independent mouse scrolling, and—later—a notch-area panel for clipboard history and local music controls into one native app.
 
-**Status: Stage 1 in development.** A native SwiftUI app shell is available with Overview, Network and Settings, an immediately applied PL/EN language preference, and dark Liquid Glass controls. Live metrics, address lookup and system integrations are not connected yet. The delivery table below describes planned features; no public release is available.
+**Status: Stage 1 in development.** A native SwiftUI app shell is available with Overview, Network and Settings, an immediately applied PL/EN language preference, and dark Liquid Glass controls. Local/public IPv4 lookup, address copying and network status are connected. Additional VPN egress addresses remain explicitly unresolved. Live metrics and system integrations are not connected yet. The delivery table below describes planned features; no public release is available.
 
 ## Product principles
 
