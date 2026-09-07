@@ -1,6 +1,8 @@
 # Mac Manager
 
-Mac Manager is a free, open-source macOS utility for Apple Silicon. It brings system monitoring, independent mouse scrolling, and—later—a notch-area panel for clipboard history and local music controls into one native app.
+<img src="MacManager/Resources/Assets.xcassets/AppIcon.appiconset/icon_128x128.png" width="96" alt="Mac Manager icon">
+
+A free, open-source macOS utility for Apple Silicon, designed to combine system monitoring, independent mouse scrolling, and a notch-area panel for clipboard history and local music controls.
 
 **Status: Stage 1 in development.** A native SwiftUI app shell is available with Overview, Network and Settings, an immediately applied PL/EN language preference, and dark Liquid Glass controls. Local/public IPv4 lookup, address copying and network status are connected. Additional VPN egress addresses remain explicitly unresolved. CPU/GPU/RAM readings are live, with a persistent 1/2/5-second sampling preference. Whole-device power has no verified source and is unavailable. Charts and remaining system integrations are not connected yet. The delivery table below describes planned features; no public release is available.
 
@@ -13,7 +15,9 @@ Mac Manager is a free, open-source macOS utility for Apple Silicon. It brings sy
 - No accounts, ads, telemetry, automatic crash uploads, or application-managed cloud sync.
 - Official releases will remain free. The project is licensed under MIT.
 
-## Roadmap
+**Next:** five-minute charts and in-memory history (Stage 1, step 4). See the [current project status](docs/10-stan-projektu.md) for the complete order and remaining validation.
+
+## Planned delivery
 
 | Stage | Planned scope |
 | --- | --- |

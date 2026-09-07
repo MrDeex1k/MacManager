@@ -1,5 +1,7 @@
 # Plan realizacji i kryteria odbioru
 
+Bieżący stan implementacji i następne kroki: [stan projektu](10-stan-projektu.md).
+
 ## Zasada realizacji
 
 Trzy fazy są zatwierdzone. W ramach każdej zaczynamy od rozpoznania zależności technicznych, następnie budujemy funkcję i sprawdzamy zachowanie użytkowe. Nie deklarujemy terminów bez wyników prototypów.

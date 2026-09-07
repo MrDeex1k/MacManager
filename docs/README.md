@@ -2,10 +2,13 @@
 
 Status: wymagania zatwierdzone przez właściciela projektu po wywiadzie Q1–Q28 i końcowym potwierdzeniu. Dokumentacja opisuje plan aplikacji, nie gotowy produkt. Data opracowania: 2026-09-07. Aktualizacja 2026-09-08: prototypy CLI i częściowa walidacja P01–P04; gotowy szkielet aplikacji SwiftUI (krok 2 / F1-01), PL/EN i domyślny Liquid Glass. Dodano obsługę sieci (krok 5); dodano bieżące pomiary CPU/GPU/RAM (krok 3). Wykresy i dalsze integracje systemowe pozostają planowane.
 
+Aktualny punkt prac i kolejność kolejnych zadań: [Stan projektu](10-stan-projektu.md).
+
 ## Mapa dokumentów
 
 | Dokument | Zawartość |
 | --- | --- |
+| [Stan projektu](10-stan-projektu.md) | Co działa, co jest następne i pozostałe ograniczenia. |
 | [Produkt](01-produkt.md) | Cel, zakres, wymagania i ustawienia domyślne. |
 | [Interfejs](02-interfejs.md) | Okno, pasek menu, wyspa, stany i scenariusze. |
 | [Architektura](03-architektura.md) | Moduły, przepływ danych, współbieżność i decyzje implementacyjne. |
