@@ -64,7 +64,7 @@ Jeden harmonogram metryk współdzielony przez wszystkie widoki, bez nakładają
 | PlayerSnapshot | Źródło, utwór opcjonalny, wykonawca, długość, pozycja, stan, dostępne akcje, okładka opcjonalna. |
 | ReleaseInfo | Wersja, tag, adres strony wydania, zgodny asset DMG, czas kontroli. |
 
-Model metryki musi rozróżniać poprawne zero od braku wartości. Przy pierwszym odczycie licznika różnicowego zbieramy bazę; nie publikujemy fikcyjnego zera. Czas monotoniczny służy do różnic liczników; czas kalendarzowy do dat w UI i retencji. Po uśpieniu resetujemy bazę tam, gdzie liczniki nie zapewniają poprawnej różnicy.
+Model metryki musi rozróżniać poprawne zero od braku wartości. Przy pierwszym odczycie licznika różnicowego zbieramy bazę; nie publikujemy fikcyjnego zera. Czas monotoniczny uwzględniający sen (mach_continuous_time) służy do różnic liczników i retencji metryk; czas kalendarzowy do dat w UI. Po uśpieniu resetujemy bazę tam, gdzie liczniki nie zapewniają poprawnej różnicy.
 
 Seria przy interwale 1 s zawiera około 300 punktów na metrykę. Zmiana interwału nie wydłuża okna ponad 5 minut. Współdzielona historia jest niezależna od tego, czy wskaźnik w pasku menu jest włączony.
 
@@ -92,9 +92,17 @@ NetworkService i MetricsService w Core są obserwowalne na MainActor. Kontrolery
 
 Core zawiera MMHardware (C): wyłącznie odczyty Mach CPU/VM i IOKit AGX. HardwareMetricsSampler jest actorem serializującym odczyty. Generacja żądania chroni UI przed wynikiem sprzed uśpienia, następna próbka CPU wymaga nowej bazy. MetricsService nie rozpoczyna kolejnego odczytu przed zakończeniem poprzedniego; po trzech interwałach pokazuje stale bez wartości. Adapter mocy nie jest aktywny, brak SMC w produkcyjnym targetcie.
 
-Snapshot metryk zawiera czas kalendarzowy, uptime, źródło, status, jednostkę wynikającą z rodzaju metryki, opcjonalną wartość i pojemność RAM. Brak jeszcze bufora historii i wykresów (krok 4). Definicja pamięci: (internal − purgeable + wired + physical compressor) × pageSize; cache plików i logiczna wielkość danych skompresowanych nie są dodawane do użytej pamięci. Nie jest to presja pamięci ani suma RSS procesów.
+Snapshot metryk zawiera czas kalendarzowy, uptime, źródło, status, jednostkę wynikającą z rodzaju metryki, opcjonalną wartość i pojemność RAM. Krok 4 dodał bufor historii i wykresy opisane poniżej. Definicja pamięci: (internal − purgeable + wired + physical compressor) × pageSize; cache plików i logiczna wielkość danych skompresowanych nie są dodawane do użytej pamięci. Nie jest to presja pamięci ani suma RSS procesów.
 
 Debug --ui-testing wyłącza kontrolery i korzysta z osobnej domeny ustawień. Dodatkowe --live-metrics uruchamia wyłącznie pomiary lokalne do testu GUI. Release ignoruje te flagi. Kontrolery nie uruchamiają narzędzi CLI, nie wymagają sudo i nie proszą o uprawnienia schowka ani scrolla.
+
+## Historia i wykresy — krok 4
+
+MetricsService przechowuje MetricsHistory w RAM. Okno to (teraz − 300 s, teraz]; zegar MetricsTime opiera się na mach_continuous_time i uwzględnia uśpienie, bez zależności od zegara kalendarzowego. Pole snapshot.uptime używa tego samego zegara. Usuwanie wygasłych próbek odbywa się przy odczycie, każdym tyknięciu kontrolera oraz powiadomieniu sleep/wake. Nie ma zapisu na dysk ani odtwarzania po restarcie. Typowy bufor zawiera do 300 snapshotów przy interwale 1 s.
+
+Każda metryka tworzy osobne segmenty: brak dostępnej wartości, zmiana źródła lub interwału, przerwa dłuższa niż 1,5 interwału oraz sleep/wake przerywają linię. Poprawne zero pozostaje punktem; stale nie dopisuje powtórzonej wartości. Zmiana interwału unieważnia trwający odczyt i resetuje bazę CPU, utrzymując blokadę równoległych odczytów do zakończenia poprzedniego.
+
+MetricsHistoryView korzysta wyłącznie z historii wspólnej usługi. Swift Charts rysuje osobne serie liniowe i punkty, ze stałą osią −5 min…Teraz, skalą 0–100% dla CPU/GPU oraz GiB dla RAM. Minimum, maksimum i liczba próbek odnoszą się do wybranej metryki w zachowanym oknie. Moc ma pusty stan, dopóki nie istnieje zweryfikowane źródło. Nie interpolujemy przez przerwy i nie animujemy wartości pomiarów.
 
 ## Docelowa struktura kodu
 

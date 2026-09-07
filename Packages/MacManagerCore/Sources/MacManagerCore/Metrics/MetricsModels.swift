@@ -35,6 +35,7 @@ public struct MetricReading: Equatable, Sendable {
 
 public struct MetricsSnapshot: Sendable {
     public let timestamp: Date
+    /// Seconds from MetricsTime, including sleep (not ProcessInfo.systemUptime).
     public let uptime: TimeInterval
     public let readings: [MetricKind: MetricReading]
     public let physicalMemory: UInt64

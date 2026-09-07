@@ -25,7 +25,7 @@ final class MetricsController {
         loop = Task { [weak self] in
             while !Task.isCancelled {
                 guard let self else { return }
-                let now = ProcessInfo.processInfo.systemUptime
+                let now = MetricsTime.now()
                 self.service.checkFreshness(now: now)
                 if self.previousInterval != self.service.interval {
                     self.previousInterval = self.service.interval; self.nextSample = 0

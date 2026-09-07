@@ -4,7 +4,7 @@
 
 A free, open-source macOS utility for Apple Silicon, designed to combine system monitoring, independent mouse scrolling, and a notch-area panel for clipboard history and local music controls.
 
-**Status: Stage 1 in development.** A native SwiftUI app shell is available with Overview, Network and Settings, an immediately applied PL/EN language preference, and dark Liquid Glass controls. Local/public IPv4 lookup, address copying and network status are connected. Additional VPN egress addresses remain explicitly unresolved. CPU/GPU/RAM readings are live, with a persistent 1/2/5-second sampling preference. Whole-device power has no verified source and is unavailable. Charts and remaining system integrations are not connected yet. The delivery table below describes planned features; no public release is available.
+**Status: Stage 1 in development.** A native SwiftUI app shell is available with Overview, Network and Settings, an immediately applied PL/EN language preference, and dark Liquid Glass controls. Local/public IPv4 lookup, address copying and network status are connected. Additional VPN egress addresses remain explicitly unresolved. CPU/GPU/RAM readings are live, with a persistent 1/2/5-second sampling preference. Whole-device power has no verified source and is unavailable. Five-minute Swift Charts history is stored only in memory, with gaps for missing readings, sleep and interval changes. Remaining system integrations are not connected yet. The delivery table below describes planned features; no public release is available.
 
 ## Product principles
 
@@ -15,7 +15,7 @@ A free, open-source macOS utility for Apple Silicon, designed to combine system 
 - No accounts, ads, telemetry, automatic crash uploads, or application-managed cloud sync.
 - Official releases will remain free. The project is licensed under MIT.
 
-**Next:** five-minute charts and in-memory history (Stage 1, step 4). See the [current project status](docs/10-stan-projektu.md) for the complete order and remaining validation.
+**Next:** reliable mouse/trackpad classification and independent mouse scrolling (Stage 1, step 6). See the [current project status](docs/10-stan-projektu.md) for the complete order and remaining validation.
 
 ## Planned delivery
 
@@ -48,7 +48,7 @@ open /tmp/macmanager-app-build/Build/Products/Debug/MacManager.app
 
 Local builds use ad-hoc signing with the development bundle identifier `dev.macmanager.MacManager`. They are not signed/notarized distribution artifacts. Hardened Runtime is configured for future distribution signing; Xcode disables it for ad-hoc builds.
 
-Test the preferences package and navigation/language UI flows:
+Test Core logic and navigation, language and live-chart UI flows:
 
 ```sh
 swift test --package-path Packages/MacManagerCore
@@ -68,7 +68,7 @@ swift run --package-path Prototypes/Stage1 mac-manager-probe metrics
 
 See the [prototype instructions](Prototypes/Stage1/README.md) and [initial findings](docs/reports/etap-1-krok-1.md). Hardware availability is partially verified; power semantics, device classification and VPN coverage remain under investigation.
 
-See [network implementation](docs/reports/etap-1-krok-5.md) and [metrics implementation](docs/reports/etap-1-krok-3.md) for tested behavior and remaining hardware validation.
+See [network implementation](docs/reports/etap-1-krok-5.md), [metrics implementation](docs/reports/etap-1-krok-3.md) and [history implementation](docs/reports/etap-1-krok-4.md) for tested behavior and remaining hardware validation.
 
 ## Privacy by design
 

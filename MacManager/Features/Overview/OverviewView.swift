@@ -7,7 +7,16 @@ struct OverviewView: View {
     var body: some View {
         let strings = state.strings
         VStack(alignment: .leading, spacing: 28) {
-            PageHeading(title: strings("overview.title"), subtitle: strings("overview.subtitle"))
+            HStack(alignment: .top, spacing: 20) {
+                PageHeading(title: strings("overview.title"), subtitle: strings("overview.subtitle"))
+                Spacer(minLength: 0)
+                Button { state.section = .network } label: {
+                    Label(strings("overview.openNetwork"), systemImage: "arrow.right")
+                        .padding(.horizontal, 8).padding(.vertical, 5)
+                }
+                .buttonStyle(.glass)
+                .accessibilityIdentifier("overview.openNetwork")
+            }
             Surface {
                 HStack(spacing: 22) {
                     Image(systemName: "macbook")
@@ -38,6 +47,8 @@ struct OverviewView: View {
                                   detail: strings("metric.power"))
             }
             Divider()
+            MetricsHistoryView()
+            Divider()
             Label(strings("metrics.power.unverified"), systemImage: "info.circle")
                 .font(.callout)
                 .foregroundStyle(.secondary)
@@ -46,12 +57,6 @@ struct OverviewView: View {
             Text(strings("metrics.memory.definition"))
                 .font(.caption).foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
-            Button { state.section = .network } label: {
-                Label(strings("overview.openNetwork"), systemImage: "arrow.right")
-                    .padding(.horizontal, 8).padding(.vertical, 5)
-            }
-            .buttonStyle(.glass)
-            .accessibilityIdentifier("overview.openNetwork")
         }
     }
 }

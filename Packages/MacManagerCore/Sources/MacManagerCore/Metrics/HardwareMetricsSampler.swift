@@ -10,7 +10,7 @@ public actor HardwareMetricsSampler: MetricsSampling {
     public func reset() { previous = nil; previousTime = nil }
 
     public func sample() -> MetricsSnapshot {
-        let start = ProcessInfo.processInfo.systemUptime
+        let start = MetricsTime.now()
         var readings: [MetricKind: MetricReading] = [:]
         var raw = MMCPUTicks()
         if mm_cpu_read(&raw) == 0 {
@@ -39,6 +39,6 @@ public actor HardwareMetricsSampler: MetricsSampling {
         // PSTR semantics are unverified. Production never substitutes CPU/GPU power or probes SMC here.
         readings[.power] = MetricReading(kind: .power, status: .unavailable, source: "")
         return MetricsSnapshot(uptime: start, readings: readings, physicalMemory: memoryStatus == 0 ? memory.physical_bytes : 0,
-                               collectionMilliseconds: (ProcessInfo.processInfo.systemUptime - start) * 1000)
+                               collectionMilliseconds: (MetricsTime.now() - start) * 1000)
     }
 }

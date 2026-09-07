@@ -39,7 +39,7 @@ private actor ImmediateSampler: MetricsSampling {
 }
 
 @MainActor @Test func freshnessDependsOnSamplingInterval() async {
-    let service = MetricsService(sampler: ImmediateSampler())
+    let service = MetricsService(sampler: ImmediateSampler(), now: { 10 })
     await service.collect()
     service.checkFreshness(now: 15.9)
     #expect(service.snapshot[.cpu].status == .available)
@@ -72,7 +72,7 @@ private actor DeferredSampler: MetricsSampling {
 
 @MainActor @Test func samplerDoesNotOverlapAndDropsPreSleepResult() async {
     let sampler = DeferredSampler()
-    let service = MetricsService(sampler: sampler)
+    let service = MetricsService(sampler: sampler, now: { 20 })
     let first = Task { await service.collect() }
     while !(await sampler.ready()) { await Task.yield() }
     await service.collect()
@@ -103,4 +103,23 @@ private actor DeferredSampler: MetricsSampling {
     #expect(restored.samplingInterval == .five && !restored.publicIPEnabled)
     defaults.set(7, forKey: "preferences.samplingInterval")
     #expect(PreferencesStore(defaults: defaults).samplingInterval == .two)
+}
+
+@MainActor @Test func intervalChangeRejectsPendingSampleWithoutOverlapping() async {
+    let sampler = DeferredSampler()
+    let service = MetricsService(sampler: sampler, now: { 20 })
+    let first = Task { await service.collect() }
+    while !(await sampler.ready()) { await Task.yield() }
+    service.setInterval(.five)
+    await service.collect()
+    #expect(await sampler.samples == 1)
+    await sampler.complete()
+    await first.value
+    #expect(service.history.count == 0)
+    let second = Task { await service.collect() }
+    while !(await sampler.ready()) { await Task.yield() }
+    await sampler.complete()
+    await second.value
+    #expect(service.history.count == 1)
+    #expect(await sampler.resets == 2)
 }
