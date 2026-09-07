@@ -8,6 +8,20 @@ Okno: boczna nawigacja „Przegląd”, „Sieć”, od fazy 2 „Czujniki”, o
 
 Liquid Glass jest natywną warstwą interfejsu i kontrolek, nie nakładką utrudniającą odczyt wykresów. Ciemny motyw obowiązuje również w panelach AppKit należących do aplikacji. Systemowe okna uprawnień pozostają pod kontrolą macOS.
 
+## Liquid Glass — domyślny materiał od macOS 26
+
+Minimalny system to macOS 26, więc używamy nowych API bez ścieżki zgodności ze starszym macOS i bez przełącznika włączającego Liquid Glass. System może ograniczyć przezroczystość lub animacje zgodnie z preferencjami dostępności użytkownika; aplikacja tego nie omija.
+
+Kompozycja: ciemna powierzchnia robocza, typografia systemowa i jeden akcent. Sekcje danych rozdzielają odstępy i separatory, bez mozaiki dekoracyjnych kart. Nagłówki opisują zadanie lub stan. Natywne animacje przycisków i panelu bocznego sygnalizują interakcję, bez ciągłych efektów w tle.
+
+| Miejsce | Sposób użycia | Etap |
+| --- | --- | --- |
+| Nawigacja boczna i pasek narzędzi | Standardowe NavigationSplitView, SidebarCommands i ToolbarItem, z wyglądem dostarczanym przez macOS 26. Bez dodatkowej szklanej nakładki. | 1, szkielet |
+| Akcja otwarcia szczegółów sieci | Natywny styl przycisku .glass; system obsługuje stany interakcji i dostępność. | 1, szkielet |
+| Metryki, adresy, wykresy i opisy | Czytelna powierzchnia treści; szkło w kontrolkach, bez rozmywania samych danych. | 1 |
+| Panel paska menu | Systemowe materiały panelu i szklane akcje; bez nakładania kilku warstw szkła. | 1, integracja systemowa |
+| Rozwinięta wyspa | Materiał panelu i grupy akcji; dobór kontrastu na rzeczywistym tle. Zwinięty stan nadal pusty. | 3 |
+
 ## Pasek menu i Dock
 
 Ikona zawsze pozwala otworzyć panel. Kolejność opcjonalnych wskaźników: CPU, RAM, W, temperatura CPU, temperatura GPU, wentylatory. Temperatury i RPM dostępne od fazy 2. Szerokości wartości powinny być stabilne, aby pasek nie przesuwał się przy każdym pomiarze.

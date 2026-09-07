@@ -2,7 +2,7 @@
 
 Mac Manager is a free, open-source macOS utility for Apple Silicon. It brings system monitoring, independent mouse scrolling, and—later—a notch-area panel for clipboard history and local music controls into one native app.
 
-**Status: approved specification and initial Stage 1 feasibility prototypes. No GUI application or installable release yet.** The product features below are planned, not shipped.
+**Status: Stage 1 in development.** A native SwiftUI app shell is available with Overview, Network and Settings, an immediately applied PL/EN language preference, and dark Liquid Glass controls. Live metrics, address lookup and system integrations are not connected yet. The delivery table below describes planned features; no public release is available.
 
 ## Product principles
 
@@ -31,7 +31,31 @@ The intended release format is a signed and notarized DMG published through GitH
 
 Mac Manager will check GitHub Releases at most once a week by default, with a manual check and an option to disable automatic checks. Updates will open the release page for manual DMG installation; Homebrew and Sparkle are not the update mechanism.
 
-There is no application download yet: an Xcode GUI project has not been created. The standalone Swift CLI probes can be built and tested:
+## Build and run locally
+
+Requires Apple Silicon, macOS 26+ and Xcode 26+ selected with `xcode-select`. Open `MacManager.xcodeproj`, select the shared **MacManager** scheme and run on **My Mac**. The app uses a local Swift package and has no third-party dependencies or project generator.
+
+```sh
+xcodebuild -project MacManager.xcodeproj -scheme MacManager \
+  -configuration Debug -destination 'platform=macOS,arch=arm64' \
+  -derivedDataPath /tmp/macmanager-app-build build
+open /tmp/macmanager-app-build/Build/Products/Debug/MacManager.app
+```
+
+Local builds use ad-hoc signing with the development bundle identifier `dev.macmanager.MacManager`. They are not signed/notarized distribution artifacts. Hardened Runtime is configured for future distribution signing; Xcode disables it for ad-hoc builds.
+
+Test the preferences package and navigation/language UI flows:
+
+```sh
+swift test --package-path Packages/MacManagerCore
+xcodebuild -project MacManager.xcodeproj -scheme MacManager \
+  -configuration Debug -destination 'platform=macOS,arch=arm64' \
+  -derivedDataPath /tmp/macmanager-app-build -parallel-testing-enabled NO test
+```
+
+UI tests launch the app and use an isolated preferences domain. Allow the Xcode test runner to control the Mac if macOS requests permission. Application content switches language immediately; macOS-owned menus and dialogs follow system localization. Shortcuts: ⌘1 Overview, ⌘2 Network, ⌘, Settings.
+
+The standalone feasibility probes are separate from the GUI:
 
 ```sh
 swift test --package-path Prototypes/Stage1

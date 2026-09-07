@@ -78,7 +78,15 @@ Odświeżenie przy starcie/wznowieniu usługi, zmianie sieci po 2 s stabilizacji
 
 VPN: brak skanowania internetowych celów ani uruchamiania innych aplikacji w celu wykrywania ich tras. Przypisanie żądania do interfejsu to tylko kandydat do prototypu. Wynik wolno opisać nazwą tunelu dopiero po potwierdzeniu ścieżki. Sam obecny utun, odpowiedź serwera ani adres bramy nie dowodzą osobnego publicznego IP. Jeśli adapter nie potrafi tego wykazać, zwraca unknown.
 
-## Struktura przyszłego kodu
+## Zaimplementowany szkielet — krok 2
+
+MacManager.xcodeproj zawiera target aplikacji i testy UI oraz współdzielony scheme MacManager. Lokalne Packages/MacManagerCore dostarcza AppLanguage i PreferencesStore (Observation, MainActor, wstrzykiwany UserDefaults). AppState utrzymuje nawigację i jedną instancję ustawień; AppStrings wybiera PL/EN z kompilowanego String Catalog, dzięki czemu zmiana treści jest natychmiastowa. SwiftUI Locale odpowiada za formatowanie. Systemowe menu i okna macOS zachowują język systemu.
+
+App/ zawiera scenę pojedynczego okna, nawigację, komendy i motyw. Features/ zawiera Przegląd, Sieć i Ustawienia. Widoki nie uruchamiają prototypów CLI ani usług pomiarowych. Brak danych jest jawny, fizyczna pojemność RAM pochodzi z ProcessInfo. Jedynym zapisywanym ustawieniem jest obecnie język. W Debug flagi --ui-testing i --reset-preferences izolują ustawienia testów od profilu użytkownika; w Release nie są obsługiwane.
+
+Konfiguracja: arm64, minimalny macOS 26.0, Swift 6, bez zależności zewnętrznych i generatora projektu. Identyfikator rozwojowy: dev.macmanager.MacManager. Podpis lokalny ad-hoc, bez skonfigurowanego Developer ID. ENABLE_HARDENED_RUNTIME jest włączone w projekcie, lecz Xcode wyłącza Hardened Runtime przy ad-hoc signing; weryfikacja podpisanego wydania pozostaje osobną bramką.
+
+## Docelowa struktura kodu
 
 ~~~text
 MacManager/
@@ -99,5 +107,5 @@ MacManagerUITests/
 docs/
 ~~~
 
-To projekt struktury, nie katalogi istniejącej implementacji. Poszczególne funkcje dodajemy w przypisanych fazach. Test doubles dla zegara, adapterów, pasteboardu, repozytorium i HTTP umożliwiają sprawdzenie awarii bez prawdziwych danych użytkownika.
+Istnieją App/, Features/Overview, Network, Settings, Resources, lokalny Core i MacManagerUITests. Pozostałe katalogi i funkcje dodajemy w przypisanych krokach i fazach. Test doubles dla zegara, adapterów, pasteboardu, repozytorium i HTTP umożliwiają sprawdzenie awarii bez prawdziwych danych użytkownika.
 
