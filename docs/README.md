@@ -1,6 +1,6 @@
 # Dokumentacja Mac Manager
 
-Status: wymagania zatwierdzone przez właściciela projektu po wywiadzie Q1–Q28 i końcowym potwierdzeniu. Dokumentacja opisuje plan aplikacji, nie gotowy produkt. Data opracowania: 2026-09-07.
+Status: wymagania zatwierdzone przez właściciela projektu po wywiadzie Q1–Q28 i końcowym potwierdzeniu. Dokumentacja opisuje plan aplikacji, nie gotowy produkt. Data opracowania: 2026-09-07. Aktualizacja 2026-09-08: dodano prototypy CLI etapu 1 i raport częściowej walidacji P01–P04.
 
 ## Mapa dokumentów
 
@@ -15,6 +15,7 @@ Status: wymagania zatwierdzone przez właściciela projektu po wywiadzie Q1–Q2
 | [Wydania](07-wydania.md) | DMG, GitHub Releases, aktualizacje, MIT i opcjonalny Homebrew. |
 | [Rejestr decyzji](08-decyzje.md) | Zatwierdzone decyzje i drzewo zależności. |
 | [Praca z repozytorium](09-praca-z-repozytorium.md) | Lokalne hooki, Conventional Commits, instalacja i testy. |
+| [Raport prototypów](reports/etap-1-krok-1.md) | Wyniki pierwszych uruchomień etapu 1 i brakujące dowody. |
 
 ## Jak czytać ustalenia
 
@@ -24,7 +25,7 @@ Status: wymagania zatwierdzone przez właściciela projektu po wywiadzie Q1–Q2
 
 Wszystkie trzy fazy są częścią wizji. Nie należy aktywować obserwacji schowka ani integracji muzycznych przed fazą 3. Moc w W pozostaje w fazie 1, mimo że korzysta z warstwy odczytu sprzętu rozszerzanej w fazie 2.
 
-Środowisko rozpoznane lokalnie: MacBook Pro Mac16,8, Apple M4 Pro, 24 GB RAM, macOS 26.6.2. Jest to punkt startowy testów, nie dowód zgodności ze wszystkimi Macami Apple Silicon. Nie uruchomiono prototypów czujników ani testów aplikacji.
+Środowisko rozpoznane lokalnie: MacBook Pro Mac16,8, Apple M4 Pro, 24 GB RAM, macOS 26.6.2. Jest to punkt startowy testów, nie dowód zgodności ze wszystkimi Macami Apple Silicon. Wyniki uruchomionych prototypów i testów logiki są w raporcie; testy aplikacji GUI pozostają planowane.
 
 ## Granice opracowania
 

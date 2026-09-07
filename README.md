@@ -2,8 +2,7 @@
 
 Mac Manager is a free, open-source macOS utility for Apple Silicon. It brings system monitoring, independent mouse scrolling, and—later—a notch-area panel for clipboard history and local music controls into one native app.
 
-> [!IMPORTANT]
-> The project is in active development. The `main` branch currently contains the approved product specification and repository foundation; it does not contain an installable release yet. Implementation is developed on feature branches and proposed through pull requests.
+**Status: approved specification and initial Stage 1 feasibility prototypes. No GUI application or installable release yet.** The product features below are planned, not shipped.
 
 ## Product principles
 
@@ -32,7 +31,20 @@ The intended release format is a signed and notarized DMG published through GitH
 
 Mac Manager will check GitHub Releases at most once a week by default, with a manual check and an option to disable automatic checks. Updates will open the release page for manual DMG installation; Homebrew and Sparkle are not the update mechanism.
 
-There is currently no supported download or build command on `main`. Installation instructions will be added with the first test release.
+There is no application download yet: an Xcode GUI project has not been created. The standalone Swift CLI probes can be built and tested:
+
+```sh
+swift test --package-path Prototypes/Stage1
+swift run --package-path Prototypes/Stage1 mac-manager-probe metrics
+```
+
+See the [prototype instructions](Prototypes/Stage1/README.md) and [initial findings](docs/reports/etap-1-krok-1.md). Hardware availability is partially verified; power semantics, device classification and VPN coverage remain under investigation.
+
+## Privacy by design
+
+No accounts, ads, telemetry, automatic crash-report uploads, or application-managed cloud sync. Settings, charts, and clipboard history stay local.
+
+Public IPv4 discovery and release checks contact external HTTPS services, which necessarily see the request's source IP. Local storage does not mean the application makes no network requests. See the [privacy and data design](docs/05-dane-i-prywatnosc.md).
 
 ## Documentation
 
@@ -48,7 +60,7 @@ The detailed specification is written in Polish:
 - [Distribution plan](docs/07-wydania.md)
 - [Decision log](docs/08-decyzje.md)
 
-The documents distinguish approved requirements, engineering decisions, and capabilities that still require validation. Planned behavior is not presented as a shipped feature.
+These documents distinguish approved requirements, engineering choices, and capabilities requiring further validation. Prototype results do not imply completed product features.
 
 ## Contributing
 

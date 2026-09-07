@@ -6,7 +6,7 @@ Trzy fazy są zatwierdzone. W ramach każdej zaczynamy od rozpoznania zależnoś
 
 Moc w W jest częścią fazy 1. Temperatury i RPM trafiają do fazy 2. Cała historia schowka i integracje muzyczne, również w zwykłym oknie, trafiają dopiero do fazy 3.
 
-Status wszystkich zadań poniżej: planowane. Ta dokumentacja nie stanowi raportu wykonanych testów.
+Aktualizacja 2026-09-08: zaimplementowano narzędzia CLI dla kroku 1 i wykonano pierwsze próby P01–P04; szczegóły i brakujące dowody w [raporcie](reports/etap-1-krok-1.md). Prototypy są w toku walidacji. Zadania F1-01–F1-09 i późniejsze fazy pozostają planowane.
 
 ## Prototypy i bramki techniczne
 
@@ -95,4 +95,3 @@ Nie robić testu akceptacyjnego samego poboru W z odczytu aplikacji, która mier
 ## Definicja ukończenia fazy
 
 Kod i istotne testy przechodzą; scenariusze przypisane do fazy mają wynik; pozostałe ograniczenia są jawne i zgodne z zakresem. Dokumentacja, tłumaczenia i release notes odpowiadają rzeczywistemu buildowi. Brak sekretów i danych użytkownika w artefaktach. Nie oznaczać fazy jako ukończonej samym przygotowaniem dokumentacji.
-
