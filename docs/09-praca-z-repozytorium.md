@@ -6,7 +6,9 @@ Wszystkie nowe commity muszą stosować projektową konwencję opartą na [Conve
 
 Stosujemy prefiksy opisujące rodzaj pracy: feat/, fix/, docs/, chore/ lub refactor/. Nie stosujemy prefiksu codex/.
 
-Dla etapu 1 branch integracyjny to feat/stage-1. Pierwszy krok jest rozwijany na osobnym feat/stage-1-step-1-prototypes, wyprowadzonym z brancha etapu. Kolejne kroki otrzymują osobne branche; scalenie następuje po sprawdzeniu zmian, bez automatycznego scalania do main.
+Cały etap rozwijamy na jednym docelowym branchu: dla etapu 1 jest to feat/stage-1. Kolejne kroki trafiają bezpośrednio na ten branch jako osobne logiczne commity. Nie tworzymy branchy poszczególnych kroków i nie scalamy automatycznie do main.
+
+Historia prototypów kroku 1 została zachowana przez fast-forward do feat/stage-1. Pomocnicze branche kroków 1 i 2 usunięto po zmianie sposobu pracy zatwierdzonej przez właściciela projektu.
 
 ## Instalacja lokalna
 

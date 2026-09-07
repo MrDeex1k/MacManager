@@ -2,7 +2,7 @@
 
 Data: 2026-09-08. Stan: narzędzia zaimplementowane, pierwsze odczyty wykonane, walidacja sprzętowa częściowa.
 
-Branch etapu: feat/stage-1. Branch prac: feat/stage-1-step-1-prototypes, utworzony z brancha etapu. Zmiany nie są scalone do etapu ani main.
+Branch etapu: feat/stage-1. Pierwotny branch feat/stage-1-step-1-prototypes scalono przez fast-forward do brancha etapu i usunięto. Od kroku 2 cały etap rozwijamy bezpośrednio na feat/stage-1; zmiany nie są scalone do main.
 
 ## Środowisko i metoda
 
