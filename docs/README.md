@@ -1,6 +1,6 @@
 # Dokumentacja Mac Manager
 
-Status: wymagania zatwierdzone przez właściciela projektu po wywiadzie Q1–Q28 i końcowym potwierdzeniu. Dokumentacja opisuje plan aplikacji, nie gotowy produkt. Data opracowania: 2026-09-07. Aktualizacja 2026-09-08: prototypy CLI i częściowa walidacja P01–P04; gotowy szkielet aplikacji SwiftUI (krok 2 / F1-01), PL/EN i domyślny Liquid Glass. Dodano obsługę sieci (krok 5); pomiary i integracje systemowe pozostają planowane.
+Status: wymagania zatwierdzone przez właściciela projektu po wywiadzie Q1–Q28 i końcowym potwierdzeniu. Dokumentacja opisuje plan aplikacji, nie gotowy produkt. Data opracowania: 2026-09-07. Aktualizacja 2026-09-08: prototypy CLI i częściowa walidacja P01–P04; gotowy szkielet aplikacji SwiftUI (krok 2 / F1-01), PL/EN i domyślny Liquid Glass. Dodano obsługę sieci (krok 5); dodano bieżące pomiary CPU/GPU/RAM (krok 3). Wykresy i dalsze integracje systemowe pozostają planowane.
 
 ## Mapa dokumentów
 
@@ -18,7 +18,7 @@ Status: wymagania zatwierdzone przez właściciela projektu po wywiadzie Q1–Q2
 | [Raport prototypów](reports/etap-1-krok-1.md) | Wyniki pierwszych uruchomień etapu 1 i brakujące dowody. |
 | [Raport szkieletu](reports/etap-1-krok-2.md) | Projekt Xcode, lokalny Core, interfejs i wyniki testów kroku 2. |
 
-[Raport sieci — krok 5](reports/etap-1-krok-5.md).
+[Raport sieci — krok 5](reports/etap-1-krok-5.md) oraz [raport pomiarów — krok 3](reports/etap-1-krok-3.md).
 
 ## Jak czytać ustalenia
 

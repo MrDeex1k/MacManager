@@ -86,6 +86,16 @@ App/ zawiera scenę pojedynczego okna, nawigację, komendy i motyw. Features/ za
 
 Konfiguracja: arm64, minimalny macOS 26.0, Swift 6, bez zależności zewnętrznych i generatora projektu. Identyfikator rozwojowy: dev.macmanager.MacManager. Podpis lokalny ad-hoc, bez skonfigurowanego Developer ID. ENABLE_HARDENED_RUNTIME jest włączone w projekcie, lecz Xcode wyłącza Hardened Runtime przy ad-hoc signing; weryfikacja podpisanego wydania pozostaje osobną bramką.
 
+## Zaimplementowane usługi — kroki 5 i 3
+
+NetworkService i MetricsService w Core są obserwowalne na MainActor. Kontrolery w Platform/Network i Platform/Metrics uruchamiają po jednej pętli na AppState i reagują na sleep/wake. Nawigacja nie tworzy dodatkowych samplerów. Start następuje przy pierwszym otwarciu okna; zamknięcie okna nie kończy procesu. Pełny autostart i integracja menu/Dock pozostają w kroku 7.
+
+Core zawiera MMHardware (C): wyłącznie odczyty Mach CPU/VM i IOKit AGX. HardwareMetricsSampler jest actorem serializującym odczyty. Generacja żądania chroni UI przed wynikiem sprzed uśpienia, następna próbka CPU wymaga nowej bazy. MetricsService nie rozpoczyna kolejnego odczytu przed zakończeniem poprzedniego; po trzech interwałach pokazuje stale bez wartości. Adapter mocy nie jest aktywny, brak SMC w produkcyjnym targetcie.
+
+Snapshot metryk zawiera czas kalendarzowy, uptime, źródło, status, jednostkę wynikającą z rodzaju metryki, opcjonalną wartość i pojemność RAM. Brak jeszcze bufora historii i wykresów (krok 4). Definicja pamięci: (internal − purgeable + wired + physical compressor) × pageSize; cache plików i logiczna wielkość danych skompresowanych nie są dodawane do użytej pamięci. Nie jest to presja pamięci ani suma RSS procesów.
+
+Debug --ui-testing wyłącza kontrolery i korzysta z osobnej domeny ustawień. Dodatkowe --live-metrics uruchamia wyłącznie pomiary lokalne do testu GUI. Release ignoruje te flagi. Kontrolery nie uruchamiają narzędzi CLI, nie wymagają sudo i nie proszą o uprawnienia schowka ani scrolla.
+
 ## Docelowa struktura kodu
 
 ~~~text

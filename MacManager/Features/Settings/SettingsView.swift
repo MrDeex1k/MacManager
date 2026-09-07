@@ -41,6 +41,21 @@ struct SettingsView: View {
                 }
             }
             Divider()
+            HStack {
+                Text(strings("metrics.interval")).font(.headline)
+                Spacer()
+                Picker(strings("metrics.interval"), selection: $preferences.samplingInterval) {
+                    ForEach(SamplingInterval.allCases) { interval in
+                        Text("\(interval.rawValue) s").tag(interval)
+                    }
+                }
+                .labelsHidden().frame(width: 185)
+                .accessibilityIdentifier("metrics.interval")
+                .onChange(of: preferences.samplingInterval) { _, interval in
+                    state.metrics.setInterval(interval)
+                }
+            }
+            Divider()
             Surface {
                 VStack(alignment: .leading, spacing: 12) {
                     Label(strings("settings.privacy.title"), systemImage: "lock.shield")

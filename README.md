@@ -2,7 +2,7 @@
 
 Mac Manager is a free, open-source macOS utility for Apple Silicon. It brings system monitoring, independent mouse scrolling, and—later—a notch-area panel for clipboard history and local music controls into one native app.
 
-**Status: Stage 1 in development.** A native SwiftUI app shell is available with Overview, Network and Settings, an immediately applied PL/EN language preference, and dark Liquid Glass controls. Local/public IPv4 lookup, address copying and network status are connected. Additional VPN egress addresses remain explicitly unresolved. Live metrics and system integrations are not connected yet. The delivery table below describes planned features; no public release is available.
+**Status: Stage 1 in development.** A native SwiftUI app shell is available with Overview, Network and Settings, an immediately applied PL/EN language preference, and dark Liquid Glass controls. Local/public IPv4 lookup, address copying and network status are connected. Additional VPN egress addresses remain explicitly unresolved. CPU/GPU/RAM readings are live, with a persistent 1/2/5-second sampling preference. Whole-device power has no verified source and is unavailable. Charts and remaining system integrations are not connected yet. The delivery table below describes planned features; no public release is available.
 
 ## Product principles
 
@@ -53,7 +53,7 @@ xcodebuild -project MacManager.xcodeproj -scheme MacManager \
   -derivedDataPath /tmp/macmanager-app-build -parallel-testing-enabled NO test
 ```
 
-UI tests launch the app and use an isolated preferences domain. Allow the Xcode test runner to control the Mac if macOS requests permission. Application content switches language immediately; macOS-owned menus and dialogs follow system localization. Shortcuts: ⌘1 Overview, ⌘2 Network, ⌘, Settings.
+UI tests launch the app and use an isolated preferences domain. The live-metrics test reads local hardware; all UI tests keep network services stopped. Allow the Xcode test runner to control the Mac if macOS requests permission. Application content switches language immediately; macOS-owned menus and dialogs follow system localization. Shortcuts: ⌘1 Overview, ⌘2 Network, ⌘, Settings.
 
 The standalone feasibility probes are separate from the GUI:
 
@@ -63,6 +63,8 @@ swift run --package-path Prototypes/Stage1 mac-manager-probe metrics
 ```
 
 See the [prototype instructions](Prototypes/Stage1/README.md) and [initial findings](docs/reports/etap-1-krok-1.md). Hardware availability is partially verified; power semantics, device classification and VPN coverage remain under investigation.
+
+See [network implementation](docs/reports/etap-1-krok-5.md) and [metrics implementation](docs/reports/etap-1-krok-3.md) for tested behavior and remaining hardware validation.
 
 ## Privacy by design
 

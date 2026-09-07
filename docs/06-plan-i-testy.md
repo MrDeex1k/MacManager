@@ -6,7 +6,7 @@ Trzy fazy są zatwierdzone. W ramach każdej zaczynamy od rozpoznania zależnoś
 
 Moc w W jest częścią fazy 1. Temperatury i RPM trafiają do fazy 2. Cała historia schowka i integracje muzyczne, również w zwykłym oknie, trafiają dopiero do fazy 3.
 
-Aktualizacja 2026-09-08: zaimplementowano narzędzia CLI dla kroku 1 i wykonano pierwsze próby P01–P04; szczegóły i brakujące dowody w [raporcie](reports/etap-1-krok-1.md). Prototypy są w toku walidacji. Krok 2 (F1-01: szkielet aplikacji) jest zaimplementowany; buildy Debug/Release, testy Core i przepływy UI opisuje [raport kroku 2](reports/etap-1-krok-2.md). F1-04 wdrożono w kroku 5; pozostałe zadania i późniejsze fazy są w realizacji lub planowane.
+Aktualizacja 2026-09-08: zaimplementowano narzędzia CLI dla kroku 1 i wykonano pierwsze próby P01–P04; szczegóły i brakujące dowody w [raporcie](reports/etap-1-krok-1.md). Prototypy są w toku walidacji. Krok 2 (F1-01: szkielet aplikacji) jest zaimplementowany; buildy Debug/Release, testy Core i przepływy UI opisuje [raport kroku 2](reports/etap-1-krok-2.md). F1-04 wdrożono w kroku 5, a F1-02 w następującym po nim kroku 3; pozostałe zadania i późniejsze fazy są w realizacji lub planowane.
 
 ## Kolejność kroków etapu 1
 
@@ -14,7 +14,7 @@ Całość rozwijamy na feat/stage-1. Numer kroku obejmuje prototypy, więc krok 
 
 1. Prototypy P01–P04 — narzędzia gotowe, walidacja sprzętowa częściowa.
 2. Szkielet aplikacji F1-01 — gotowy; SwiftUI, lokalny Core, domyślny Liquid Glass, PL/EN.
-3. Usługi pomiarów F1-02.
+3. Usługi pomiarów F1-02 — zaimplementowane po kroku 5; [raport](reports/etap-1-krok-3.md). Moc pozostaje jawnie niedostępna.
 4. Wykresy i historia F1-03.
 5. Sieć F1-04 — zaimplementowana przed krokiem 3; wyniki i ograniczenia w [raporcie](reports/etap-1-krok-5.md).
 6. Scroll F1-05.

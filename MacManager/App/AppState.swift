@@ -19,6 +19,8 @@ enum AppSection: String, CaseIterable, Identifiable {
 @Observable
 final class AppState {
     let preferences: PreferencesStore
+    let metrics: MetricsService
+    @ObservationIgnored private var metricsController: MetricsController?
     let network: NetworkService
     @ObservationIgnored private var networkController: NetworkController?
     @ObservationIgnored private var started = false
@@ -34,22 +36,34 @@ final class AppState {
             }
             preferences = PreferencesStore(defaults: defaults)
             network = NetworkService(enabled: false)
+            metrics = MetricsService(interval: preferences.samplingInterval)
             return
         }
         #endif
         preferences = PreferencesStore()
         network = NetworkService(enabled: preferences.publicIPEnabled)
+        metrics = MetricsService(interval: preferences.samplingInterval)
     }
 
     func startServices() {
         guard !started else { return }
         started = true
         #if DEBUG
-        if testing { return }
+        if testing {
+            if ProcessInfo.processInfo.arguments.contains("--live-metrics") { startMetrics() }
+            return
+        }
         #endif
         let controller = NetworkController(service: network)
         networkController = controller
         controller.start()
+        startMetrics()
+    }
+
+    private func startMetrics() {
+        let metricsController = MetricsController(service: metrics)
+        self.metricsController = metricsController
+        metricsController.start()
     }
 
     var strings: AppStrings { AppStrings(languageCode: preferences.language.resolvedCode()) }

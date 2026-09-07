@@ -19,6 +19,6 @@ GUI PL/EN: LAN/publiczny IPv4, czas obserwacji, interfejsy, ograniczenia VPN, ko
 - Core: 9 testów przechodzi (4 wcześniejsze i 5 sieciowych). Walidacja IP/statusu/rozmiaru, harmonogram 900/30 s, offline, wyłączenie, sleep, nieudana odpowiedź, ochrona przed spóźnionym wynikiem i wybór LAN zamiast tunelu.
 - Build Debug oraz oba dotychczasowe scenariusze XCTest UI przechodzą. Tryb UI testing nie uruchamia rzeczywistej sieci.
 - Lokalny adapter na M4 Pro: podstawowy en0, jeden IPv4, pięć kandydatów tuneli. Raport nie zawiera adresów.
-- Zewnętrzny test ipify: oczekuje na odpowiedź właściciela po odrzuceniu wywołania przez automatyczną kontrolę uprawnień. Parser i sterowanie zapytaniami sprawdzono lokalnie.
+- Zewnętrzny test ipify: po jawnej zgodzie właściciela wykonano jedno zapytanie produkcyjnym klientem. Wynik: poprawny publiczny IPv4; adres zredagowany w logu, niezapisany w repozytorium.
 
 Nie przełączano rzeczywistego Wi-Fi, VPN ani stanu uśpienia użytkownika. Macierz zwykłego VPN, split tunnel, wielu połączeń i zmian po wybudzeniu nadal wymaga ręcznego odbioru. Implementacja nie deklaruje wykrywania wszystkich publicznych adresów komputera. Pełny etap 1 pozostaje w realizacji.

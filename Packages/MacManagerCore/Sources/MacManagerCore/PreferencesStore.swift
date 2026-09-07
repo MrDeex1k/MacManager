@@ -8,6 +8,10 @@ public final class PreferencesStore {
 
     @ObservationIgnored private let defaults: UserDefaults
 
+    public var samplingInterval: SamplingInterval {
+        didSet { defaults.set(samplingInterval.rawValue, forKey: "preferences.samplingInterval") }
+    }
+
     public var publicIPEnabled: Bool {
         didSet { defaults.set(publicIPEnabled, forKey: "preferences.publicIPEnabled") }
     }
@@ -21,6 +25,7 @@ public final class PreferencesStore {
 
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        samplingInterval = SamplingInterval(rawValue: defaults.integer(forKey: "preferences.samplingInterval")) ?? .two
         publicIPEnabled = defaults.object(forKey: "preferences.publicIPEnabled") as? Bool ?? true
         language = defaults.string(forKey: Self.languageKey).flatMap(AppLanguage.init(rawValue:)) ?? .system
     }

@@ -40,11 +40,32 @@ final class AppShellTests: XCTestCase {
     }
 
     @MainActor
-    private func launch(reset: Bool) -> XCUIApplication {
+    func testLiveMetricsAndSamplingPreference() throws {
+        var app = launch(reset: true, liveMetrics: true)
+        let current = NSPredicate(format: "value == %@", "Current")
+        expectation(for: current, evaluatedWith: app.staticTexts["metric.cpu.status"])
+        waitForExpectations(timeout: 12)
+        XCTAssertNotEqual(app.staticTexts["metric.cpu.value"].value as? String, "—")
+        XCTAssertEqual(app.staticTexts["metric.power.status"].value as? String, "Unavailable")
+        XCTAssertEqual(app.staticTexts["metric.power.value"].value as? String, "—")
+        capture("Live metrics EN", app: app)
+        app.typeKey(",", modifierFlags: .command)
+        element("metrics.interval", in: app).click()
+        app.menuItems["5 s"].click()
+        app.terminate()
+        app = launch(reset: false)
+        app.typeKey(",", modifierFlags: .command)
+        XCTAssertEqual(element("metrics.interval", in: app).value as? String, "5 s")
+        app.terminate()
+    }
+
+    @MainActor
+    private func launch(reset: Bool, liveMetrics: Bool = false) -> XCUIApplication {
         continueAfterFailure = false
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
         if reset { app.launchArguments.append("--reset-preferences") }
+        if liveMetrics { app.launchArguments.append("--live-metrics") }
         app.launch()
         app.activate()
         XCTAssertTrue(app.windows.firstMatch.waitForExistence(timeout: 10))
