@@ -2,6 +2,12 @@
 
 Wszystkie nowe commity muszą stosować projektową konwencję opartą na [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/). Dotyczy to także zmian dokumentacji i konfiguracji. Zalecany język wiadomości: angielski. Rozdzielać niezależne zmiany na osobne, logiczne commity.
 
+## Branche
+
+Stosujemy prefiksy opisujące rodzaj pracy: feat/, fix/, docs/, chore/ lub refactor/. Nie stosujemy prefiksu codex/.
+
+Dla etapu 1 branch integracyjny to feat/stage-1. Pierwszy krok jest rozwijany na osobnym feat/stage-1-step-1-prototypes, wyprowadzonym z brancha etapu. Kolejne kroki otrzymują osobne branche; scalenie następuje po sprawdzeniu zmian, bez automatycznego scalania do main.
+
 ## Instalacja lokalna
 
 Po każdym nowym klonowaniu, przed pierwszym commitem:
