@@ -4,7 +4,7 @@
 
 Pełne okno służy do wykresów i szczegółów; pasek menu do szybkiego odczytu i przełączników; wyspa od fazy 3 do schowka i muzyki. Wszystkie pokazują ten sam stan usług. Otwarcie drugiego widoku nie uruchamia drugiego zestawu pomiarów.
 
-Okno: boczna nawigacja „Przegląd”, „Sieć”, od fazy 2 „Czujniki”, od fazy 3 „Schowek”, oraz „Ustawienia”. Przegląd zawiera CPU, GPU, RAM, W i wykresy pięciominutowe. Sekcja Schowek umożliwia wygodne przeglądanie tej samej historii co wyspa, także gdy użytkownik wyłączy wyspę.
+Okno: boczna nawigacja „Przegląd”, „Sieć”, „Przewijanie”, „Dock”, od fazy 2 „Czujniki”, od fazy 3 „Schowek”, oraz „Ustawienia”. Przewijanie i Dock są osobnymi sekcjami personalizacji umieszczonymi między Siecią i Ustawieniami. Przegląd zawiera CPU, GPU, RAM, W i wykresy pięciominutowe. Sekcja Schowek umożliwia wygodne przeglądanie tej samej historii co wyspa, także gdy użytkownik wyłączy wyspę.
 
 Liquid Glass jest natywną warstwą interfejsu i kontrolek, nie nakładką utrudniającą odczyt wykresów. Ciemny motyw obowiązuje również w panelach AppKit należących do aplikacji. Systemowe okna uprawnień pozostają pod kontrolą macOS.
 

@@ -4,13 +4,15 @@ import MacManagerCore
 import Observation
 
 enum AppSection: String, CaseIterable, Identifiable {
-    case overview, network, settings
+    case overview, network, scroll, dock, settings
     var id: String { rawValue }
     var titleKey: String { "nav.\(rawValue)" }
     var symbol: String {
         switch self {
         case .overview: "square.grid.2x2"
         case .network: "network"
+        case .scroll: "computermouse"
+        case .dock: "dock.rectangle"
         case .settings: "slider.horizontal.3"
         }
     }

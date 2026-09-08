@@ -137,6 +137,20 @@
         }
       }
     },
+    "nav.scroll": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Scroll" } },
+        "pl": { "stringUnit": { "state": "translated", "value": "Przewijanie" } }
+      }
+    },
+    "nav.dock": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Dock" } },
+        "pl": { "stringUnit": { "state": "translated", "value": "Dock" } }
+      }
+    },
     "nav.settings": {
       "extractionState": "manual",
       "localizations": {
@@ -477,6 +491,40 @@
         }
       }
     },
+    "settings.dock.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dock customization"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Personalizacja Docka"
+          }
+        }
+      }
+    },
+    "settings.dock.subtitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose whether Mac Manager appears alongside your other apps."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wybierz, czy Mac Manager ma być widoczny obok pozostałych aplikacji."
+          }
+        }
+      }
+    },
     "settings.title": {
       "extractionState": "manual",
       "localizations": {
@@ -500,13 +548,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Language, appearance and privacy."
+            "value": "Language, appearance, app behavior and privacy."
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Język, wygląd i prywatność."
+            "value": "Język, wygląd, działanie aplikacji i prywatność."
           }
         }
       }
@@ -1206,6 +1254,20 @@
             "value": "Tylko w pamięci aplikacji. Przerwy oznaczają brak odczytów, uśpienie lub zmianę interwału próbkowania."
           }
         }
+      }
+    },
+    "scroll.page.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Scroll customization" } },
+        "pl": { "stringUnit": { "state": "translated", "value": "Personalizacja przewijania" } }
+      }
+    },
+    "scroll.page.subtitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Control mouse scrolling independently from the trackpad." } },
+        "pl": { "stringUnit": { "state": "translated", "value": "Steruj przewijaniem myszy niezależnie od gładzika." } }
       }
     },
     "scroll.title": {

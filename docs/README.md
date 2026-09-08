@@ -18,10 +18,11 @@ Aktualny punkt prac i kolejność kolejnych zadań: [Stan projektu](10-stan-proj
 | [Wydania](07-wydania.md) | DMG, GitHub Releases, aktualizacje, MIT i opcjonalny Homebrew. |
 | [Rejestr decyzji](08-decyzje.md) | Zatwierdzone decyzje i drzewo zależności. |
 | [Praca z repozytorium](09-praca-z-repozytorium.md) | Lokalne hooki, Conventional Commits, instalacja i testy. |
+| [Plan kroku 8](11-plan-kroku-8.md) | Aktualizacje przez GitHub Releases, lokalna diagnostyka, prywatność i testy. |
 | [Raport prototypów](reports/etap-1-krok-1.md) | Wyniki pierwszych uruchomień etapu 1 i brakujące dowody. |
 | [Raport szkieletu](reports/etap-1-krok-2.md) | Projekt Xcode, lokalny Core, interfejs i wyniki testów kroku 2. |
 
-[Raport sieci - krok 5](reports/etap-1-krok-5.md), [raport pomiarów - krok 3](reports/etap-1-krok-3.md), [raport historii - krok 4](reports/etap-1-krok-4.md), [raport scrolla - krok 6](reports/etap-1-krok-6.md), [raport modelu ustawień i cyklu życia - krok 7a](reports/etap-1-krok-7a.md), [raport paska menu - krok 7b](reports/etap-1-krok-7b.md), [raport Docka i okna - krok 7c](reports/etap-1-krok-7c.md) oraz [raport autostartu i trybu uruchomienia - krok 7d](reports/etap-1-krok-7d.md).
+[Raport sieci - krok 5](reports/etap-1-krok-5.md), [raport pomiarów - krok 3](reports/etap-1-krok-3.md), [raport historii - krok 4](reports/etap-1-krok-4.md), [raport scrolla - krok 6](reports/etap-1-krok-6.md), [raport modelu ustawień i cyklu życia - krok 7a](reports/etap-1-krok-7a.md), [raport paska menu - krok 7b](reports/etap-1-krok-7b.md), [raport Docka i okna - krok 7c](reports/etap-1-krok-7c.md), [raport autostartu i trybu uruchomienia - krok 7d](reports/etap-1-krok-7d.md) oraz [raport osobnych sekcji Docka i scrolla - krok 7e](reports/etap-1-krok-7e.md).
 
 ## Jak czytać ustalenia
 

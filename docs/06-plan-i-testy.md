@@ -21,7 +21,7 @@ Całość rozwijamy na feat/stage-1. Numer kroku obejmuje prototypy, więc krok 
 5. Sieć F1-04 - zaimplementowana przed krokiem 3; wyniki i ograniczenia w [raporcie](reports/etap-1-krok-5.md).
 6. Scroll F1-05 - zaimplementowany; automatyczne rozróżnianie z gestów dotykowych, transformacja, zgody i cykl życia; [raport](reports/etap-1-krok-6.md).
 7. Okno, pasek menu, Dock i autostart F1-06 - zaimplementowane; model ustawień, cykl życia procesu, pasek menu, opcjonalne CPU/RAM/W, Dock, `SMAppService.mainApp` i start bez okna przy logowaniu są gotowe. Próba z podpisaną aplikacją w `/Applications` pozostaje w odbiorze wydania.
-8. Aktualizacje i prywatność F1-07/F1-08.
+8. Aktualizacje, prywatność i diagnostyka F1-07/F1-08 - szczegółowy podział: [plan kroku 8](11-plan-kroku-8.md).
 9. Odbiór i wydanie F1-09.
 
 ## Prototypy i bramki techniczne

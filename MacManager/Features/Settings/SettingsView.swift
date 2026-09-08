@@ -56,8 +56,6 @@ struct SettingsView: View {
                 }
             }
             Divider()
-            ScrollSettingsView()
-            Divider()
             MenuBarSettingsView()
             Divider()
             Surface {

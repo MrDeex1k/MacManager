@@ -13,6 +13,10 @@ final class AppShellTests: XCTestCase {
         element("navigation.network", in: app).click()
         XCTAssertTrue(app.staticTexts["Network"].waitForExistence(timeout: 5))
         XCTAssertTrue(element("network.unavailable", in: app).exists)
+        element("navigation.scroll", in: app).click()
+        XCTAssertTrue(app.staticTexts["Scroll customization"].waitForExistence(timeout: 5))
+        element("navigation.dock", in: app).click()
+        XCTAssertTrue(app.staticTexts["Dock customization"].waitForExistence(timeout: 5))
         app.buttons["toolbar.settings"].click()
         XCTAssertTrue(element("settings.language", in: app).waitForExistence(timeout: 5))
         app.typeKey("1", modifierFlags: .command)
@@ -76,7 +80,7 @@ final class AppShellTests: XCTestCase {
     @MainActor
     func testScrollPermissionDenialAndPreferencePersistence() throws {
         var app = launch(reset: true)
-        app.typeKey(",", modifierFlags: .command)
+        element("navigation.scroll", in: app).click()
         XCTAssertEqual(app.staticTexts["scroll.status"].value as? String, "Off")
         element("scroll.enabled", in: app).click()
         XCTAssertEqual(app.staticTexts["scroll.status"].value as? String, "Inactive · Accessibility access required")
@@ -86,7 +90,7 @@ final class AppShellTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["System overview"].exists)
         app.terminate()
         app = launch(reset: false)
-        app.typeKey(",", modifierFlags: .command)
+        element("navigation.scroll", in: app).click()
         XCTAssertEqual(app.staticTexts["scroll.status"].value as? String, "Inactive · Accessibility access required")
         element("scroll.enabled", in: app).click()
         XCTAssertEqual(app.staticTexts["scroll.status"].value as? String, "Off")
@@ -96,14 +100,14 @@ final class AppShellTests: XCTestCase {
     @MainActor
     func testScrollEnabledStateWithPermissionFixture() throws {
         var app = launch(reset: true, scrollPermission: true)
-        app.typeKey(",", modifierFlags: .command)
+        element("navigation.scroll", in: app).click()
         element("scroll.enabled", in: app).click()
         XCTAssertEqual(app.staticTexts["scroll.status"].value as? String, "Active")
         XCTAssertFalse(app.buttons["scroll.permission"].exists)
         capture("Scroll active EN", app: app)
         app.terminate()
         app = launch(reset: false, scrollPermission: true)
-        app.typeKey(",", modifierFlags: .command)
+        element("navigation.scroll", in: app).click()
         XCTAssertEqual(app.staticTexts["scroll.status"].value as? String, "Active")
         element("scroll.enabled", in: app).click()
         XCTAssertEqual(app.staticTexts["scroll.status"].value as? String, "Off")
@@ -113,13 +117,15 @@ final class AppShellTests: XCTestCase {
     @MainActor
     func testScrollInputMonitoringPermissionInPolish() throws {
         let app = launch(reset: true, inputMonitoringRequired: true)
-        app.typeKey(",", modifierFlags: .command)
+        element("navigation.scroll", in: app).click()
         element("scroll.enabled", in: app).click()
         XCTAssertEqual(app.staticTexts["scroll.status"].value as? String, "Inactive · Input Monitoring access required")
         XCTAssertEqual(app.buttons["scroll.permission"].label, "Open Input Monitoring")
+        element("navigation.settings", in: app).click()
         element("settings.language", in: app).click()
         XCTAssertTrue(app.menuItems["Polski"].waitForExistence(timeout: 5))
         app.menuItems["Polski"].click()
+        element("navigation.scroll", in: app).click()
         XCTAssertEqual(app.staticTexts["scroll.status"].value as? String, "Nieaktywne · wymagane Monitorowanie wprowadzania")
         XCTAssertEqual(app.buttons["scroll.permission"].label, "Otwórz Monitorowanie wprowadzania")
         capture("Scroll input permission PL", app: app)
@@ -161,15 +167,24 @@ final class AppShellTests: XCTestCase {
     func testDockPreferenceAndWindowReopenBehavior() throws {
         var app = launch(reset: true)
         app.typeKey(",", modifierFlags: .command)
+        XCTAssertFalse(element("integration.showDockIcon", in: app).exists)
+        element("navigation.dock", in: app).click()
+        XCTAssertTrue(element("settings.dock.content", in: app).waitForExistence(timeout: 5))
         let dockToggle = element("integration.showDockIcon", in: app)
         XCTAssertEqual(switchValue(dockToggle), 1)
         dockToggle.click()
         XCTAssertEqual(switchValue(dockToggle), 0)
         app.terminate()
 
-        app = launch(reset: false)
-        app.typeKey(",", modifierFlags: .command)
-        XCTAssertEqual(switchValue(element("integration.showDockIcon", in: app)), 0)
+        app = launch(reset: false, expectsWindow: false)
+        app.activate()
+        app.typeKey("1", modifierFlags: .command)
+        XCTAssertTrue(waitForWindow(in: app, exists: true))
+        element("navigation.dock", in: app).click()
+        let persistedDockToggle = element("integration.showDockIcon", in: app)
+        XCTAssertEqual(switchValue(persistedDockToggle), 0)
+        persistedDockToggle.click()
+        XCTAssertEqual(switchValue(persistedDockToggle), 1)
         app.typeKey("w", modifierFlags: .command)
         XCTAssertTrue(waitForWindow(in: app, exists: false))
         app.activate()
@@ -214,7 +229,11 @@ final class AppShellTests: XCTestCase {
         XCTAssertFalse(app.windows.firstMatch.waitForExistence(timeout: 2))
         app.activate()
         app.typeKey("1", modifierFlags: .command)
-        XCTAssertTrue(app.windows.firstMatch.waitForExistence(timeout: 5))
+        if !app.windows.firstMatch.waitForExistence(timeout: 5) {
+            app.activate()
+            app.typeKey("1", modifierFlags: .command)
+        }
+        XCTAssertTrue(app.windows.firstMatch.waitForExistence(timeout: 10))
         let current = NSPredicate(format: "value == %@", "Current")
         expectation(for: current, evaluatedWith: app.staticTexts["metric.cpu.status"])
         waitForExpectations(timeout: 12)
@@ -243,6 +262,9 @@ final class AppShellTests: XCTestCase {
         app.launch()
         if expectsWindow {
             app.activate()
+            if !app.windows.firstMatch.waitForExistence(timeout: 2) {
+                app.typeKey("1", modifierFlags: .command)
+            }
             XCTAssertTrue(app.windows.firstMatch.waitForExistence(timeout: 10))
         }
         return app

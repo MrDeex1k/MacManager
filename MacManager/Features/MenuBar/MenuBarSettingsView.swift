@@ -9,27 +9,6 @@ struct MenuBarSettingsView: View {
             Label(state.strings("integration.settings.title"), systemImage: "macwindow.on.rectangle")
                 .font(.headline)
             HStack {
-                Text(state.strings("integration.dock"))
-                Spacer()
-                Toggle("", isOn: Binding(
-                    get: { preferences.appIntegration.showsDockIcon },
-                    set: { state.setDockIconVisible($0) }
-                ))
-                .labelsHidden()
-                .accessibilityLabel(state.strings("integration.dock"))
-                .accessibilityIdentifier("integration.showDockIcon")
-            }
-            Text(state.strings("integration.dock.note"))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-            if state.dock.state == .failed {
-                Label(state.strings("integration.dock.failed"), systemImage: "exclamationmark.triangle")
-                    .font(.callout)
-                    .foregroundStyle(.orange)
-            }
-            Divider()
-            HStack {
                 VStack(alignment: .leading, spacing: 5) {
                     Text(state.strings("integration.loginItem"))
                     HStack(spacing: 5) {
