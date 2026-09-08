@@ -22,13 +22,13 @@ Aktualizacja: 2026-09-08. Branch roboczy całego etapu: feat/stage-1. Projekt je
 | 4 | Wykresy i historia F1-03 | Zaimplementowane; retencja i przerwy sprawdzane deterministycznie, wykresy w testach GUI. Fizyczny sleep/wake pozostaje w macierzy odbioru. |
 | 5 | Sieć F1-04 | Zaimplementowana i sprawdzona lokalnie; dodatkowe wyjścia VPN pozostają nieustalone. |
 | 6 | Scroll F1-05 | Zaimplementowany z adaptacją mechanizmu Scroll Reversera; rzeczywiste próby gładzika, myszy i zmiany urządzenia rozpoznane poprawnie, bez list modeli. |
-| 7 | Okno/menu/Dock/autostart F1-06 | Do implementacji. Okno i utrzymanie procesu już istnieją, pozostałe integracje nie. |
+| 7 | Okno/menu/Dock/autostart F1-06 | W toku. Model ustawień, trwałe domyślne wartości i koordynator start/terminate są gotowe; Dock, `SMAppService`, panel i tryb uruchomienia pozostają. |
 | 8 | Aktualizacje i prywatność F1-07/F1-08 | Do implementacji i odbioru. |
 | 9 | Testy końcowe i wydanie F1-09 | Do wykonania po wcześniejszych krokach. |
 
 ## Co dalej
 
-1. **Krok 7:** pasek menu i panel, niezależne CPU/RAM/W, pokazywanie/ukrywanie Docka, autostart przez SMAppService z rzeczywistym stanem systemu i pełny cykl życia usług.
+1. **Krok 7:** adapter Docka i otwierania okna, autostart przez SMAppService z rzeczywistym stanem systemu, pasek menu i panel z niezależnym CPU/RAM/W oraz testy uruchomienia ręcznego i przy logowaniu.
 2. **Krok 8:** tygodniowe/ręczne sprawdzanie GitHub Releases, opcja wyłączenia, otwarcie wydania do ręcznej instalacji DMG; weryfikacja prywatności i diagnostyki.
 3. **Krok 9:** ręczna macierz sprzętu/sieci/sleep/wake, dostępność i testy obciążenia, podpis Developer ID, Hardened Runtime, notarization i DMG.
 
@@ -38,6 +38,6 @@ Etap 2 (temperatury/RPM) i etap 3 (wyspa, schowek, muzyka) pozostają planowane.
 
 33 testy Core i 9 testów prototypów przechodzą. Sześć scenariuszy XCTest UI sprawdzono z wynikiem pozytywnym: nawigacja, język z restartem oraz rzeczywiste metryki z trwałym interwałem oraz przełączanie wykresów i pusty stan mocy, a także trzy przepływy scrolla z atrapami uprawnień. Debug i Release kompilują się dla arm64. Ikonę sprawdzono osobno w katalogu zasobów i gotowym pakiecie aplikacji.
 
-Raporty szczegółowe: [prototypy](reports/etap-1-krok-1.md), [szkielet](reports/etap-1-krok-2.md), [sieć](reports/etap-1-krok-5.md), [pomiary](reports/etap-1-krok-3.md), [historia i wykresy](reports/etap-1-krok-4.md), [scroll](reports/etap-1-krok-6.md). Projekt ikony i odtwarzanie zasobów: [Design/AppIcon](../Design/AppIcon/README.md).
+Raporty szczegółowe: [prototypy](reports/etap-1-krok-1.md), [szkielet](reports/etap-1-krok-2.md), [sieć](reports/etap-1-krok-5.md), [pomiary](reports/etap-1-krok-3.md), [historia i wykresy](reports/etap-1-krok-4.md), [scroll](reports/etap-1-krok-6.md), [model ustawień i cykl życia](reports/etap-1-krok-7a.md). Projekt ikony i odtwarzanie zasobów: [Design/AppIcon](../Design/AppIcon/README.md).
 
 To nie jest zamknięty odbiór etapu 1. Nie deklarujemy przetestowania wszystkich Maców Apple Silicon, każdej konfiguracji VPN ani kosztu całej aplikacji na podstawie czasu pojedynczego odczytu. Lokalne buildy są podpisane ad-hoc; nie są wydaniami notarized.

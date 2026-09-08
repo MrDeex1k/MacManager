@@ -21,7 +21,7 @@ Aktualny punkt prac i kolejność kolejnych zadań: [Stan projektu](10-stan-proj
 | [Raport prototypów](reports/etap-1-krok-1.md) | Wyniki pierwszych uruchomień etapu 1 i brakujące dowody. |
 | [Raport szkieletu](reports/etap-1-krok-2.md) | Projekt Xcode, lokalny Core, interfejs i wyniki testów kroku 2. |
 
-[Raport sieci - krok 5](reports/etap-1-krok-5.md) oraz [raport pomiarów - krok 3](reports/etap-1-krok-3.md) i [raport historii - krok 4](reports/etap-1-krok-4.md) oraz [raport scrolla - krok 6](reports/etap-1-krok-6.md).
+[Raport sieci - krok 5](reports/etap-1-krok-5.md), [raport pomiarów - krok 3](reports/etap-1-krok-3.md), [raport historii - krok 4](reports/etap-1-krok-4.md), [raport scrolla - krok 6](reports/etap-1-krok-6.md) oraz [raport modelu ustawień i cyklu życia - krok 7a](reports/etap-1-krok-7a.md).
 
 ## Jak czytać ustalenia
 

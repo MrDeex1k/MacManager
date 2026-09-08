@@ -3,12 +3,12 @@ import MacManagerCore
 import Network
 
 @MainActor
-final class NetworkController {
+final class NetworkController: ApplicationLifecycleParticipant {
     private let service: NetworkService
     private let reader = LocalNetworkReader()
     private let monitor = NWPathMonitor()
     private var loop: Task<Void, Never>?
-    private var observers: [NSObjectProtocol] = []
+    private var observers: [(NotificationCenter, NSObjectProtocol)] = []
     private var revision = 0
     private var online = false
     private var suspended = false
@@ -31,14 +31,15 @@ final class NetworkController {
         monitor.start(queue: DispatchQueue(label: "dev.macmanager.network-path"))
         let center = NSWorkspace.shared.notificationCenter
         for (name, sleeping) in [(NSWorkspace.willSleepNotification, true), (NSWorkspace.didWakeNotification, false)] {
-            observers.append(center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+            let token = center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
                 Task { @MainActor [weak self] in
                     guard let self else { return }
                     self.revision += 1
                     self.suspended = sleeping; self.lastRead = -.infinity
                     self.service.setSuspended(sleeping, now: ProcessInfo.processInfo.systemUptime)
                 }
-            })
+            }
+            observers.append((center, token))
         }
         loop = Task { [weak self] in
             while !Task.isCancelled {
@@ -59,5 +60,16 @@ final class NetworkController {
                 do { try await Task.sleep(for: .seconds(1)) } catch { return }
             }
         }
+    }
+
+    func stop() {
+        revision += 1
+        loop?.cancel()
+        loop = nil
+        monitor.cancel()
+        observers.forEach { center, token in center.removeObserver(token) }
+        observers.removeAll()
+        suspended = true
+        service.setSuspended(true, now: ProcessInfo.processInfo.systemUptime)
     }
 }

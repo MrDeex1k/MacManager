@@ -2,7 +2,7 @@ import AppKit
 import MacManagerCore
 
 @MainActor
-final class ScrollController {
+final class ScrollController: ApplicationLifecycleParticipant {
     private let service: ScrollService
     private var loop: Task<Void, Never>?
     private var observers: [(NotificationCenter, NSObjectProtocol)] = []
@@ -35,11 +35,6 @@ final class ScrollController {
             }
             observers.append((center, token))
         }
-        let token = NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification,
-                                                           object: nil, queue: .main) { [weak self] _ in
-            MainActor.assumeIsolated { self?.service.shutdown(); self?.loop?.cancel() }
-        }
-        observers.append((.default, token))
         service.refresh()
         loop = Task { [weak self] in
             while !Task.isCancelled {
@@ -48,5 +43,13 @@ final class ScrollController {
                 self.service.refresh()
             }
         }
+    }
+
+    func stop() {
+        loop?.cancel()
+        loop = nil
+        observers.forEach { center, token in center.removeObserver(token) }
+        observers.removeAll()
+        service.shutdown()
     }
 }

@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import MacManagerCore
 import Observation
@@ -20,13 +21,10 @@ enum AppSection: String, CaseIterable, Identifiable {
 final class AppState {
     let preferences: PreferencesStore
     let metrics: MetricsService
-    @ObservationIgnored private var metricsController: MetricsController?
     let scroll: ScrollService
-    @ObservationIgnored private var scrollController: ScrollController?
     let network: NetworkService
-    @ObservationIgnored private var networkController: NetworkController?
-    @ObservationIgnored private var started = false
-    @ObservationIgnored private let testing = ProcessInfo.processInfo.arguments.contains("--ui-testing")
+    let lifecycle: ApplicationLifecycleCoordinator
+    @ObservationIgnored private var terminationObserver: NSObjectProtocol?
     var section: AppSection? = .overview
 
     init() {
@@ -40,6 +38,12 @@ final class AppState {
             scroll = ScrollService(enabled: preferences.reverseMouseScroll, driver: TestScrollDriver())
             network = NetworkService(enabled: false)
             metrics = MetricsService(interval: preferences.samplingInterval)
+            var participants: [any ApplicationLifecycleParticipant] = [ScrollController(service: scroll)]
+            if ProcessInfo.processInfo.arguments.contains("--live-metrics") {
+                participants.append(MetricsController(service: metrics))
+            }
+            lifecycle = ApplicationLifecycleCoordinator(participants: participants)
+            observeTermination()
             return
         }
         #endif
@@ -47,30 +51,27 @@ final class AppState {
         scroll = ScrollService(enabled: preferences.reverseMouseScroll, driver: ScrollDriver())
         network = NetworkService(enabled: preferences.publicIPEnabled)
         metrics = MetricsService(interval: preferences.samplingInterval)
+        lifecycle = ApplicationLifecycleCoordinator(participants: [
+            ScrollController(service: scroll),
+            NetworkController(service: network),
+            MetricsController(service: metrics)
+        ])
+        observeTermination()
     }
 
     func startServices() {
-        guard !started else { return }
-        started = true
-        let scrollController = ScrollController(service: scroll)
-        self.scrollController = scrollController
-        scrollController.start()
-        #if DEBUG
-        if testing {
-            if ProcessInfo.processInfo.arguments.contains("--live-metrics") { startMetrics() }
-            return
-        }
-        #endif
-        let controller = NetworkController(service: network)
-        networkController = controller
-        controller.start()
-        startMetrics()
+        lifecycle.start()
     }
 
-    private func startMetrics() {
-        let metricsController = MetricsController(service: metrics)
-        self.metricsController = metricsController
-        metricsController.start()
+    private func observeTermination() {
+        let lifecycle = lifecycle
+        terminationObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.willTerminateNotification,
+            object: nil,
+            queue: .main
+        ) { _ in
+            MainActor.assumeIsolated { lifecycle.terminate() }
+        }
     }
 
     var strings: AppStrings { AppStrings(languageCode: preferences.language.resolvedCode()) }

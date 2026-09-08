@@ -2,10 +2,10 @@ import AppKit
 import MacManagerCore
 
 @MainActor
-final class MetricsController {
+final class MetricsController: ApplicationLifecycleParticipant {
     private let service: MetricsService
     private var loop: Task<Void, Never>?
-    private var observers: [NSObjectProtocol] = []
+    private var observers: [(NotificationCenter, NSObjectProtocol)] = []
     private var nextSample = 0.0
     private var previousInterval: SamplingInterval?
 
@@ -15,12 +15,13 @@ final class MetricsController {
         guard loop == nil else { return }
         let center = NSWorkspace.shared.notificationCenter
         for (name, sleeping) in [(NSWorkspace.willSleepNotification, true), (NSWorkspace.didWakeNotification, false)] {
-            observers.append(center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+            let token = center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
                 Task { @MainActor [weak self] in
                     self?.service.setSuspended(sleeping)
                     self?.nextSample = 0
                 }
-            })
+            }
+            observers.append((center, token))
         }
         loop = Task { [weak self] in
             while !Task.isCancelled {
@@ -37,5 +38,13 @@ final class MetricsController {
                 do { try await Task.sleep(for: .seconds(1)) } catch { return }
             }
         }
+    }
+
+    func stop() {
+        loop?.cancel()
+        loop = nil
+        observers.forEach { center, token in center.removeObserver(token) }
+        observers.removeAll()
+        service.setSuspended(true)
     }
 }

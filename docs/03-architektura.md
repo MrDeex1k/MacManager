@@ -116,6 +116,14 @@ Blokada chroni bramkę wyłączenia i stan sterownika; callback nie wykonuje sie
 
 Informacje Apache-2.0 dla adaptowanych fragmentów są w [THIRD_PARTY_NOTICES](../THIRD_PARTY_NOTICES.md) oraz w zasobach dystrybuowanej aplikacji. Pozostały kod projektu pozostaje MIT.
 
+## Integracja aplikacji - krok 7a
+
+AppIntegrationPreferences grupuje trwałe ustawienia Docka, intencję autostartu i trzy niezależne wskaźniki paska menu. Domyślnie Dock i autostart są włączone, a CPU, RAM i moc w pasku wyłączone. LaunchAtLoginState jest osobnym modelem rzeczywistego wyniku systemowego; zapisana intencja nie zastępuje odczytu `SMAppService.status`.
+
+ApplicationLifecycleCoordinator z Core nie zależy od AppKit. Otrzymuje uczestników zgodnych z ApplicationLifecycleParticipant, uruchamia ich jeden raz i zatrzymuje w odwrotnej kolejności. AppState składa z niego kontrolery metryk, sieci i scrolla, a wspólna obserwacja zakończenia procesu wywołuje terminate. Każdy kontroler jawnie anuluje pętle i usuwa własne obserwacje.
+
+Ta część nie zmienia jeszcze polityki aktywacji NSApplication, nie rejestruje autostartu i nie tworzy status item. Adaptery systemowe zostaną dołączone do tego modelu i koordynatora w kolejnych częściach kroku 7. Szczegóły i granice: [raport kroku 7a](reports/etap-1-krok-7a.md).
+
 ## Docelowa struktura kodu
 
 ~~~text

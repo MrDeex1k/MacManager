@@ -40,3 +40,34 @@ import Testing
     #expect(store.language == .system)
     #expect(defaults.string(forKey: "unrelated") == "retained")
 }
+
+@MainActor
+@Test func integrationPreferencesUseProductDefaults() throws {
+    let suite = "MacManagerCoreTests.\(UUID().uuidString)"
+    let defaults = try #require(UserDefaults(suiteName: suite))
+    defer { defaults.removePersistentDomain(forName: suite) }
+
+    let store = PreferencesStore(defaults: defaults)
+
+    #expect(store.appIntegration == AppIntegrationPreferences())
+    #expect(store.appIntegration.showsDockIcon)
+    #expect(store.appIntegration.requestsLaunchAtLogin)
+    #expect(store.appIntegration.menuBar == MenuBarDisplayPreferences())
+}
+
+@MainActor
+@Test func integrationPreferencesPersistAsOneModel() throws {
+    let suite = "MacManagerCoreTests.\(UUID().uuidString)"
+    let defaults = try #require(UserDefaults(suiteName: suite))
+    defer { defaults.removePersistentDomain(forName: suite) }
+    let first = PreferencesStore(defaults: defaults)
+
+    first.appIntegration = AppIntegrationPreferences(
+        showsDockIcon: false,
+        requestsLaunchAtLogin: false,
+        menuBar: MenuBarDisplayPreferences(showsCPU: false, showsRAM: true, showsPower: true)
+    )
+    first.appIntegration.menuBar.showsCPU = true
+
+    #expect(PreferencesStore(defaults: defaults).appIntegration == first.appIntegration)
+}
