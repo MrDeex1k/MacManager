@@ -1,59 +1,68 @@
 # Mac Manager
 
-A free, open-source macOS utility for Apple Silicon, designed to combine system monitoring, independent mouse scrolling, and a notch-area panel for clipboard history and local music controls.
+Mac Manager is a free, open-source macOS utility for Apple Silicon. It brings system monitoring, independent mouse scrolling, and—later—a notch-area panel for clipboard history and local music controls into one native app.
 
-**Status: approved project specification. No application implementation or installable release is included yet.** The features below are planned, not shipped.
+> [!IMPORTANT]
+> The project is in active development. The `main` branch currently contains the approved product specification and repository foundation; it does not contain an installable release yet. Implementation is developed on feature branches and proposed through pull requests.
 
-## Platform and appearance
+## Product principles
 
-- macOS 26 or later, Apple Silicon only.
-- Swift and SwiftUI, with AppKit integration where needed.
-- Dark-only interface with native Liquid Glass.
-- Polish and English interface; project documentation in Polish.
-- Official releases will always be free. Source code is MIT-licensed.
+- Native Swift and SwiftUI, with AppKit where macOS integration requires it.
+- Apple Silicon and macOS 26 or later.
+- Dark interface with native Liquid Glass.
+- Polish and English UI; project documentation is maintained in Polish.
+- No accounts, ads, telemetry, automatic crash uploads, or application-managed cloud sync.
+- Official releases will remain free. The project is licensed under MIT.
 
-## Planned delivery
+## Roadmap
 
-| Phase | Features |
+| Stage | Planned scope |
 | --- | --- |
-| 1 | CPU, GPU, RAM, whole-device power in watts where verified, five-minute in-memory charts, local/public IPv4, best-effort VPN egress discovery, mouse scroll reversal, menu bar, main window, launch at login, GitHub release checks. |
-| 2 | CPU/GPU temperature in °C/°F and fan RPM monitoring. |
+| 1 | CPU, GPU, RAM and verified whole-device power; five-minute in-memory charts; local/public IPv4; mouse scroll reversal; menu bar, Dock and launch at login; GitHub release checks. |
+| 2 | CPU/GPU temperatures in °C or °F and fan RPM monitoring. |
 | 3 | Hover-operated notch-area panel, persistent local text/image clipboard history, and local Apple Music/Spotify controls. |
 
-Hardware metrics depend on model and OS support. Missing readings will be marked unavailable; CPU/GPU power will not be presented as whole-device power. Fans are monitored, not controlled.
+Hardware data is never invented. Missing readings remain unavailable, and CPU/GPU power will not be presented as whole-device power. Fans are monitored, never controlled.
 
-The collapsed notch panel displays no content. It uses the active MacBook display when available, otherwise the main display.
+The notch-area panel planned for Stage 3 will display nothing while collapsed. It will use the active built-in MacBook display when available, otherwise the main display.
 
-## Intended distribution
+## Distribution
 
-Signed and notarized DMG files through GitHub Releases. A Homebrew Cask may be added later as an installation option.
+The intended release format is a signed and notarized DMG published through GitHub Releases. A Homebrew Cask may be added later as an installation option.
 
-The app will check GitHub Releases once a week, with a manual check and an option to disable automatic checks. It will open the release page for manual DMG installation. Homebrew and Sparkle are not the app's update mechanism.
+Mac Manager will check GitHub Releases at most once a week by default, with a manual check and an option to disable automatic checks. Updates will open the release page for manual DMG installation; Homebrew and Sparkle are not the update mechanism.
 
-There is no download or build command yet: an Xcode project has not been created.
-
-## Privacy by design
-
-No accounts, ads, telemetry, automatic crash-report uploads, or application-managed cloud sync. Settings, charts, and clipboard history stay local.
-
-Public IPv4 discovery and release checks contact external HTTPS services, which necessarily see the request's source IP. Local storage does not mean the application makes no network requests. See the [privacy and data design](docs/05-dane-i-prywatnosc.md).
+There is currently no supported download or build command on `main`. Installation instructions will be added with the first test release.
 
 ## Documentation
 
-Start with the [Polish documentation index](docs/README.md), then the [product specification](docs/01-produkt.md) and [implementation roadmap](docs/06-plan-i-testy.md).
+The detailed specification is written in Polish:
 
-These documents distinguish approved requirements, engineering choices, and capabilities that still require a prototype. They do not claim implementation or hardware validation has been completed.
+- [Documentation index](docs/README.md)
+- [Product scope and defaults](docs/01-produkt.md)
+- [Interface specification](docs/02-interfejs.md)
+- [Technical architecture](docs/03-architektura.md)
+- [Feasibility and risks](docs/04-wykonalnosc.md)
+- [Privacy and data handling](docs/05-dane-i-prywatnosc.md)
+- [Implementation and test plan](docs/06-plan-i-testy.md)
+- [Distribution plan](docs/07-wydania.md)
+- [Decision log](docs/08-decyzje.md)
+
+The documents distinguish approved requirements, engineering decisions, and capabilities that still require validation. Planned behavior is not presented as a shipped feature.
 
 ## Contributing
 
-Enable the repository-local Conventional Commits hook once after cloning:
+Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request. After cloning, enable the repository-local Conventional Commits hook:
 
 ```sh
 ./scripts/install-git-hooks.sh
+./scripts/test-git-hooks.sh
 ```
 
-This uses native Git hooks and system shell tools, with no Node.js or Husky dependencies. Invalid commit messages are rejected locally. Run `./scripts/test-git-hooks.sh` to verify the hook. See the [contribution workflow and enforcement limits](docs/09-praca-z-repozytorium.md).
+The hook uses native Git and shell tools. It does not install Node.js, Husky, or a global Git configuration. See the [repository workflow](docs/09-praca-z-repozytorium.md) for its exact behavior and limits.
+
+Security issues should be reported according to [SECURITY.md](SECURITY.md).
 
 ## License
 
-[MIT](LICENSE). The commitment to free official releases does not restrict rights granted to third parties by the MIT license.
+[MIT](LICENSE). The commitment to free official releases does not restrict rights granted by the license.

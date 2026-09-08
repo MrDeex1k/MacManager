@@ -1,0 +1,78 @@
+name: Bug report
+description: Report reproducible incorrect behavior in Mac Manager
+title: "fix: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting a problem. Remove personal data such as IP addresses, clipboard contents and device identifiers before submitting.
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Describe the behavior and its impact.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open…
+        2. Enable…
+        3. Observe…
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: input
+    id: macos
+    attributes:
+      label: macOS version
+      placeholder: "26.x"
+    validations:
+      required: true
+  - type: input
+    id: hardware
+    attributes:
+      label: Mac model and chip
+      placeholder: "MacBook Pro, Apple M4 Pro"
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Mac Manager version or commit
+      placeholder: "0.1.0 or commit SHA"
+    validations:
+      required: true
+  - type: dropdown
+    id: permission
+    attributes:
+      label: Relevant permission state
+      options:
+        - Not relevant
+        - Granted
+        - Denied
+        - Revoked after granting
+        - Unknown
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Add redacted logs or screenshots if they help. Report vulnerabilities privately according to SECURITY.md.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Privacy check
+      options:
+        - label: I removed personal data, secrets, real IP addresses and clipboard contents.
+          required: true
+        - label: This report does not contain security vulnerability details.
+          required: true

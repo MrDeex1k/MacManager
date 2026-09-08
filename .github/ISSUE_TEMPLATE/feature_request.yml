@@ -1,0 +1,42 @@
+name: Feature request
+description: Suggest a product improvement within the documented scope
+title: "feat: "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem to solve
+      description: Explain the user need before describing a solution.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Describe how the feature should behave from the user's perspective.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+  - type: dropdown
+    id: stage
+    attributes:
+      label: Related roadmap stage
+      options:
+        - Stage 1 — monitoring and macOS integration
+        - Stage 2 — temperatures and fan monitoring
+        - Stage 3 — notch panel, clipboard and music
+        - Future / unsure
+    validations:
+      required: true
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope check
+      options:
+        - label: I checked the roadmap and existing issues for a similar request.
+          required: true

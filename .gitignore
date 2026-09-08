@@ -4,6 +4,13 @@
 
 ## User settings
 xcuserdata/
+*.xcuserstate
+*.xccheckout
+
+## Local build output
+DerivedData/
+build/
+.DS_Store
 
 ## Obj-C/Swift specific
 *.hmap
@@ -30,6 +37,9 @@ playground.xcworkspace
 # .swiftpm
 
 .build/
+.swiftpm/xcode/package.xcworkspace/xcuserdata/
+.swiftpm/configuration/registries.json
+.swiftpm/security/
 
 # CocoaPods
 #
