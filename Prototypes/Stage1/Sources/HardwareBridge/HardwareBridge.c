@@ -8,7 +8,7 @@
 #include <string.h>
 #include <math.h>
 
-int32_t mm_cpu_read(MMCPUTicks *ticks) {
+int32_t mm_probe_cpu_read(MMCPUTicks *ticks) {
     host_cpu_load_info_data_t value = {0};
     mach_msg_type_number_t count = HOST_CPU_LOAD_INFO_COUNT;
     mach_port_t host = mach_host_self();
@@ -24,7 +24,7 @@ int32_t mm_cpu_read(MMCPUTicks *ticks) {
     return 0;
 }
 
-int32_t mm_memory_read(MMMemory *memory) {
+int32_t mm_probe_memory_read(MMMemory *memory) {
     vm_statistics64_data_t value = {0};
     mach_msg_type_number_t count = HOST_VM_INFO64_COUNT;
     mach_port_t host = mach_host_self();
@@ -47,7 +47,7 @@ int32_t mm_memory_read(MMMemory *memory) {
     return 0;
 }
 
-int32_t mm_gpu_read(double *percent) {
+int32_t mm_probe_gpu_read(double *percent) {
     io_iterator_t iterator = 0;
     kern_return_t status = IOServiceGetMatchingServices(
         kIOMainPortDefault, IOServiceMatching("AGXAccelerator"), &iterator);
@@ -115,7 +115,7 @@ static int32_t smc_call(io_connect_t connection, MMTransaction *request,
     return 0;
 }
 
-int32_t mm_power_candidate_read(double *watts, uint32_t *data_type) {
+int32_t mm_probe_power_candidate_read(double *watts, uint32_t *data_type) {
     *watts = NAN;
     *data_type = 0;
     io_service_t service = IOServiceGetMatchingService(

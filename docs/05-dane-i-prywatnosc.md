@@ -70,7 +70,7 @@ Wszystkie trzy limity są konfigurowalne i muszą pozostać dodatnie. Zmniejszen
 
 | Funkcja | Zgoda / obsługa |
 | --- | --- |
-| Scroll | Dostępność, proszona przy włączeniu; pozostałe funkcje działają po odmowie. |
+| Scroll | Dostępność do zmiany scrolla i Monitorowanie wprowadzania do gestów; proszone po świadomym włączeniu. Pozostałe funkcje działają po odmowie. |
 | Historia | Dostęp do schowka zgodnie z macOS 26; stan i droga naprawy w UI. |
 | Sterowanie muzyką | Automatyzacja osobno dla Music/Spotify, przy konfiguracji danego źródła. |
 | Autostart | SMAppService i faktyczny status ustawień systemowych. |
@@ -90,3 +90,5 @@ Nie prosić profilaktycznie o Full Disk Access, Screen Recording ani Input Monit
 
 Okładki: preferowany lokalny obraz udostępniony przez odtwarzacz. Jeśli adapter zwróci jedynie zewnętrzny URL, w początkowym zakresie używamy placeholdera. Pobieranie okładek z sieci wymagałoby jawnego rozszerzenia tej tabeli; nie wysyłamy tytułów utworów do serwisu wyszukiwania okładek.
 
+
+Krok 6 obserwuje wyłącznie zdarzenia scrolla oraz pasywne gesty dotykowe. Klasyfikator przechowuje w RAM liczbę dotknięć, czas i ostatnie rozpoznane źródło; nie zapisuje pozycji palców, identyfikatorów urządzeń, klawiszy ani treści aplikacji. Stan jest usuwany przy zatrzymaniu. Prototyp diagnostyczny zwraca wyłącznie zagregowane liczniki.

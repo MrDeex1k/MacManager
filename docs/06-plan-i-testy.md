@@ -19,7 +19,7 @@ Całość rozwijamy na feat/stage-1. Numer kroku obejmuje prototypy, więc krok 
 3. Usługi pomiarów F1-02 — zaimplementowane po kroku 5; [raport](reports/etap-1-krok-3.md). Moc pozostaje jawnie niedostępna.
 4. Wykresy i historia F1-03 — zaimplementowane; bufor 300 s, Swift Charts i luki; [raport](reports/etap-1-krok-4.md).
 5. Sieć F1-04 — zaimplementowana przed krokiem 3; wyniki i ograniczenia w [raporcie](reports/etap-1-krok-5.md).
-6. Scroll F1-05.
+6. Scroll F1-05 — zaimplementowany; automatyczne rozróżnianie z gestów dotykowych, transformacja, zgody i cykl życia; [raport](reports/etap-1-krok-6.md).
 7. Okno, pasek menu, Dock i autostart F1-06.
 8. Aktualizacje i prywatność F1-07/F1-08.
 9. Odbiór i wydanie F1-09.
@@ -48,7 +48,7 @@ Jeśli prototyp nie potwierdzi zachowania, raport wskazuje konkretną granicę. 
 | F1-02: usługi pomiarów | P01, P02 | Jedno próbkowanie, poprawne jednostki, brak fikcyjnych zer. |
 | F1-03: wykresy i historia | F1-02 | Dokładnie okno 300 s, 1/2/5 s, luki i reset baz po wybudzeniu. |
 | F1-04: sieć | P04 | LAN/publiczny IPv4, kopiowanie, offline, jawna niepewność VPN. |
-| F1-05: scroll | P03 | Jeden przełącznik, zgoda i cofnięcie zgody; niezależne zachowanie myszy/gładzika. |
+| F1-05: scroll | P03 | Jeden przełącznik, Dostępność i Monitorowanie wprowadzania, cofnięcie zgód; niezależne zachowanie myszy/gładzika. |
 | F1-06: okno/menu/Dock/autostart | F1-01 | Domyślne ustawienia zgodne z produktem; zamknięcie okna pozostawia tło, zakończenie zamyka proces. |
 | F1-07: GitHub Releases | F1-01 | Harmonogram 7 dni, kontrola ręczna, wyłączenie, link do zgodnego wydania. |
 | F1-08: prywatność i diagnostyka | F1-02–07 | Brak telemetrii, lokalne logi bez danych użytkownika; sprawdzony ruch sieciowy. |

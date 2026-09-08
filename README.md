@@ -4,18 +4,17 @@
 
 A free, open-source macOS utility for Apple Silicon, designed to combine system monitoring, independent mouse scrolling, and a notch-area panel for clipboard history and local music controls.
 
-**Status: Stage 1 in development.** A native SwiftUI app shell is available with Overview, Network and Settings, an immediately applied PL/EN language preference, and dark Liquid Glass controls. Local/public IPv4 lookup, address copying and network status are connected. Additional VPN egress addresses remain explicitly unresolved. CPU/GPU/RAM readings are live, with a persistent 1/2/5-second sampling preference. Whole-device power has no verified source and is unavailable. Five-minute Swift Charts history is stored only in memory, with gaps for missing readings, sleep and interval changes. Remaining system integrations are not connected yet. The delivery table below describes planned features; no public release is available.
+**Status: Stage 1 in development.** A native SwiftUI app shell is available with Overview, Network and Settings, an immediately applied PL/EN language preference, and dark Liquid Glass controls. Local/public IPv4 lookup, address copying and network status are connected. Additional VPN egress addresses remain explicitly unresolved. CPU/GPU/RAM readings are live, with a persistent 1/2/5-second sampling preference. Whole-device power has no verified source and is unavailable. Five-minute Swift Charts history is stored only in memory, with gaps for missing readings, sleep and interval changes. Mouse scroll reversal is available in Settings, with automatic mouse/trackpad classification and explicit Accessibility/Input Monitoring states. Menu bar, login and release integrations are not connected yet. The delivery table below describes planned features; no public release is available.
 
 ## Product principles
 
-- Native Swift and SwiftUI, with AppKit where macOS integration requires it.
-- Apple Silicon and macOS 26 or later.
-- Dark interface with native Liquid Glass.
-- Polish and English UI; project documentation is maintained in Polish.
-- No accounts, ads, telemetry, automatic crash uploads, or application-managed cloud sync.
-- Official releases will remain free. The project is licensed under MIT.
+- macOS 26 or later, Apple Silicon only.
+- Swift and SwiftUI, with AppKit integration where needed.
+- Dark-only interface with native Liquid Glass.
+- Polish and English interface; project documentation in Polish.
+- Official releases will always be free. Main source code is MIT-licensed; adapted components retain Apache-2.0 notices.
 
-**Next:** reliable mouse/trackpad classification and independent mouse scrolling (Stage 1, step 6). See the [current project status](docs/10-stan-projektu.md) for the complete order and remaining validation.
+**Next:** menu bar, Dock visibility and launch at login (Stage 1, step 7). See the [current project status](docs/10-stan-projektu.md) for the complete order and remaining validation.
 
 ## Planned delivery
 
@@ -57,7 +56,7 @@ xcodebuild -project MacManager.xcodeproj -scheme MacManager \
   -derivedDataPath /tmp/macmanager-app-build -parallel-testing-enabled NO test
 ```
 
-UI tests launch the app and use an isolated preferences domain. The live-metrics test reads local hardware; all UI tests keep network services stopped. Allow the Xcode test runner to control the Mac if macOS requests permission. Application content switches language immediately; macOS-owned menus and dialogs follow system localization. Shortcuts: ⌘1 Overview, ⌘2 Network, ⌘, Settings.
+UI tests launch the app and use an isolated preferences domain. The live-metrics test reads local hardware; all UI tests keep network services stopped. Scroll UI tests use permission/driver fixtures and never install global event taps or change macOS permissions. Allow the Xcode test runner to control the Mac if macOS requests permission. Application content switches language immediately; macOS-owned menus and dialogs follow system localization. Shortcuts: ⌘1 Overview, ⌘2 Network, ⌘, Settings.
 
 The standalone feasibility probes are separate from the GUI:
 
@@ -66,9 +65,9 @@ swift test --package-path Prototypes/Stage1
 swift run --package-path Prototypes/Stage1 mac-manager-probe metrics
 ```
 
-See the [prototype instructions](Prototypes/Stage1/README.md) and [initial findings](docs/reports/etap-1-krok-1.md). Hardware availability is partially verified; power semantics, device classification and VPN coverage remain under investigation.
+See the [prototype instructions](Prototypes/Stage1/README.md) and [initial findings](docs/reports/etap-1-krok-1.md). Hardware availability is partially verified; power semantics and VPN coverage remain under investigation. The passive input probe also exercises the production automatic scroll classifier.
 
-See [network implementation](docs/reports/etap-1-krok-5.md), [metrics implementation](docs/reports/etap-1-krok-3.md) and [history implementation](docs/reports/etap-1-krok-4.md) for tested behavior and remaining hardware validation.
+See [network implementation](docs/reports/etap-1-krok-5.md), [metrics implementation](docs/reports/etap-1-krok-3.md), [history implementation](docs/reports/etap-1-krok-4.md) and [scroll implementation](docs/reports/etap-1-krok-6.md) for tested behavior and remaining hardware validation.
 
 ## Privacy by design
 
@@ -107,4 +106,4 @@ Security issues should be reported according to [SECURITY.md](SECURITY.md).
 
 ## License
 
-[MIT](LICENSE). The commitment to free official releases does not restrict rights granted by the license.
+[MIT](LICENSE), with [attributed Apache-2.0 adaptations](THIRD_PARTY_NOTICES.md) from Scroll Reverser. The commitment to free official releases does not restrict rights granted to third parties by the MIT license.

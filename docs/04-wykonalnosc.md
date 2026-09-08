@@ -14,7 +14,7 @@ Rozpoznanie dokumentacyjne wykonane 2026-09-07. Aktualizacja 2026-09-08: uruchom
 | Lokalny IPv4 | getifaddrs + konfiguracja interfejsów | Wysoka wykonalność; LAN, Ethernet, Wi-Fi, link-local, brak sieci. |
 | Publiczny IPv4 | Żądanie HTTPS do usługi echo IP | Wykonalne dla konkretnego połączenia. |
 | Wiele wyjść VPN | Prototyp ścieżek związanych z tunelami | Best effort; pełna mapa per-app poza gwarancją. |
-| Scroll | Modyfikujący CGEvent tap, klasyfikator źródła | Uprawnienie Dostępność i testy urządzeń. |
+| Scroll | Pasywny tap gestów + modyfikujący tap scrolla, klasyfikator dotyku | Dostępność, Monitorowanie wprowadzania i testy urządzeń. |
 | Schowek | NSPasteboard, changeCount, kontrola dostępu | Wykonalne z ograniczeniami obserwacji i zgód. |
 | Muzyka | Apple Events / ScriptingBridge, osobny adapter odtwarzacza | Zweryfikować słowniki i zgody w aktualnych wersjach aplikacji. |
 | Wyspa | NSPanel + NSHostingView, geometria NSScreen | Prototyp hover, fokusu, Spaces i monitorów. |
@@ -75,3 +75,5 @@ Publiczna dystrybucja wymaga przygotowania Developer ID, Hardened Runtime i nota
 ## Wyniki badań do zachowania
 
 Każdy prototyp P01–P07 z [planu](06-plan-i-testy.md) pozostawia krótki raport: model, wersja OS i odtwarzaczy/sterowników, użyte API, semantyka odczytu, wymagane zgody, zachowanie błędów, koszt działania i decyzja „wdrażamy / ograniczona obsługa / niedostępne”. Raporty nie zawierają danych schowka ani rzeczywistych IP.
+
+Krok 6 zaadaptował [mechanizm Scroll Reversera](https://github.com/pilotmoon/Scroll-Reverser/blob/187bf3945b6107cd8486327c6165f32e523535a4/MouseTap.m): obserwację dotyku dwóch palców, kontekst czasowy i bezwładność. Rozróżnianie jest automatyczne, niezależne od list modeli. Adapter aktualizuje też reprezentację IOHID przy użyciu izolowanego SPI; jego zgodność z kolejnymi wersjami macOS pozostaje częścią walidacji wydań. Szczegóły w [raporcie](reports/etap-1-krok-6.md).

@@ -7,7 +7,8 @@ let package = Package(
     products: [.library(name: "MacManagerCore", targets: ["MacManagerCore"])],
     targets: [
         .target(name: "MMHardware", linkerSettings: [.linkedFramework("IOKit"), .linkedFramework("CoreFoundation")]),
-        .target(name: "MacManagerCore", dependencies: ["MMHardware"]),
+        .target(name: "MMInput", linkerSettings: [.linkedFramework("CoreGraphics"), .linkedFramework("IOKit")]),
+        .target(name: "MacManagerCore", dependencies: ["MMHardware", "MMInput"]),
         .testTarget(name: "MacManagerCoreTests", dependencies: ["MacManagerCore"])
     ]
 )

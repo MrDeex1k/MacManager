@@ -12,6 +12,10 @@ public final class PreferencesStore {
         didSet { defaults.set(samplingInterval.rawValue, forKey: "preferences.samplingInterval") }
     }
 
+    public var reverseMouseScroll: Bool {
+        didSet { defaults.set(reverseMouseScroll, forKey: "preferences.reverseMouseScroll") }
+    }
+
     public var publicIPEnabled: Bool {
         didSet { defaults.set(publicIPEnabled, forKey: "preferences.publicIPEnabled") }
     }
@@ -25,6 +29,7 @@ public final class PreferencesStore {
 
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        reverseMouseScroll = defaults.object(forKey: "preferences.reverseMouseScroll") as? Bool ?? false
         samplingInterval = SamplingInterval(rawValue: defaults.integer(forKey: "preferences.samplingInterval")) ?? .two
         publicIPEnabled = defaults.object(forKey: "preferences.publicIPEnabled") as? Bool ?? true
         language = defaults.string(forKey: Self.languageKey).flatMap(AppLanguage.init(rawValue:)) ?? .system

@@ -22,7 +22,7 @@ public final class MetricsProbe {
     public func sample() -> MetricsSnapshot {
         let start = ProcessInfo.processInfo.systemUptime
         var ticks = MMCPUTicks()
-        let cpuStatus = mm_cpu_read(&ticks)
+        let cpuStatus = mm_probe_cpu_read(&ticks)
         let cpu: Reading
         if cpuStatus == 0 {
             let current = CPUTicks(user: ticks.user, system: ticks.system,
@@ -38,14 +38,14 @@ public final class MetricsProbe {
             cpu = Reading(status: "unavailable", unit: "%", source: "Mach", errorCode: cpuStatus)
         }
         var gpuPercent = 0.0
-        let gpuStatus = mm_gpu_read(&gpuPercent)
+        let gpuStatus = mm_probe_gpu_read(&gpuPercent)
         let gpu = Reading(status: gpuStatus == 0 ? "available" : "unavailable",
                           value: gpuStatus == 0 ? gpuPercent : nil, unit: "%",
                           source: "AGXAccelerator.PerformanceStatistics.Device Utilization %",
                           detail: "Undocumented driver statistic; cadence is driver-controlled.",
                           errorCode: gpuStatus == 0 ? nil : gpuStatus)
         var memory = MMMemory()
-        let memoryStatus = mm_memory_read(&memory)
+        let memoryStatus = mm_probe_memory_read(&memory)
         let used = memoryStatus == 0 ? MemoryCalculation.usedBytes(
             anonymous: memory.anonymous_pages, purgeable: memory.purgeable_pages,
             wired: memory.wired_pages, compressor: memory.compressor_pages,
@@ -57,7 +57,7 @@ public final class MetricsProbe {
                                     errorCode: memoryStatus == 0 ? nil : memoryStatus)
         var watts = 0.0
         var dataType: UInt32 = 0
-        let powerStatus = mm_power_candidate_read(&watts, &dataType)
+        let powerStatus = mm_probe_power_candidate_read(&watts, &dataType)
         let power = Reading(status: powerStatus == 0 ? "unverified" : "unavailable",
                             value: powerStatus == 0 ? watts : nil, unit: "W",
                             source: "AppleSMC.PSTR",

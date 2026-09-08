@@ -29,6 +29,7 @@ final class AppShellTests: XCTestCase {
         let picker = element("settings.language", in: app)
         XCTAssertTrue(picker.waitForExistence(timeout: 5))
         picker.click()
+        XCTAssertTrue(app.menuItems["Polski"].waitForExistence(timeout: 5))
         app.menuItems["Polski"].click()
         XCTAssertTrue(app.staticTexts["Ustawienia aplikacji"].waitForExistence(timeout: 5))
         capture("Settings PL", app: app)
@@ -73,12 +74,67 @@ final class AppShellTests: XCTestCase {
     }
 
     @MainActor
-    private func launch(reset: Bool, liveMetrics: Bool = false) -> XCUIApplication {
+    func testScrollPermissionDenialAndPreferencePersistence() throws {
+        var app = launch(reset: true)
+        app.typeKey(",", modifierFlags: .command)
+        XCTAssertEqual(app.staticTexts["scroll.status"].value as? String, "Off")
+        element("scroll.enabled", in: app).click()
+        XCTAssertEqual(app.staticTexts["scroll.status"].value as? String, "Inactive · Accessibility access required")
+        XCTAssertTrue(app.buttons["scroll.permission"].exists)
+        capture("Scroll permission EN", app: app)
+        app.typeKey("1", modifierFlags: .command)
+        XCTAssertTrue(app.staticTexts["System overview"].exists)
+        app.terminate()
+        app = launch(reset: false)
+        app.typeKey(",", modifierFlags: .command)
+        XCTAssertEqual(app.staticTexts["scroll.status"].value as? String, "Inactive · Accessibility access required")
+        element("scroll.enabled", in: app).click()
+        XCTAssertEqual(app.staticTexts["scroll.status"].value as? String, "Off")
+        app.terminate()
+    }
+
+    @MainActor
+    func testScrollEnabledStateWithPermissionFixture() throws {
+        var app = launch(reset: true, scrollPermission: true)
+        app.typeKey(",", modifierFlags: .command)
+        element("scroll.enabled", in: app).click()
+        XCTAssertEqual(app.staticTexts["scroll.status"].value as? String, "Active")
+        XCTAssertFalse(app.buttons["scroll.permission"].exists)
+        capture("Scroll active EN", app: app)
+        app.terminate()
+        app = launch(reset: false, scrollPermission: true)
+        app.typeKey(",", modifierFlags: .command)
+        XCTAssertEqual(app.staticTexts["scroll.status"].value as? String, "Active")
+        element("scroll.enabled", in: app).click()
+        XCTAssertEqual(app.staticTexts["scroll.status"].value as? String, "Off")
+        app.terminate()
+    }
+
+    @MainActor
+    func testScrollInputMonitoringPermissionInPolish() throws {
+        let app = launch(reset: true, inputMonitoringRequired: true)
+        app.typeKey(",", modifierFlags: .command)
+        element("scroll.enabled", in: app).click()
+        XCTAssertEqual(app.staticTexts["scroll.status"].value as? String, "Inactive · Input Monitoring access required")
+        XCTAssertEqual(app.buttons["scroll.permission"].label, "Open Input Monitoring")
+        element("settings.language", in: app).click()
+        XCTAssertTrue(app.menuItems["Polski"].waitForExistence(timeout: 5))
+        app.menuItems["Polski"].click()
+        XCTAssertEqual(app.staticTexts["scroll.status"].value as? String, "Nieaktywne · wymagane Monitorowanie wprowadzania")
+        XCTAssertEqual(app.buttons["scroll.permission"].label, "Otwórz Monitorowanie wprowadzania")
+        capture("Scroll input permission PL", app: app)
+        app.terminate()
+    }
+
+    @MainActor
+    private func launch(reset: Bool, liveMetrics: Bool = false, scrollPermission: Bool = false, inputMonitoringRequired: Bool = false) -> XCUIApplication {
         continueAfterFailure = false
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
         if reset { app.launchArguments.append("--reset-preferences") }
         if liveMetrics { app.launchArguments.append("--live-metrics") }
+        if scrollPermission { app.launchArguments.append("--scroll-permission-granted") }
+        if inputMonitoringRequired { app.launchArguments.append("--scroll-input-monitoring-required") }
         app.launch()
         app.activate()
         XCTAssertTrue(app.windows.firstMatch.waitForExistence(timeout: 10))

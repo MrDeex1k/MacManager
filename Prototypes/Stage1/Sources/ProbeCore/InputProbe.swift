@@ -1,3 +1,5 @@
+import AppKit
+import MacManagerCore
 import ApplicationServices
 import CoreGraphics
 import Foundation
@@ -17,6 +19,12 @@ public struct ScrollObservation: Codable {
     public let momentumEvents: Int
     public let disabledEvents: Int
     public let detail: String
+    public let mouseEvents: Int
+    public let trackpadEvents: Int
+    public let unknownEvents: Int
+    public let multiTouchEvents: Int
+    public let mouseGestureEvents: Int
+    public let trackpadPlainEvents: Int
 }
 
 public struct InputSnapshot: Codable {
@@ -32,6 +40,13 @@ private final class ScrollCounter {
     var phase = 0
     var momentum = 0
     var disabled = 0
+    var mouse = 0
+    var trackpad = 0
+    var unknown = 0
+    var multiTouch = 0
+    var mouseGesture = 0
+    var trackpadPlain = 0
+    var classifier = ScrollSourceClassifier()
 }
 
 public enum InputProbe {
@@ -75,7 +90,9 @@ public enum InputProbe {
 
     private static func empty(status: String, detail: String) -> ScrollObservation {
         ScrollObservation(status: status, continuousEvents: 0, discreteEvents: 0,
-                          phaseEvents: 0, momentumEvents: 0, disabledEvents: 0, detail: detail)
+                          phaseEvents: 0, momentumEvents: 0, disabledEvents: 0, detail: detail,
+                          mouseEvents: 0, trackpadEvents: 0, unknownEvents: 0, multiTouchEvents: 0,
+                          mouseGestureEvents: 0, trackpadPlainEvents: 0)
     }
 
     private static func observe(seconds: Double, permitted: Bool) -> ScrollObservation {
@@ -92,7 +109,22 @@ public enum InputProbe {
                 counter.disabled += 1
                 return Unmanaged.passUnretained(event)
             }
+            if type.rawValue == NSEvent.EventType.gesture.rawValue, let gesture = NSEvent(cgEvent: event) {
+                let count = gesture.touches(matching: .touching, in: nil).count
+                if count >= 2 { counter.multiTouch += 1 }
+                counter.classifier.observeTouches(count, at: MetricsTime.now())
+            }
             guard type == .scrollWheel else { return Unmanaged.passUnretained(event) }
+            let source = counter.classifier.classify(event, at: MetricsTime.now())
+            let phased = event.getIntegerValueField(.scrollWheelEventScrollPhase) != 0
+                || event.getIntegerValueField(.scrollWheelEventMomentumPhase) != 0
+            if source == .mouse && phased { counter.mouseGesture += 1 }
+            if source == .trackpad && !phased { counter.trackpadPlain += 1 }
+            switch source {
+            case .mouse: counter.mouse += 1
+            case .trackpad: counter.trackpad += 1
+            case .unknown: counter.unknown += 1
+            }
             if event.getIntegerValueField(.scrollWheelEventIsContinuous) != 0 { counter.continuous += 1 }
             else { counter.discrete += 1 }
             if event.getIntegerValueField(.scrollWheelEventScrollPhase) != 0 { counter.phase += 1 }
@@ -100,7 +132,7 @@ public enum InputProbe {
             return Unmanaged.passUnretained(event)
         }
         guard let tap = CGEvent.tapCreate(tap: .cgSessionEventTap, place: .tailAppendEventTap,
-                                         options: .listenOnly, eventsOfInterest: 1 << CGEventType.scrollWheel.rawValue,
+                                         options: .listenOnly, eventsOfInterest: (1 << CGEventType.scrollWheel.rawValue) | NSEvent.EventTypeMask.gesture.rawValue,
                                          callback: callback, userInfo: context),
               let source = CFMachPortCreateRunLoopSource(nil, tap, 0) else {
             return empty(status: "unavailable", detail: "The passive tap could not be created.")
@@ -119,7 +151,10 @@ public enum InputProbe {
             continuousEvents: counter.continuous, discreteEvents: counter.discrete,
             phaseEvents: counter.phase, momentumEvents: counter.momentum,
             disabledEvents: counter.disabled,
-            detail: "Aggregate characteristics only; no device-event identity or reversal is claimed."
+            detail: "Passive automatic classifier using touch gestures; aggregate counts only, no reversal.",
+            mouseEvents: counter.mouse, trackpadEvents: counter.trackpad, unknownEvents: counter.unknown,
+            multiTouchEvents: counter.multiTouch, mouseGestureEvents: counter.mouseGesture,
+            trackpadPlainEvents: counter.trackpadPlain
         )
     }
 }

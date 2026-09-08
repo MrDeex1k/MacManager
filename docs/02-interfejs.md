@@ -49,7 +49,7 @@ Decyzja inżynierska: metryka jest przeterminowana po trzech interwałach bez no
 
 Jeden przełącznik „Odwróć przewijanie myszy”. Gładzik zachowuje ustawienie systemowe i gesty. Nie ma ustawień każdej myszy ani oddzielnych kontrolek osi. Decyzja inżynierska: zmieniamy znak przewijania myszy w obsługiwanych osiach, zachowując wielkość, tempo, przyciski i modyfikatory zdarzenia.
 
-Przy pierwszym włączeniu funkcji wyjaśniamy potrzebę Dostępności. Odmowa nie blokuje monitorowania. Po cofnięciu zgody funkcja pokazuje stan nieaktywny. Nie resetujemy systemowego „naturalnego przewijania”.
+Przy pierwszym włączeniu funkcji wyjaśniamy potrzebę Dostępności do zmiany scrolla i Monitorowania wprowadzania do pasywnej obserwacji gestów. Osobne stany i przycisk kierują do brakującej zgody. Odmowa nie blokuje monitorowania. Po cofnięciu zgody funkcja pokazuje stan nieaktywny. Nie resetujemy systemowego „naturalnego przewijania”.
 
 ## Wyspa
 

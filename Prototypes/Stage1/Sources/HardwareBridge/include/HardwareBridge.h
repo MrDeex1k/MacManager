@@ -14,11 +14,11 @@ typedef struct {
 } MMMemory;
 
 // All functions read only, returning zero on success.
-int32_t mm_cpu_read(MMCPUTicks *ticks);
-int32_t mm_memory_read(MMMemory *memory);
-int32_t mm_gpu_read(double *percent);
+int32_t mm_probe_cpu_read(MMCPUTicks *ticks);
+int32_t mm_probe_memory_read(MMMemory *memory);
+int32_t mm_probe_gpu_read(double *percent);
 
 // Reads ONLY PSTR (candidate total power), not arbitrary SMC keys.
 // Does not claim the value represents whole-device power.
-int32_t mm_power_candidate_read(double *watts, uint32_t *data_type);
+int32_t mm_probe_power_candidate_read(double *watts, uint32_t *data_type);
 #endif

@@ -2,7 +2,7 @@
 
 ## Model dystrybucji
 
-Oficjalne wydania są zawsze bezpłatne. Publiczny kod na MIT. Podstawowym artefaktem jest podpisany i notaryzowany DMG udostępniony w GitHub Releases; architektura arm64, minimum macOS 26.
+Oficjalne wydania są zawsze bezpłatne. Główny kod na MIT; adaptowane fragmenty scrolla zachowują Apache-2.0. Podstawowym artefaktem jest podpisany i notaryzowany DMG udostępniony w GitHub Releases; architektura arm64, minimum macOS 26.
 
 Opcjonalny Homebrew Cask może instalować ten sam DMG. Aplikacja nigdy nie uruchamia brew do kontroli lub instalowania aktualizacji. Ręczne polecenia Homebrew użytkownika pozostają poza kontrolą aplikacji.
 
@@ -52,7 +52,7 @@ To dane wdrożeniowe, które nie blokują zatwierdzonego projektu. Nie wymyśla�
 
 ## Licencja i zależności
 
-Kod projektu: [MIT](../LICENSE). Oficjalna bezpłatność jest zobowiązaniem projektu; MIT dopuszcza również komercyjne wykorzystanie przez innych i wymaga zachowania informacji licencyjnych. [Tekst MIT](https://opensource.org/license/mit).
+Kod projektu: [MIT](../LICENSE), z [adaptacjami Apache-2.0](../THIRD_PARTY_NOTICES.md). Pełne informacje licencyjne ThirdPartyNotices.txt muszą pozostać w pakiecie aplikacji i DMG. Oficjalna bezpłatność jest zobowiązaniem projektu; MIT dopuszcza również komercyjne wykorzystanie przez innych i wymaga zachowania informacji licencyjnych. [Tekst MIT](https://opensource.org/license/mit).
 
 Preferujemy frameworki systemowe. Każda przyszła zależność ma przypiętą wersję, cel i informację licencyjną. Nie kopiować kodu czujników, grafiki ani elementów cudzej aplikacji wyłącznie dlatego, że repozytorium jest publiczne. Zachować wymagane notices po dodaniu rzeczywistej zależności. Biblioteki referencyjne z analizy nie są automatycznie zależnościami projektu.
 

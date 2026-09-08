@@ -48,9 +48,11 @@ Najpierw kompilacja, potem 15 sekund przewijania. W celu precyzyjnego rozpoczęc
 
 Odczyt zgód nie wyświetla promptów. Jeśli brak Input Monitoring, obserwacja zwraca permission_denied. Uprawnienia procesu CLI/terminala nie dowodzą, że przyszła aplikacja z własnym bundle ID otrzyma je automatycznie.
 
-Zbieramy wyłącznie liczbę zdarzeń ciągłych/dyskretnych, phase/momentum i przerwań tapu. Nie zbieramy klawiszy, pozycji kursora, tytułów okien, identyfikatorów procesów ani treści aplikacji. Lista IOHID przedstawia kolekcje usage, nie unikalne fizyczne urządzenia; mogą występować wpisy wirtualne lub powtórzone.
+Od kroku 6 pasywny input obserwuje także gesty dotykowe i korzysta z tego samego automatycznego ScrollSourceClassifier co aplikacja. W JSON są dodatkowe liczniki mouseEvents, trackpadEvents, unknownEvents i multiTouchEvents, a także pomocnicze mouseGestureEvents/trackpadPlainEvents do porównania z charakterystyką konkretnej próby. Klasyfikacja łączy dotyk co najmniej dwóch palców z czasem, ciągłością i bezwładnością; nie potrzebuje list modeli. Nie zbieramy klawiszy, pozycji kursora/palców, tytułów okien, identyfikatorów procesów ani treści aplikacji.
 
-Obserwacja nigdy nie zmienia scrolla. W czystej logice istnieje transformacja delt, ale wykonuje odwrócenie tylko dla confirmedMouse. Sam isContinuous, również false, daje unknown. Nie implementujemy pozornie działającego rozróżnienia opartego tylko na tym polu. W próbach z użytkownikiem zarówno mysz, jak i gładzik generowały wyłącznie continuous; mysz nie miała znaczników phase/momentum, a gładzik je generował. To wynik dla badanej pary, nie uniwersalna gwarancja identyfikacji urządzenia.
+Prototyp nigdy nie zmienia rzeczywistego scrolla. W celu weryfikacji wykonaj oddzielne próby po 25 s: wyłącznie gładzik (również bezwładność), wyłącznie kółko myszy, na koniec naprzemienne użycie obu. Porównaj mouseEvents/trackpadEvents z faktycznie używanym urządzeniem. Liczniki nie dowodzą samego odwrócenia; to sprawdza się w aplikacji po udzieleniu zgód i wyłączeniu odwracania w innym narzędziu.
+
+Lista IOHID przedstawia kolekcje usage, nie unikalne fizyczne urządzenia, i nie steruje klasyfikatorem. Zależność od lokalnego MacManagerCore pozwala testować produkcyjny algorytm; kod aplikacji nie uruchamia prototypów.
 
 ## Ręczna macierz dalszych prób
 

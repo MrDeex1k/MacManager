@@ -104,6 +104,18 @@ Każda metryka tworzy osobne segmenty: brak dostępnej wartości, zmiana źród�
 
 MetricsHistoryView korzysta wyłącznie z historii wspólnej usługi. Swift Charts rysuje osobne serie liniowe i punkty, ze stałą osią −5 min…Teraz, skalą 0–100% dla CPU/GPU oraz GiB dla RAM. Minimum, maksimum i liczba próbek odnoszą się do wybranej metryki w zachowanym oknie. Moc ma pusty stan, dopóki nie istnieje zweryfikowane źródło. Nie interpolujemy przez przerwy i nie animujemy wartości pomiarów.
 
+## Scroll — krok 6
+
+ScrollService na MainActor łączy intencję użytkownika z prawdziwym stanem dwóch zgód i sterownika. Ustawienie reverseMouseScroll domyślnie jest wyłączone. Odczyt uprawnień nie prosi o zgodę przy starcie; prośba następuje tylko przez świadomą akcję w Ustawieniach. ScrollController sprawdza stan co sekundę i zatrzymuje usługę przy uśpieniu, nieaktywnej sesji i zakończeniu aplikacji. Zamknięcie okna jej nie zatrzymuje.
+
+ScrollDriver utrzymuje jeden wątek z run loop i dwa tapy: pasywny dla NSEvent.gesture i modyfikujący dla scrollWheel. Takie rozdzielenie zachowuje działanie systemowych gestów. ScrollSourceClassifier automatycznie korzysta z dotyku co najmniej dwóch palców, czasu i bezwładności; nie ma list producentów, modeli ani profili. Jest adaptacją mechanizmu Scroll Reversera, z początkowym stanem unknown. Osobny kontekst gestu i bezwładności zapobiega przejęciu źródła trwającego przewijania gładzika przez zdarzenie myszy. Unknown przepuszcza zdarzenie bez zmian.
+
+MMInput (C) odczytuje wszystkie delty przed zmianą: ustawienie wartości liniowej w Quartz może zmienić wartości punktowe i stałoprzecinkowe. Odwracamy obie osie i odpowiadające im wartości dołączonego zdarzenia IOHID, pozostawiając inne metadane. Zdarzenie wraca z callbacku, bez ponownego postowania. Prywatne symbole CGEventCopyIOHIDEvent/IOHIDEventGetFloatValue/IOHIDEventSetFloatValue są izolowane, rozwiązywane dynamicznie; brak symboli zatrzymuje start funkcji zamiast używać zgadywanego ABI.
+
+Blokada chroni bramkę wyłączenia i stan sterownika; callback nie wykonuje sieci, logowania ani zapisu ustawień. Po timeoutach dopuszczamy maksymalnie trzy wznowienia na minutę. Kolejne przerwanie lub wyłączenie przez system zatrzymuje oba tapy i wymaga świadomego ponowienia. Zmiana uprawnień jest sprawdzana co sekundę; cofnięcie którejkolwiek zatrzymuje funkcję. Testy GUI używają TestScrollDriver bez globalnego przechwytywania wejścia.
+
+Informacje Apache-2.0 dla adaptowanych fragmentów są w [THIRD_PARTY_NOTICES](../THIRD_PARTY_NOTICES.md) oraz w zasobach dystrybuowanej aplikacji. Pozostały kod projektu pozostaje MIT.
+
 ## Docelowa struktura kodu
 
 ~~~text
