@@ -1,4 +1,4 @@
-# Etap 1, krok 4 — historia i wykresy
+# Etap 1, krok 4 - historia i wykresy
 
 Data: 2026-09-08. Branch: feat/stage-1. Zakres: F1-03, po wdrożonych krokach 5 i 3.
 

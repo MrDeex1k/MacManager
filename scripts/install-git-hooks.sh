@@ -6,10 +6,12 @@ script_dir=$(CDPATH= cd "$(dirname "$0")" && pwd)
 repo_root=$(git -C "$script_dir/.." rev-parse --show-toplevel)
 cd "$repo_root"
 
-if [ ! -x .githooks/commit-msg ]; then
-    printf '%s\n' 'Missing executable .githooks/commit-msg; restore its tracked executable bit.' >&2
-    exit 1
-fi
+for required_hook in .githooks/pre-commit .githooks/commit-msg; do
+    if [ ! -x "$required_hook" ]; then
+        printf '%s\n' "Missing executable $required_hook; restore its tracked executable bit." >&2
+        exit 1
+    fi
+done
 
 current=$(git config --get core.hooksPath || :)
 if [ -n "$current" ] && [ "$current" != ".githooks" ]; then
@@ -30,4 +32,4 @@ if [ -z "$current" ]; then
 fi
 
 git config --local core.hooksPath .githooks
-printf '%s\n' 'Conventional Commits enabled for this repository (.githooks/commit-msg).'
+printf '%s\n' 'Repository commit checks enabled from .githooks.'

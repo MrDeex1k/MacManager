@@ -1,4 +1,4 @@
-# Etap 1 / krok 5 — sieć (F1-04)
+# Etap 1 / krok 5 - sieć (F1-04)
 
 Data: 2026-09-08. Zgodnie z dyspozycją właściciela krok 5 wykonano przed krokiem 3, na feat/stage-1.
 

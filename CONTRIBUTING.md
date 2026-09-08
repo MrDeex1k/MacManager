@@ -46,6 +46,8 @@ docs: clarify release requirements
 
 Prefer small commits that leave the branch buildable. Do not mix unrelated cleanup into a feature change.
 
+Use the regular hyphen-minus (`-`) for punctuation and placeholders. The Unicode em dash is not allowed in repository files and is checked by the local pre-commit hook.
+
 ## Pull requests
 
 Before opening a pull request:

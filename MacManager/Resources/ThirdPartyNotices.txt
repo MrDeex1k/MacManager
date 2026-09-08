@@ -1,4 +1,4 @@
-Mac Manager — Third-party notices
+Mac Manager - Third-party notices
 
 Scroll source classification and the event transformation bridge are adapted from
 Scroll Reverser, revision 187bf3945b6107cd8486327c6165f32e523535a4.

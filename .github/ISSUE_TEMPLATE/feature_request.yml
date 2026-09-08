@@ -27,9 +27,9 @@ body:
     attributes:
       label: Related roadmap stage
       options:
-        - Stage 1 — monitoring and macOS integration
-        - Stage 2 — temperatures and fan monitoring
-        - Stage 3 — notch panel, clipboard and music
+        - Stage 1 - monitoring and macOS integration
+        - Stage 2 - temperatures and fan monitoring
+        - Stage 3 - notch panel, clipboard and music
         - Future / unsure
     validations:
       required: true

@@ -41,7 +41,7 @@ RAM: użycie względem całej pamięci zunifikowanej, w GB i procentach. Dodatko
 
 Waty oznaczają moc, nie energię w Wh, procent baterii, moc znamionową ładowarki ani Energy Impact. Wartość jest próbką/średnią w krótkim oknie źródła, nie matematycznym pomiarem w pojedynczym punkcie czasu. Nie obiecywać pomiaru na gniazdku elektrycznym. Weryfikacja obejmuje to, czy źródło uwzględnia ładowanie baterii i zasilanie akcesoriów. Źródło o niejasnej semantyce nie spełnia MET-02.
 
-Temperatury: osobny pomiar CPU i GPU; decyzja inżynierska — średnia ze zweryfikowanych czujników danej grupy w widoku skrótowym, maksimum i lista dostępnych czujników w szczegółach. Nie mieszać czujników obudowy z temperaturą rdzeni. Nie wykrywać czujników wyłącznie po podobieństwie nazwy.
+Temperatury: osobny pomiar CPU i GPU; decyzja inżynierska - średnia ze zweryfikowanych czujników danej grupy w widoku skrótowym, maksimum i lista dostępnych czujników w szczegółach. Nie mieszać czujników obudowy z temperaturą rdzeni. Nie wykrywać czujników wyłącznie po podobieństwie nazwy.
 
 RPM: każdy fizyczny wentylator oddzielnie w szczegółach; w pasku menu najwyższe bieżące RPM z dostępnych wentylatorów. Brak wentylatorów to „Chłodzenie pasywne”, a zatrzymany wentylator z prawidłowym odczytem to 0 RPM.
 
@@ -72,4 +72,3 @@ Wartości doprecyzowujące technikę działania, np. sposób inicjalizacji języ
 Mac App Store, Intel, macOS starszy niż 26, jasny motyw, kolejne języki, lista procesów i ich zatrzymywanie, wielodniowa historia metryk, eksport pomiarów jako funkcja produktu, regulowanie wentylatorów, profile każdej myszy, przyspieszanie/wygładzanie scrolla, IPv6 w UI, gwarantowana mapa VPN per aplikacja, automatyczne wklejanie, pliki i formatowany tekst w historii, OCR, synchronizacja schowka, biblioteka muzyczna i sterowanie innymi urządzeniami.
 
 Homebrew pozostaje opcjonalnym kanałem instalacji. Funkcje przyszłych faz nie pojawiają się w pierwszej fazie jako aktywne lub pozornie działające kontrolki.
-

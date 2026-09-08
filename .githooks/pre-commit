@@ -1,0 +1,23 @@
+#!/bin/sh
+# Reject the Unicode em dash in staged text files.
+set -eu
+
+forbidden=$(printf '\342\200\224')
+status=0
+matches=$(git grep --cached -n -I -e "$forbidden" -- .) || status=$?
+
+case "$status" in
+    0)
+        printf '%s\n' 'Commit rejected: Unicode em dash characters are not allowed.' >&2
+        printf '%s\n' 'Use a regular hyphen-minus (-) or rewrite the sentence:' >&2
+        printf '%s\n' "$matches" >&2
+        exit 1
+        ;;
+    1)
+        exit 0
+        ;;
+    *)
+        printf '%s\n' 'pre-commit: unable to inspect staged files.' >&2
+        exit "$status"
+        ;;
+esac

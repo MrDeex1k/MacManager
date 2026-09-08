@@ -1,6 +1,6 @@
-# Etap 1 / krok 2 — szkielet aplikacji (F1-01)
+# Etap 1 / krok 2 - szkielet aplikacji (F1-01)
 
-Data: 2026-09-08. Stan: zaimplementowany i sprawdzony lokalnie. Branch: feat/stage-1, wspólny dla całego etapu. Krok 2 nie oznacza ukończenia usług pomiarowych F1-02 — te są krokiem 3.
+Data: 2026-09-08. Stan: zaimplementowany i sprawdzony lokalnie. Branch: feat/stage-1, wspólny dla całego etapu. Krok 2 nie oznacza ukończenia usług pomiarowych F1-02 - te są krokiem 3.
 
 ## Zakres
 

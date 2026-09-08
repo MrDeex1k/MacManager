@@ -1,4 +1,4 @@
-# Etap 1 / krok 3 — usługi pomiarowe (F1-02)
+# Etap 1 / krok 3 - usługi pomiarowe (F1-02)
 
 Data: 2026-09-08. Zaimplementowano po kroku 5, zgodnie z dyspozycją właściciela. Branch: feat/stage-1.
 

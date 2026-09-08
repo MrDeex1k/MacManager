@@ -78,7 +78,7 @@ Odświeżenie przy starcie/wznowieniu usługi, zmianie sieci po 2 s stabilizacji
 
 VPN: brak skanowania internetowych celów ani uruchamiania innych aplikacji w celu wykrywania ich tras. Przypisanie żądania do interfejsu to tylko kandydat do prototypu. Wynik wolno opisać nazwą tunelu dopiero po potwierdzeniu ścieżki. Sam obecny utun, odpowiedź serwera ani adres bramy nie dowodzą osobnego publicznego IP. Jeśli adapter nie potrafi tego wykazać, zwraca unknown.
 
-## Zaimplementowany szkielet — krok 2
+## Zaimplementowany szkielet - krok 2
 
 MacManager.xcodeproj zawiera target aplikacji i testy UI oraz współdzielony scheme MacManager. Lokalne Packages/MacManagerCore dostarcza AppLanguage i PreferencesStore (Observation, MainActor, wstrzykiwany UserDefaults). AppState utrzymuje nawigację i jedną instancję ustawień; AppStrings wybiera PL/EN z kompilowanego String Catalog, dzięki czemu zmiana treści jest natychmiastowa. SwiftUI Locale odpowiada za formatowanie. Systemowe menu i okna macOS zachowują język systemu.
 
@@ -86,7 +86,7 @@ App/ zawiera scenę pojedynczego okna, nawigację, komendy i motyw. Features/ za
 
 Konfiguracja: arm64, minimalny macOS 26.0, Swift 6, bez zależności zewnętrznych i generatora projektu. Identyfikator rozwojowy: dev.macmanager.MacManager. Podpis lokalny ad-hoc, bez skonfigurowanego Developer ID. ENABLE_HARDENED_RUNTIME jest włączone w projekcie, lecz Xcode wyłącza Hardened Runtime przy ad-hoc signing; weryfikacja podpisanego wydania pozostaje osobną bramką.
 
-## Zaimplementowane usługi — kroki 5 i 3
+## Zaimplementowane usługi - kroki 5 i 3
 
 NetworkService i MetricsService w Core są obserwowalne na MainActor. Kontrolery w Platform/Network i Platform/Metrics uruchamiają po jednej pętli na AppState i reagują na sleep/wake. Nawigacja nie tworzy dodatkowych samplerów. Start następuje przy pierwszym otwarciu okna; zamknięcie okna nie kończy procesu. Pełny autostart i integracja menu/Dock pozostają w kroku 7.
 
@@ -96,7 +96,7 @@ Snapshot metryk zawiera czas kalendarzowy, uptime, źródło, status, jednostkę
 
 Debug --ui-testing wyłącza kontrolery i korzysta z osobnej domeny ustawień. Dodatkowe --live-metrics uruchamia wyłącznie pomiary lokalne do testu GUI. Release ignoruje te flagi. Kontrolery nie uruchamiają narzędzi CLI, nie wymagają sudo i nie proszą o uprawnienia schowka ani scrolla.
 
-## Historia i wykresy — krok 4
+## Historia i wykresy - krok 4
 
 MetricsService przechowuje MetricsHistory w RAM. Okno to (teraz − 300 s, teraz]; zegar MetricsTime opiera się na mach_continuous_time i uwzględnia uśpienie, bez zależności od zegara kalendarzowego. Pole snapshot.uptime używa tego samego zegara. Usuwanie wygasłych próbek odbywa się przy odczycie, każdym tyknięciu kontrolera oraz powiadomieniu sleep/wake. Nie ma zapisu na dysk ani odtwarzania po restarcie. Typowy bufor zawiera do 300 snapshotów przy interwale 1 s.
 
@@ -104,7 +104,7 @@ Każda metryka tworzy osobne segmenty: brak dostępnej wartości, zmiana źród�
 
 MetricsHistoryView korzysta wyłącznie z historii wspólnej usługi. Swift Charts rysuje osobne serie liniowe i punkty, ze stałą osią −5 min…Teraz, skalą 0–100% dla CPU/GPU oraz GiB dla RAM. Minimum, maksimum i liczba próbek odnoszą się do wybranej metryki w zachowanym oknie. Moc ma pusty stan, dopóki nie istnieje zweryfikowane źródło. Nie interpolujemy przez przerwy i nie animujemy wartości pomiarów.
 
-## Scroll — krok 6
+## Scroll - krok 6
 
 ScrollService na MainActor łączy intencję użytkownika z prawdziwym stanem dwóch zgód i sterownika. Ustawienie reverseMouseScroll domyślnie jest wyłączone. Odczyt uprawnień nie prosi o zgodę przy starcie; prośba następuje tylko przez świadomą akcję w Ustawieniach. ScrollController sprawdza stan co sekundę i zatrzymuje usługę przy uśpieniu, nieaktywnej sesji i zakończeniu aplikacji. Zamknięcie okna jej nie zatrzymuje.
 
@@ -138,4 +138,3 @@ docs/
 ~~~
 
 Istnieją App/, Features/Overview, Network, Settings, Resources, lokalny Core i MacManagerUITests. Pozostałe katalogi i funkcje dodajemy w przypisanych krokach i fazach. Test doubles dla zegara, adapterów, pasteboardu, repozytorium i HTTP umożliwiają sprawdzenie awarii bez prawdziwych danych użytkownika.
-

@@ -1,4 +1,4 @@
-# Prototypy etapu 1 — krok 1
+# Prototypy etapu 1 - krok 1
 
 Narzędzia do badań P01–P04: CPU/GPU/RAM, kandydat pomiaru mocy, IPv4/VPN i wejście myszy/gładzika. To pakiet CLI, nie szkielet aplikacji SwiftUI F1-01 i nie ukończone funkcje produktu.
 

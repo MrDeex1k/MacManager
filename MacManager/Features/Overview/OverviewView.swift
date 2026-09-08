@@ -70,7 +70,7 @@ private struct MetricValue: View {
 
     private var reading: MetricReading { state.metrics.snapshot[kind] }
     private var formattedValue: String {
-        guard let value = reading.value else { return "—" }
+        guard let value = reading.value else { return "-" }
         switch kind {
         case .cpu, .gpu:
             return (value / 100).formatted(.percent.precision(.fractionLength(0)).locale(state.preferences.locale))

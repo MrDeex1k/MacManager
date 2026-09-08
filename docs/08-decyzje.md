@@ -80,7 +80,7 @@ Lista procesów, wielodniowe metryki, temperatura zastąpiona stanem thermalStat
 Zmianę produktową zapisać jako nową decyzję z przyczyną, wpływem na fazę i zgodą właściciela. Zmianę implementacyjną zapisać w E lub raporcie prototypu, aktualizując powiązane testy. Nie oznaczać niezweryfikowanej możliwości jako obsługiwanej na podstawie samej dokumentacji zewnętrznej.
 
 
-## Doprecyzowania implementacyjne — 2026-09-08
+## Doprecyzowania implementacyjne - 2026-09-08
 
 - Cały etap rozwijamy na jednym branchu feat/stage-1; kolejne kroki rozdzielają commity, bez osobnych branchy kroków.
 - macOS 26+ oznacza domyślne użycie natywnego Liquid Glass w nawigacji i akcjach. Nie dodajemy przełącznika ani fallbacku dla starszego macOS; respektujemy systemowe ustawienia dostępności. Szczegółowy dobór miejsc jest w dokumencie interfejsu.

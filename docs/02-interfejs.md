@@ -8,7 +8,7 @@ Okno: boczna nawigacja „Przegląd”, „Sieć”, od fazy 2 „Czujniki”, o
 
 Liquid Glass jest natywną warstwą interfejsu i kontrolek, nie nakładką utrudniającą odczyt wykresów. Ciemny motyw obowiązuje również w panelach AppKit należących do aplikacji. Systemowe okna uprawnień pozostają pod kontrolą macOS.
 
-## Liquid Glass — domyślny materiał od macOS 26
+## Liquid Glass - domyślny materiał od macOS 26
 
 Minimalny system to macOS 26, więc używamy nowych API bez ścieżki zgodności ze starszym macOS i bez przełącznika włączającego Liquid Glass. System może ograniczyć przezroczystość lub animacje zgodnie z preferencjami dostępności użytkownika; aplikacja tego nie omija.
 
@@ -89,4 +89,3 @@ Brak okładki nie blokuje odtwarzania: neutralny placeholder. Brak odtwarzacza i
 PL/EN w String Catalog, bez sklejania przetłumaczonych fragmentów i bez hardkodowania formatów liczb. VoiceOver opisuje wartości, jednostki i przyciski. Stanów nie kodujemy wyłącznie kolorem. Uwzględniamy Reduce Motion, Reduce Transparency oraz Increase Contrast, nawet przy wymuszonym ciemnym motywie.
 
 Wyspa ma alternatywną drogę otwarcia z paska menu; użytkownik klawiatury nie musi najpierw najechać kursorem ani przypisywać skrótu. Szczegóły schowka są także w pełnym oknie.
-

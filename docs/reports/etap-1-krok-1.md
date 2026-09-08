@@ -1,4 +1,4 @@
-# Etap 1 / krok 1 — prototypy P01–P04
+# Etap 1 / krok 1 - prototypy P01–P04
 
 Data: 2026-09-08. Stan: narzędzia zaimplementowane, pierwsze odczyty wykonane, walidacja sprzętowa częściowa.
 
@@ -26,10 +26,10 @@ Koszt collectionMilliseconds mierzy wyłącznie synchroniczne zebranie próbki w
 | Tunele | Występuje pięć interfejsów utun. | Nie dowodzi pięciu VPN ani adresów publicznych; dodatkowe wyjścia unresolved. |
 | HID | Wpisy mouse_usage i touchpad_usage są widoczne. | Inwentarz kolekcji nie wiąże zdarzenia scrolla z fizycznym urządzeniem. |
 | Zgody wejścia | Istniejące zgody pozwoliły otworzyć pasywny tap. | Nie proszono o nowe zgody i nie zmieniano ich. |
-| Scroll — próba wstępna | W dwusekundowej próbie 0 zdarzeń; brak przerwań tapu. | Sprawdza uruchomienie, nie rozróżnienie. |
-| Scroll — gładzik | Próba 20 s na gładziku: 2448 continuous, 0 discrete, 1531 phase, 917 momentum, 0 przerwań. | Zapis rzeczywistego gestu działa; znaczniki phase/momentum są dostępne. |
-| Scroll — mysz, pierwsza próba | 20 s: 0 zdarzeń; użytkownik potwierdził, że nie zdążył rozpocząć przewijania. | Próba nieważna, nie jest błędem obsługi myszy. |
-| Scroll — mysz, powtórzenie | 30 s: 1521 continuous, 0 discrete, 0 phase, 0 momentum, 0 przerwań. | Dla użytej myszy sam continuous daje taki sam wynik jak dla gładzika. Fazy są obiecującym dodatkowym sygnałem. |
+| Scroll - próba wstępna | W dwusekundowej próbie 0 zdarzeń; brak przerwań tapu. | Sprawdza uruchomienie, nie rozróżnienie. |
+| Scroll - gładzik | Próba 20 s na gładziku: 2448 continuous, 0 discrete, 1531 phase, 917 momentum, 0 przerwań. | Zapis rzeczywistego gestu działa; znaczniki phase/momentum są dostępne. |
+| Scroll - mysz, pierwsza próba | 20 s: 0 zdarzeń; użytkownik potwierdził, że nie zdążył rozpocząć przewijania. | Próba nieważna, nie jest błędem obsługi myszy. |
+| Scroll - mysz, powtórzenie | 30 s: 1521 continuous, 0 discrete, 0 phase, 0 momentum, 0 przerwań. | Dla użytej myszy sam continuous daje taki sam wynik jak dla gładzika. Fazy są obiecującym dodatkowym sygnałem. |
 
 Przy porównaniu pamięci top zgłaszał około 22G PhysMem used, w tym około 5824M wired i 6459M compressor. vm_stat pokazał strony 16 384 B i osobne kategorie anonymous, purgeable, wired, compressor oraz file-backed. top uwzględnia inną semantykę niż wybrany wzór bez file cache; różnicy nie ukrywamy skalowaniem. Próbki pochodziły z różnych chwil przy zmiennym obciążeniu, więc nie stanowią porównania dokładności.
 

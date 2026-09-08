@@ -1,4 +1,4 @@
-# Etap 1, krok 6 — niezależny scroll myszy
+# Etap 1, krok 6 - niezależny scroll myszy
 
 Data: 2026-09-08. Branch: feat/stage-1. Zakres: F1-05 / SCR-01.
 
@@ -52,4 +52,4 @@ API: [CGEvent tap](https://developer.apple.com/documentation/coregraphics/cgeven
 
 Automatyczny algorytm nie wymaga znajomości modelu. Pełna macierz sterowników, aplikacji i wersji macOS nadal wymaga prób rzeczywistego wejścia; test syntetyczny nie zastępuje fizycznego scrolla ani ręcznego cofnięcia zgody. W szczególności należy sprawdzić Safari/WebKit, gesty systemowe i naprzemienne używanie obu urządzeń. Podczas testowania odwracania tylko jedna aplikacja powinna je wykonywać, aby dwa odwrócenia się nie znosiły.
 
-Następny krok: 7 — pasek menu, Dock i autostart. Nie oznaczamy całego etapu 1 jako ukończonego.
+Następny krok: 7 - pasek menu, Dock i autostart. Nie oznaczamy całego etapu 1 jako ukończonego.
