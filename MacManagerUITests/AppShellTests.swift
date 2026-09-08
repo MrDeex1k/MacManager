@@ -136,6 +136,11 @@ final class AppShellTests: XCTestCase {
         XCTAssertEqual(switchValue(cpu), 0)
         XCTAssertEqual(switchValue(ram), 0)
         XCTAssertEqual(switchValue(power), 0)
+        let settingsScrollView = app.scrollViews.element(boundBy: 1)
+        settingsScrollView.scroll(byDeltaX: 0, deltaY: 100)
+        XCTAssertTrue(cpu.isHittable)
+        XCTAssertTrue(ram.isHittable)
+        XCTAssertTrue(power.isHittable)
         cpu.click()
         ram.click()
         power.click()
@@ -149,6 +154,28 @@ final class AppShellTests: XCTestCase {
         XCTAssertEqual(switchValue(element("menuBar.showCPU", in: app)), 1)
         XCTAssertEqual(switchValue(element("menuBar.showRAM", in: app)), 1)
         XCTAssertEqual(switchValue(element("menuBar.showPower", in: app)), 1)
+        app.terminate()
+    }
+
+    @MainActor
+    func testDockPreferenceAndWindowReopenBehavior() throws {
+        var app = launch(reset: true)
+        app.typeKey(",", modifierFlags: .command)
+        let dockToggle = element("integration.showDockIcon", in: app)
+        XCTAssertEqual(switchValue(dockToggle), 1)
+        dockToggle.click()
+        XCTAssertEqual(switchValue(dockToggle), 0)
+        app.terminate()
+
+        app = launch(reset: false)
+        app.typeKey(",", modifierFlags: .command)
+        XCTAssertEqual(switchValue(element("integration.showDockIcon", in: app)), 0)
+        app.typeKey("w", modifierFlags: .command)
+        XCTAssertTrue(waitForWindow(in: app, exists: false))
+        app.activate()
+        app.typeKey("1", modifierFlags: .command)
+        XCTAssertTrue(waitForWindow(in: app, exists: true))
+        XCTAssertTrue(app.staticTexts["System overview"].waitForExistence(timeout: 5))
         app.terminate()
     }
 
@@ -185,5 +212,12 @@ final class AppShellTests: XCTestCase {
         if let number = element.value as? NSNumber { return number.intValue }
         if let text = element.value as? String { return Int(text) }
         return nil
+    }
+
+    @MainActor
+    private func waitForWindow(in app: XCUIApplication, exists: Bool) -> Bool {
+        let predicate = NSPredicate(format: "exists == %@", NSNumber(value: exists))
+        let expectation = XCTNSPredicateExpectation(predicate: predicate, object: app.windows.firstMatch)
+        return XCTWaiter.wait(for: [expectation], timeout: 5) == .completed
     }
 }

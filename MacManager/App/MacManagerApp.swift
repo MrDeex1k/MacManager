@@ -37,6 +37,14 @@ struct MacManagerApp: App {
 final class AppearanceDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
 
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows _: Bool) -> Bool {
+        if let mainWindow = sender.windows.first(where: { $0.title == "Mac Manager" && $0.canBecomeMain }) {
+            mainWindow.makeKeyAndOrderFront(nil)
+            sender.activate()
+        }
+        return true
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.appearance = NSAppearance(named: .darkAqua)
     }

@@ -1,6 +1,6 @@
 # Dokumentacja Mac Manager
 
-Status: wymagania zatwierdzone przez właściciela projektu po wywiadzie Q1–Q28 i końcowym potwierdzeniu. Dokumentacja opisuje plan aplikacji, nie gotowy produkt. Data opracowania: 2026-09-07. Aktualizacja 2026-09-08: prototypy CLI i częściowa walidacja P01–P04; gotowy szkielet aplikacji SwiftUI (krok 2 / F1-01), PL/EN i domyślny Liquid Glass. Dodano obsługę sieci (krok 5); dodano bieżące pomiary CPU/GPU/RAM (krok 3). Dodano pięciominutową historię w RAM i wykresy Swift Charts (krok 4). Dodano automatyczne rozróżnianie myszy/gładzika i odwracanie scrolla (krok 6). Krok 7 ma gotowy model cyklu życia, ikonę i panel paska menu oraz opcjonalne CPU/RAM/W. Dock i autostart są następne.
+Status: wymagania zatwierdzone przez właściciela projektu po wywiadzie Q1–Q28 i końcowym potwierdzeniu. Dokumentacja opisuje plan aplikacji, nie gotowy produkt. Data opracowania: 2026-09-07. Aktualizacja 2026-09-08: prototypy CLI i częściowa walidacja P01–P04; gotowy szkielet aplikacji SwiftUI (krok 2 / F1-01), PL/EN i domyślny Liquid Glass. Dodano obsługę sieci (krok 5); dodano bieżące pomiary CPU/GPU/RAM (krok 3). Dodano pięciominutową historię w RAM i wykresy Swift Charts (krok 4). Dodano automatyczne rozróżnianie myszy/gładzika i odwracanie scrolla (krok 6). Krok 7 ma gotowy model cyklu życia, pasek menu, opcjonalne CPU/RAM/W oraz sterowanie Dockiem i głównym oknem. Autostart jest następny.
 
 Aktualny punkt prac i kolejność kolejnych zadań: [Stan projektu](10-stan-projektu.md).
 
@@ -21,7 +21,7 @@ Aktualny punkt prac i kolejność kolejnych zadań: [Stan projektu](10-stan-proj
 | [Raport prototypów](reports/etap-1-krok-1.md) | Wyniki pierwszych uruchomień etapu 1 i brakujące dowody. |
 | [Raport szkieletu](reports/etap-1-krok-2.md) | Projekt Xcode, lokalny Core, interfejs i wyniki testów kroku 2. |
 
-[Raport sieci - krok 5](reports/etap-1-krok-5.md), [raport pomiarów - krok 3](reports/etap-1-krok-3.md), [raport historii - krok 4](reports/etap-1-krok-4.md), [raport scrolla - krok 6](reports/etap-1-krok-6.md), [raport modelu ustawień i cyklu życia - krok 7a](reports/etap-1-krok-7a.md) oraz [raport paska menu - krok 7b](reports/etap-1-krok-7b.md).
+[Raport sieci - krok 5](reports/etap-1-krok-5.md), [raport pomiarów - krok 3](reports/etap-1-krok-3.md), [raport historii - krok 4](reports/etap-1-krok-4.md), [raport scrolla - krok 6](reports/etap-1-krok-6.md), [raport modelu ustawień i cyklu życia - krok 7a](reports/etap-1-krok-7a.md), [raport paska menu - krok 7b](reports/etap-1-krok-7b.md) oraz [raport Docka i okna - krok 7c](reports/etap-1-krok-7c.md).
 
 ## Jak czytać ustalenia
 

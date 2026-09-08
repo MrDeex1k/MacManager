@@ -1445,6 +1445,74 @@
           }
         }
       }
+    },
+    "integration.settings.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "App behavior"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Działanie aplikacji"
+          }
+        }
+      }
+    },
+    "integration.dock": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show icon in Dock"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pokazuj ikonę w Docku"
+          }
+        }
+      }
+    },
+    "integration.dock.note": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When hidden, Mac Manager remains available from the menu bar."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Po ukryciu Mac Manager pozostaje dostępny z paska menu."
+          }
+        }
+      }
+    },
+    "integration.dock.failed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS could not change the Dock icon visibility."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS nie mógł zmienić widoczności ikony Docka."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

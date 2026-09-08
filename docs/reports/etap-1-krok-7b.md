@@ -26,4 +26,4 @@ Wartości są składane w jeden tekst etykiety, ponieważ `MenuBarExtra` może u
 
 ## Następna część
 
-Pozostała część F1-06 obejmuje sterowanie widocznością Docka, autostart przez `SMAppService.mainApp`, przeniesienie startu usług na poziom procesu oraz scenariusze zamknięcia i ponownego otwarcia głównego okna.
+Sterowanie widocznością Docka i ponowne otwieranie głównego okna wdrożono w [kroku 7c](etap-1-krok-7c.md). Pozostała część F1-06 obejmuje autostart przez `SMAppService.mainApp`, przeniesienie startu usług na poziom procesu oraz scenariusze uruchomienia ręcznego i przy logowaniu.

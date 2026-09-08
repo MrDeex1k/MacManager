@@ -23,6 +23,7 @@ final class AppState {
     let metrics: MetricsService
     let scroll: ScrollService
     let network: NetworkService
+    let dock: DockController
     let lifecycle: ApplicationLifecycleCoordinator
     @ObservationIgnored private var terminationObserver: NSObjectProtocol?
     var section: AppSection? = .overview
@@ -38,7 +39,8 @@ final class AppState {
             scroll = ScrollService(enabled: preferences.reverseMouseScroll, driver: TestScrollDriver())
             network = NetworkService(enabled: false)
             metrics = MetricsService(interval: preferences.samplingInterval)
-            var participants: [any ApplicationLifecycleParticipant] = [ScrollController(service: scroll)]
+            dock = DockController(showsDockIcon: preferences.appIntegration.showsDockIcon)
+            var participants: [any ApplicationLifecycleParticipant] = [dock, ScrollController(service: scroll)]
             if ProcessInfo.processInfo.arguments.contains("--live-metrics") {
                 participants.append(MetricsController(service: metrics))
             }
@@ -51,7 +53,9 @@ final class AppState {
         scroll = ScrollService(enabled: preferences.reverseMouseScroll, driver: ScrollDriver())
         network = NetworkService(enabled: preferences.publicIPEnabled)
         metrics = MetricsService(interval: preferences.samplingInterval)
+        dock = DockController(showsDockIcon: preferences.appIntegration.showsDockIcon)
         lifecycle = ApplicationLifecycleCoordinator(participants: [
+            dock,
             ScrollController(service: scroll),
             NetworkController(service: network),
             MetricsController(service: metrics)
@@ -61,6 +65,11 @@ final class AppState {
 
     func startServices() {
         lifecycle.start()
+    }
+
+    func setDockIconVisible(_ isVisible: Bool) {
+        guard dock.setVisible(isVisible) else { return }
+        preferences.appIntegration.showsDockIcon = isVisible
     }
 
     private func observeTermination() {
