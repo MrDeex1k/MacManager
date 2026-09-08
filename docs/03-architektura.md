@@ -116,13 +116,17 @@ Blokada chroni bramkę wyłączenia i stan sterownika; callback nie wykonuje sie
 
 Informacje Apache-2.0 dla adaptowanych fragmentów są w [THIRD_PARTY_NOTICES](../THIRD_PARTY_NOTICES.md) oraz w zasobach dystrybuowanej aplikacji. Pozostały kod projektu pozostaje MIT.
 
-## Integracja aplikacji - krok 7a
+## Integracja aplikacji - kroki 7a i 7b
 
 AppIntegrationPreferences grupuje trwałe ustawienia Docka, intencję autostartu i trzy niezależne wskaźniki paska menu. Domyślnie Dock i autostart są włączone, a CPU, RAM i moc w pasku wyłączone. LaunchAtLoginState jest osobnym modelem rzeczywistego wyniku systemowego; zapisana intencja nie zastępuje odczytu `SMAppService.status`.
 
 ApplicationLifecycleCoordinator z Core nie zależy od AppKit. Otrzymuje uczestników zgodnych z ApplicationLifecycleParticipant, uruchamia ich jeden raz i zatrzymuje w odwrotnej kolejności. AppState składa z niego kontrolery metryk, sieci i scrolla, a wspólna obserwacja zakończenia procesu wywołuje terminate. Każdy kontroler jawnie anuluje pętle i usuwa własne obserwacje.
 
-Ta część nie zmienia jeszcze polityki aktywacji NSApplication, nie rejestruje autostartu i nie tworzy status item. Adaptery systemowe zostaną dołączone do tego modelu i koordynatora w kolejnych częściach kroku 7. Szczegóły i granice: [raport kroku 7a](reports/etap-1-krok-7a.md).
+MenuBarExtra tworzy status item z ikoną `macbook` i panelem w stylu okna. Etykieta opcjonalnie składa CPU, RAM i moc w jeden ciąg o stałej kolejności. MenuBarStatusFormatter w Core oddziela reguły wyboru, jednostek i braku danych od SwiftUI. Panel korzysta ze wspólnych snapshotów metryk i sieci, nie tworzy osobnego samplera. Otwieranie sekcji głównego okna odbywa się przez środowiskową akcję `openWindow`.
+
+Ustawienia paska menu są wiązane bezpośrednio z trwałym AppIntegrationPreferences. Domyślnie widoczna jest sama ikona. Wartości niedostępne pozostają oznaczone jako `-`, a moc nie jest estymowana.
+
+Ta część nadal nie zmienia polityki aktywacji NSApplication i nie rejestruje autostartu. Adaptery Docka i `SMAppService` zostaną dołączone do modelu i koordynatora w kolejnych częściach kroku 7. Szczegóły i granice: [raport kroku 7a](reports/etap-1-krok-7a.md) oraz [raport kroku 7b](reports/etap-1-krok-7b.md).
 
 ## Docelowa struktura kodu
 

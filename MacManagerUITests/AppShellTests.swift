@@ -127,6 +127,32 @@ final class AppShellTests: XCTestCase {
     }
 
     @MainActor
+    func testMenuBarValuesAreOptionalAndPersist() throws {
+        var app = launch(reset: true)
+        app.typeKey(",", modifierFlags: .command)
+        let cpu = element("menuBar.showCPU", in: app)
+        let ram = element("menuBar.showRAM", in: app)
+        let power = element("menuBar.showPower", in: app)
+        XCTAssertEqual(switchValue(cpu), 0)
+        XCTAssertEqual(switchValue(ram), 0)
+        XCTAssertEqual(switchValue(power), 0)
+        cpu.click()
+        ram.click()
+        power.click()
+        XCTAssertEqual(switchValue(cpu), 1)
+        XCTAssertEqual(switchValue(ram), 1)
+        XCTAssertEqual(switchValue(power), 1)
+        app.terminate()
+
+        app = launch(reset: false)
+        app.typeKey(",", modifierFlags: .command)
+        XCTAssertEqual(switchValue(element("menuBar.showCPU", in: app)), 1)
+        XCTAssertEqual(switchValue(element("menuBar.showRAM", in: app)), 1)
+        XCTAssertEqual(switchValue(element("menuBar.showPower", in: app)), 1)
+        app.terminate()
+    }
+
+    @MainActor
     private func launch(reset: Bool, liveMetrics: Bool = false, scrollPermission: Bool = false, inputMonitoringRequired: Bool = false) -> XCUIApplication {
         continueAfterFailure = false
         let app = XCUIApplication()
@@ -152,5 +178,12 @@ final class AppShellTests: XCTestCase {
     @MainActor
     private func element(_ identifier: String, in app: XCUIApplication) -> XCUIElement {
         app.descendants(matching: .any).matching(identifier: identifier).firstMatch
+    }
+
+    @MainActor
+    private func switchValue(_ element: XCUIElement) -> Int? {
+        if let number = element.value as? NSNumber { return number.intValue }
+        if let text = element.value as? String { return Int(text) }
+        return nil
     }
 }

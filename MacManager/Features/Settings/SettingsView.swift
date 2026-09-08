@@ -58,6 +58,8 @@ struct SettingsView: View {
             Divider()
             ScrollSettingsView()
             Divider()
+            MenuBarSettingsView()
+            Divider()
             Surface {
                 VStack(alignment: .leading, spacing: 12) {
                     Label(strings("settings.privacy.title"), systemImage: "lock.shield")

@@ -23,6 +23,14 @@ struct MacManagerApp: App {
             SidebarCommands()
             AppCommands(state: state)
         }
+
+        MenuBarExtra {
+            MenuBarPanelView()
+                .environment(state)
+        } label: {
+            MenuBarLabelView(state: state)
+        }
+        .menuBarExtraStyle(.window)
     }
 }
 
