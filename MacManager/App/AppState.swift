@@ -24,11 +24,15 @@ final class AppState {
     let scroll: ScrollService
     let network: NetworkService
     let dock: DockController
+    let loginItem: LoginItemController
+    let launchContext: ApplicationLaunchContext
     let lifecycle: ApplicationLifecycleCoordinator
     @ObservationIgnored private var terminationObserver: NSObjectProtocol?
+    @ObservationIgnored private var shouldDismissInitialLoginWindow = ProcessInfo.processInfo.arguments.contains("--launched-at-login")
     var section: AppSection? = .overview
 
     init() {
+        launchContext = ApplicationLaunchContextDetector.detect()
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("--ui-testing"),
            let defaults = UserDefaults(suiteName: "dev.macmanager.MacManager.UITests") {
@@ -40,12 +44,17 @@ final class AppState {
             network = NetworkService(enabled: false)
             metrics = MetricsService(interval: preferences.samplingInterval)
             dock = DockController(showsDockIcon: preferences.appIntegration.showsDockIcon)
-            var participants: [any ApplicationLifecycleParticipant] = [dock, ScrollController(service: scroll)]
+            loginItem = LoginItemController(
+                preferences: preferences,
+                service: TestLoginItemService(arguments: ProcessInfo.processInfo.arguments)
+            )
+            var participants: [any ApplicationLifecycleParticipant] = [dock, loginItem, ScrollController(service: scroll)]
             if ProcessInfo.processInfo.arguments.contains("--live-metrics") {
                 participants.append(MetricsController(service: metrics))
             }
             lifecycle = ApplicationLifecycleCoordinator(participants: participants)
             observeTermination()
+            lifecycle.start()
             return
         }
         #endif
@@ -54,22 +63,31 @@ final class AppState {
         network = NetworkService(enabled: preferences.publicIPEnabled)
         metrics = MetricsService(interval: preferences.samplingInterval)
         dock = DockController(showsDockIcon: preferences.appIntegration.showsDockIcon)
+        loginItem = LoginItemController(preferences: preferences)
         lifecycle = ApplicationLifecycleCoordinator(participants: [
             dock,
+            loginItem,
             ScrollController(service: scroll),
             NetworkController(service: network),
             MetricsController(service: metrics)
         ])
         observeTermination()
-    }
-
-    func startServices() {
         lifecycle.start()
     }
 
     func setDockIconVisible(_ isVisible: Bool) {
         guard dock.setVisible(isVisible) else { return }
         preferences.appIntegration.showsDockIcon = isVisible
+    }
+
+    func setLaunchAtLoginEnabled(_ isEnabled: Bool) {
+        _ = loginItem.setEnabled(isEnabled)
+    }
+
+    func consumeInitialLoginWindowSuppression() -> Bool {
+        guard shouldDismissInitialLoginWindow else { return false }
+        shouldDismissInitialLoginWindow = false
+        return true
     }
 
     private func observeTermination() {

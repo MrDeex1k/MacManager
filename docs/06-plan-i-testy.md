@@ -20,7 +20,7 @@ Całość rozwijamy na feat/stage-1. Numer kroku obejmuje prototypy, więc krok 
 4. Wykresy i historia F1-03 - zaimplementowane; bufor 300 s, Swift Charts i luki; [raport](reports/etap-1-krok-4.md).
 5. Sieć F1-04 - zaimplementowana przed krokiem 3; wyniki i ograniczenia w [raporcie](reports/etap-1-krok-5.md).
 6. Scroll F1-05 - zaimplementowany; automatyczne rozróżnianie z gestów dotykowych, transformacja, zgody i cykl życia; [raport](reports/etap-1-krok-6.md).
-7. Okno, pasek menu, Dock i autostart F1-06 - rozpoczęty; model ustawień, koordynator cyklu życia, pasek menu, opcjonalne CPU/RAM/W oraz sterowanie Dockiem i oknem są gotowe. Autostart i tryb uruchomienia pozostają.
+7. Okno, pasek menu, Dock i autostart F1-06 - zaimplementowane; model ustawień, cykl życia procesu, pasek menu, opcjonalne CPU/RAM/W, Dock, `SMAppService.mainApp` i start bez okna przy logowaniu są gotowe. Próba z podpisaną aplikacją w `/Applications` pozostaje w odbiorze wydania.
 8. Aktualizacje i prywatność F1-07/F1-08.
 9. Odbiór i wydanie F1-09.
 

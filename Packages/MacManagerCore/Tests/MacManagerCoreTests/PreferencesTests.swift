@@ -53,6 +53,7 @@ import Testing
     #expect(store.appIntegration.showsDockIcon)
     #expect(store.appIntegration.requestsLaunchAtLogin)
     #expect(store.appIntegration.menuBar == MenuBarDisplayPreferences())
+    #expect(!store.attemptedLaunchAtLoginDefault)
 }
 
 @MainActor
@@ -70,4 +71,17 @@ import Testing
     first.appIntegration.menuBar.showsCPU = true
 
     #expect(PreferencesStore(defaults: defaults).appIntegration == first.appIntegration)
+}
+
+@MainActor
+@Test func launchAtLoginDefaultAttemptIsRemembered() throws {
+    let suite = "MacManagerCoreTests.\(UUID().uuidString)"
+    let defaults = try #require(UserDefaults(suiteName: suite))
+    defer { defaults.removePersistentDomain(forName: suite) }
+    let first = PreferencesStore(defaults: defaults)
+
+    #expect(!first.attemptedLaunchAtLoginDefault)
+    first.markLaunchAtLoginDefaultAttempted()
+
+    #expect(PreferencesStore(defaults: defaults).attemptedLaunchAtLoginDefault)
 }

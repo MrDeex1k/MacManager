@@ -27,4 +27,4 @@ Autostart nie jest jeszcze rejestrowany. Jego implementacja musi użyć `SMAppSe
 
 ## Następna część
 
-Autostart przez `SMAppService.mainApp`, przeniesienie startu usług na poziom procesu oraz scenariusze uruchomienia ręcznego i przy logowaniu.
+Autostart przez `SMAppService.mainApp`, przeniesienie startu usług na poziom procesu oraz scenariusze uruchomienia ręcznego i przy logowaniu wdrożono w [kroku 7d](etap-1-krok-7d.md).

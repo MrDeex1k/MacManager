@@ -10,6 +10,7 @@ enum DockVisibilityState: Equatable {
 
 @MainActor
 protocol ApplicationActivationPolicySetting: AnyObject {
+    var isRunning: Bool { get }
     func activationPolicy() -> NSApplication.ActivationPolicy
     func setActivationPolicy(_ activationPolicy: NSApplication.ActivationPolicy) -> Bool
     func activate()
@@ -25,6 +26,7 @@ final class DockController: ApplicationLifecycleParticipant {
     @ObservationIgnored private let application: any ApplicationActivationPolicySetting
     @ObservationIgnored private var requestedVisibility: Bool
     @ObservationIgnored private var isRunning = false
+    @ObservationIgnored private var launchObserver: NSObjectProtocol?
 
     init(showsDockIcon: Bool, application: any ApplicationActivationPolicySetting = NSApplication.shared) {
         requestedVisibility = showsDockIcon
@@ -35,11 +37,26 @@ final class DockController: ApplicationLifecycleParticipant {
     func start() {
         guard !isRunning else { return }
         isRunning = true
-        _ = apply(requestedVisibility)
+        if application.isRunning {
+            _ = apply(requestedVisibility)
+        } else {
+            launchObserver = NotificationCenter.default.addObserver(
+                forName: NSApplication.didFinishLaunchingNotification,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                MainActor.assumeIsolated {
+                    guard let self, self.isRunning else { return }
+                    self.removeLaunchObserver()
+                    _ = self.apply(self.requestedVisibility)
+                }
+            }
+        }
     }
 
     func stop() {
         isRunning = false
+        removeLaunchObserver()
     }
 
     @discardableResult
@@ -63,5 +80,12 @@ final class DockController: ApplicationLifecycleParticipant {
             application.activate()
         }
         return true
+    }
+
+    private func removeLaunchObserver() {
+        if let launchObserver {
+            NotificationCenter.default.removeObserver(launchObserver)
+            self.launchObserver = nil
+        }
     }
 }

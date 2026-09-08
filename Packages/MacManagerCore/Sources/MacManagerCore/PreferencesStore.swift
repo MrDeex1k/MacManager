@@ -12,6 +12,7 @@ public final class PreferencesStore {
         static let publicIPEnabled = "preferences.publicIPEnabled"
         static let showsDockIcon = "preferences.integration.showsDockIcon"
         static let requestsLaunchAtLogin = "preferences.integration.requestsLaunchAtLogin"
+        static let attemptedLaunchAtLoginDefault = "preferences.integration.attemptedLaunchAtLoginDefault"
         static let showsCPUInMenuBar = "preferences.integration.menuBar.showsCPU"
         static let showsRAMInMenuBar = "preferences.integration.menuBar.showsRAM"
         static let showsPowerInMenuBar = "preferences.integration.menuBar.showsPower"
@@ -42,6 +43,10 @@ public final class PreferencesStore {
         }
     }
 
+    public private(set) var attemptedLaunchAtLoginDefault: Bool {
+        didSet { defaults.set(attemptedLaunchAtLoginDefault, forKey: Key.attemptedLaunchAtLoginDefault) }
+    }
+
     public var language: AppLanguage {
         didSet {
             guard language != oldValue else { return }
@@ -63,10 +68,15 @@ public final class PreferencesStore {
                 showsPower: Self.bool(defaults, forKey: Key.showsPowerInMenuBar, default: false)
             )
         )
+        attemptedLaunchAtLoginDefault = defaults.bool(forKey: Key.attemptedLaunchAtLoginDefault)
         language = defaults.string(forKey: Self.languageKey).flatMap(AppLanguage.init(rawValue:)) ?? .system
     }
 
     public var locale: Locale { Locale(identifier: language.resolvedCode()) }
+
+    public func markLaunchAtLoginDefaultAttempted() {
+        attemptedLaunchAtLoginDefault = true
+    }
 
     private static func bool(_ defaults: UserDefaults, forKey key: String, default defaultValue: Bool) -> Bool {
         defaults.object(forKey: key) as? Bool ?? defaultValue

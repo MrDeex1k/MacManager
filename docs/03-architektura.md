@@ -88,7 +88,7 @@ Konfiguracja: arm64, minimalny macOS 26.0, Swift 6, bez zależności zewnętrzny
 
 ## Zaimplementowane usługi - kroki 5 i 3
 
-NetworkService i MetricsService w Core są obserwowalne na MainActor. Kontrolery w Platform/Network i Platform/Metrics uruchamiają po jednej pętli na AppState i reagują na sleep/wake. Nawigacja nie tworzy dodatkowych samplerów. Start następuje przy pierwszym otwarciu okna; zamknięcie okna nie kończy procesu. Pełny autostart i integracja menu/Dock pozostają w kroku 7.
+NetworkService i MetricsService w Core są obserwowalne na MainActor. Kontrolery w Platform/Network i Platform/Metrics uruchamiają po jednej pętli na AppState i reagują na sleep/wake. Nawigacja nie tworzy dodatkowych samplerów. AppState uruchamia wspólny koordynator wraz z procesem, więc metryki, sieć, scroll, Dock i autostart nie zależą od istnienia głównego okna. Zamknięcie okna nie kończy procesu.
 
 Core zawiera MMHardware (C): wyłącznie odczyty Mach CPU/VM i IOKit AGX. HardwareMetricsSampler jest actorem serializującym odczyty. Generacja żądania chroni UI przed wynikiem sprzed uśpienia, następna próbka CPU wymaga nowej bazy. MetricsService nie rozpoczyna kolejnego odczytu przed zakończeniem poprzedniego; po trzech interwałach pokazuje stale bez wartości. Adapter mocy nie jest aktywny, brak SMC w produkcyjnym targetcie.
 
@@ -116,7 +116,7 @@ Blokada chroni bramkę wyłączenia i stan sterownika; callback nie wykonuje sie
 
 Informacje Apache-2.0 dla adaptowanych fragmentów są w [THIRD_PARTY_NOTICES](../THIRD_PARTY_NOTICES.md) oraz w zasobach dystrybuowanej aplikacji. Pozostały kod projektu pozostaje MIT.
 
-## Integracja aplikacji - kroki 7a, 7b i 7c
+## Integracja aplikacji - kroki 7a, 7b, 7c i 7d
 
 AppIntegrationPreferences grupuje trwałe ustawienia Docka, intencję autostartu i trzy niezależne wskaźniki paska menu. Domyślnie Dock i autostart są włączone, a CPU, RAM i moc w pasku wyłączone. LaunchAtLoginState jest osobnym modelem rzeczywistego wyniku systemowego; zapisana intencja nie zastępuje odczytu `SMAppService.status`.
 
@@ -130,7 +130,9 @@ DockController jest uczestnikiem wspólnego cyklu życia. Mapuje preferencję wi
 
 Delegat aplikacji pozostawia proces aktywny po zamknięciu ostatniego okna i przywraca główne okno po ponownym otwarciu aplikacji z Docka. Panel paska menu i komendy SwiftUI używają `openWindow(id: "main")`, wybierają sekcję przed otwarciem i aktywują aplikację. Nadal istnieje tylko jedno główne okno.
 
-Ta część nie rejestruje jeszcze autostartu. Adapter `SMAppService` zostanie dołączony do modelu i koordynatora w kolejnej części kroku 7. Szczegóły i granice: [raport kroku 7a](reports/etap-1-krok-7a.md), [raport kroku 7b](reports/etap-1-krok-7b.md) oraz [raport kroku 7c](reports/etap-1-krok-7c.md).
+LoginItemController opakowuje `SMAppService.mainApp`. Odczytuje rzeczywisty status macOS, rejestruje lub wyrejestrowuje aplikację na żądanie i odświeża status po ponownej aktywacji aplikacji. Stan `requiresApproval` prowadzi użytkownika do panelu Login Items w Ustawieniach systemowych. Jednorazowy znacznik w PreferencesStore pozwala spróbować domyślnego włączenia tylko przy pierwszej konfiguracji i zapobiega ponownemu wymuszaniu decyzji odrzuconej później w macOS.
+
+ApplicationLaunchContextDetector rozpoznaje `keyAELaunchedAsLogInItem` w zdarzeniu otwarcia aplikacji. Zwykłe uruchomienie prezentuje główne okno, a start przy logowaniu używa `defaultLaunchBehavior(.suppressed)`. Panel paska menu i skróty mogą później utworzyć to samo okno. Szczegóły i granice: [raport kroku 7a](reports/etap-1-krok-7a.md), [raport kroku 7b](reports/etap-1-krok-7b.md), [raport kroku 7c](reports/etap-1-krok-7c.md) oraz [raport kroku 7d](reports/etap-1-krok-7d.md).
 
 ## Docelowa struktura kodu
 

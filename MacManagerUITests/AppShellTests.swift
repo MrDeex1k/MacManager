@@ -137,7 +137,7 @@ final class AppShellTests: XCTestCase {
         XCTAssertEqual(switchValue(ram), 0)
         XCTAssertEqual(switchValue(power), 0)
         let settingsScrollView = app.scrollViews.element(boundBy: 1)
-        settingsScrollView.scroll(byDeltaX: 0, deltaY: 100)
+        settingsScrollView.scroll(byDeltaX: 0, deltaY: 260)
         XCTAssertTrue(cpu.isHittable)
         XCTAssertTrue(ram.isHittable)
         XCTAssertTrue(power.isHittable)
@@ -180,7 +180,57 @@ final class AppShellTests: XCTestCase {
     }
 
     @MainActor
-    private func launch(reset: Bool, liveMetrics: Bool = false, scrollPermission: Bool = false, inputMonitoringRequired: Bool = false) -> XCUIApplication {
+    func testLaunchAtLoginStateAndPreferencePersistence() throws {
+        var app = launch(reset: true)
+        app.typeKey(",", modifierFlags: .command)
+        let settingsScrollView = app.scrollViews.element(boundBy: 1)
+        settingsScrollView.scroll(byDeltaX: 0, deltaY: 120)
+        let toggle = element("integration.launchAtLogin", in: app)
+        XCTAssertEqual(switchValue(toggle), 1)
+        XCTAssertTrue(app.staticTexts["On in macOS"].exists)
+        toggle.click()
+        XCTAssertEqual(switchValue(toggle), 0)
+        XCTAssertTrue(app.staticTexts["Off in macOS"].exists)
+        app.terminate()
+
+        app = launch(reset: false)
+        app.typeKey(",", modifierFlags: .command)
+        app.scrollViews.element(boundBy: 1).scroll(byDeltaX: 0, deltaY: 120)
+        XCTAssertEqual(switchValue(element("integration.launchAtLogin", in: app)), 0)
+        XCTAssertTrue(app.staticTexts["Off in macOS"].exists)
+        app.terminate()
+
+        app = launch(reset: true, loginItemRequiresApproval: true)
+        app.typeKey(",", modifierFlags: .command)
+        app.scrollViews.element(boundBy: 1).scroll(byDeltaX: 0, deltaY: 120)
+        XCTAssertTrue(app.staticTexts["Approval required in macOS"].exists)
+        XCTAssertTrue(app.buttons["integration.launchAtLogin.openSettings"].exists)
+        app.terminate()
+    }
+
+    @MainActor
+    func testLoginLaunchStaysInBackgroundAndStartsServices() throws {
+        let app = launch(reset: true, liveMetrics: true, launchedAtLogin: true, expectsWindow: false)
+        XCTAssertFalse(app.windows.firstMatch.waitForExistence(timeout: 2))
+        app.activate()
+        app.typeKey("1", modifierFlags: .command)
+        XCTAssertTrue(app.windows.firstMatch.waitForExistence(timeout: 5))
+        let current = NSPredicate(format: "value == %@", "Current")
+        expectation(for: current, evaluatedWith: app.staticTexts["metric.cpu.status"])
+        waitForExpectations(timeout: 12)
+        app.terminate()
+    }
+
+    @MainActor
+    private func launch(
+        reset: Bool,
+        liveMetrics: Bool = false,
+        scrollPermission: Bool = false,
+        inputMonitoringRequired: Bool = false,
+        loginItemRequiresApproval: Bool = false,
+        launchedAtLogin: Bool = false,
+        expectsWindow: Bool = true
+    ) -> XCUIApplication {
         continueAfterFailure = false
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
@@ -188,9 +238,13 @@ final class AppShellTests: XCTestCase {
         if liveMetrics { app.launchArguments.append("--live-metrics") }
         if scrollPermission { app.launchArguments.append("--scroll-permission-granted") }
         if inputMonitoringRequired { app.launchArguments.append("--scroll-input-monitoring-required") }
+        if loginItemRequiresApproval { app.launchArguments.append("--login-item-requires-approval") }
+        if launchedAtLogin { app.launchArguments.append("--launched-at-login") }
         app.launch()
-        app.activate()
-        XCTAssertTrue(app.windows.firstMatch.waitForExistence(timeout: 10))
+        if expectsWindow {
+            app.activate()
+            XCTAssertTrue(app.windows.firstMatch.waitForExistence(timeout: 10))
+        }
         return app
     }
 

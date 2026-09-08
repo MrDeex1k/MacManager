@@ -8,15 +8,13 @@ struct MacManagerApp: App {
 
     var body: some Scene {
         Window("Mac Manager", id: "main") {
-            AppShellView()
-                .environment(state)
-                .task { state.startServices() }
+            MainWindowContent(state: state)
                 .environment(\.locale, state.preferences.locale)
                 .preferredColorScheme(.dark)
                 .tint(AppTheme.accent)
                 .frame(minWidth: 860, minHeight: 600)
         }
-        .defaultLaunchBehavior(.presented)
+        .defaultLaunchBehavior(state.launchContext == .loginItem ? .suppressed : .presented)
         .defaultSize(width: 1080, height: 740)
         .windowResizability(.contentMinSize)
         .commands {
@@ -47,6 +45,21 @@ final class AppearanceDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.appearance = NSAppearance(named: .darkAqua)
+    }
+}
+
+private struct MainWindowContent: View {
+    let state: AppState
+    @Environment(\.dismissWindow) private var dismissWindow
+
+    var body: some View {
+        AppShellView()
+            .environment(state)
+            .task {
+                guard state.consumeInitialLoginWindowSuppression() else { return }
+                await Task.yield()
+                dismissWindow(id: "main")
+            }
     }
 }
 

@@ -1446,6 +1446,69 @@
         }
       }
     },
+    "integration.loginItem": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Launch at login" } },
+        "pl": { "stringUnit": { "state": "translated", "value": "Uruchamiaj po zalogowaniu" } }
+      }
+    },
+    "integration.loginItem.note": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Mac Manager starts in the background. The status below comes directly from macOS." } },
+        "pl": { "stringUnit": { "state": "translated", "value": "Mac Manager uruchamia się w tle. Poniższy stan pochodzi bezpośrednio z macOS." } }
+      }
+    },
+    "integration.loginItem.openSettings": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Open Login Items" } },
+        "pl": { "stringUnit": { "state": "translated", "value": "Otwórz rzeczy uruchamiane przy logowaniu" } }
+      }
+    },
+    "integration.loginItem.status.disabled": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Off in macOS" } },
+        "pl": { "stringUnit": { "state": "translated", "value": "Wyłączone w macOS" } }
+      }
+    },
+    "integration.loginItem.status.enabled": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "On in macOS" } },
+        "pl": { "stringUnit": { "state": "translated", "value": "Włączone w macOS" } }
+      }
+    },
+    "integration.loginItem.status.failed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "The last change failed" } },
+        "pl": { "stringUnit": { "state": "translated", "value": "Ostatnia zmiana nie powiodła się" } }
+      }
+    },
+    "integration.loginItem.status.requiresApproval": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Approval required in macOS" } },
+        "pl": { "stringUnit": { "state": "translated", "value": "Wymaga zgody w macOS" } }
+      }
+    },
+    "integration.loginItem.status.unavailable": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Unavailable" } },
+        "pl": { "stringUnit": { "state": "translated", "value": "Niedostępne" } }
+      }
+    },
+    "integration.loginItem.status.unknown": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Checking macOS" } },
+        "pl": { "stringUnit": { "state": "translated", "value": "Sprawdzanie stanu macOS" } }
+      }
+    },
     "integration.settings.title": {
       "extractionState": "manual",
       "localizations": {
