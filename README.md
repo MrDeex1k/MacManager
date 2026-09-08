@@ -1,109 +1,140 @@
+<div align="center">
+
 # Mac Manager
 
-<img src="MacManager/Resources/Assets.xcassets/AppIcon.appiconset/icon_128x128.png" width="96" alt="Mac Manager icon">
+**Your Mac, at a glance. Your mouse, your way.**
 
-A free, open-source macOS utility for Apple Silicon, designed to combine system monitoring, independent mouse scrolling, and a notch-area panel for clipboard history and local music controls.
+A native macOS utility for live system monitoring, independent mouse scrolling and everyday Mac controls.
 
-**Status: Stage 1 in development.** A native SwiftUI app shell is available with Overview, Network and Settings, an immediately applied PL/EN language preference, and dark Liquid Glass controls. Local/public IPv4 lookup, address copying and network status are connected. Additional VPN egress addresses remain explicitly unresolved. CPU/GPU/RAM readings are live, with a persistent 1/2/5-second sampling preference. Whole-device power has no verified source and is unavailable. Five-minute Swift Charts history is stored only in memory, with gaps for missing readings, sleep and interval changes. Mouse scroll reversal is available in Settings, with automatic mouse/trackpad classification and explicit Accessibility/Input Monitoring states. Menu bar, login and release integrations are not connected yet. The delivery table below describes planned features; no public release is available.
+[![macOS 26+](https://img.shields.io/badge/macOS-26%2B-5EEAD4?style=flat-square&logo=apple&logoColor=111827)](https://www.apple.com/macos/)
+[![Apple Silicon](https://img.shields.io/badge/Apple_Silicon-only-5EEAD4?style=flat-square&logo=apple&logoColor=111827)](docs/01-produkt.md)
+[![Swift 6](https://img.shields.io/badge/Swift-6-5EEAD4?style=flat-square&logo=swift&logoColor=111827)](https://www.swift.org/)
+[![License MIT](https://img.shields.io/badge/License-MIT-5EEAD4?style=flat-square&logoColor=111827)](LICENSE)
 
-## Product principles
+[Current status](docs/10-stan-projektu.md) · [Stage 1 roadmap](docs/06-plan-i-testy.md) · [Documentation](docs/README.md) · [Contributing](CONTRIBUTING.md)
 
-- macOS 26 or later, Apple Silicon only.
-- Swift and SwiftUI, with AppKit integration where needed.
-- Dark-only interface with native Liquid Glass.
-- Polish and English interface; project documentation in Polish.
-- Official releases will always be free. Main source code is MIT-licensed; adapted components retain Apache-2.0 notices.
+</div>
 
-**Next:** menu bar, Dock visibility and launch at login (Stage 1, step 7). See the [current project status](docs/10-stan-projektu.md) for the complete order and remaining validation.
+> [!IMPORTANT]
+> **Stage 1 is in development. Steps 1-7 are implemented.** Update checks, final acceptance testing and the first signed DMG are still pending. There is no public release yet.
 
-## Planned delivery
+## Built for daily use
 
-| Stage | Planned scope |
+| Area | Available now |
 | --- | --- |
-| 1 | CPU, GPU, RAM and verified whole-device power; five-minute in-memory charts; local/public IPv4; mouse scroll reversal; menu bar, Dock and launch at login; GitHub release checks. |
-| 2 | CPU/GPU temperatures in °C or °F and fan RPM monitoring. |
-| 3 | Hover-operated notch-area panel, persistent local text/image clipboard history, and local Apple Music/Spotify controls. |
+| **System** | Live CPU, GPU and RAM readings with a persistent 1, 2 or 5 second interval. Five-minute Swift Charts history stays in memory and preserves gaps in unavailable data. |
+| **Network** | Primary local and public IPv4 addresses, connection status, manual refresh and copy actions. |
+| **Scroll** | Independent vertical and horizontal mouse reversal with automatic mouse/trackpad classification. Trackpad direction and momentum remain intact. No device model lists. |
+| **macOS** | Native menu bar panel, configurable Dock icon, persistent background process, one reusable window and launch at login through `SMAppService.mainApp`. |
+| **Interface** | Separate Overview, Network, Scroll, Dock and Settings sections. Polish and English content switches immediately in a dark native Liquid Glass interface. |
 
-Hardware data is never invented. Missing readings remain unavailable, and CPU/GPU power will not be presented as whole-device power. Fans are monitored, never controlled.
+> [!NOTE]
+> Mac Manager never invents hardware data. Whole-device power stays unavailable until a reliable source is verified. Additional VPN egress addresses remain an open technical limitation.
 
-The notch-area panel planned for Stage 3 will display nothing while collapsed. It will use the active built-in MacBook display when available, otherwise the main display.
+## Product direction
 
-## Distribution
+| Stage | Scope | Status |
+| --- | --- | --- |
+| **1 · Mac essentials** | Metrics and five-minute history, network, mouse scroll, menu bar, Dock, launch at login and GitHub release checks. | Steps 1-7 of 9 implemented |
+| **2 · Hardware sensors** | CPU/GPU temperature in °C or °F and fan RPM monitoring. Fans are never controlled. | Planned |
+| **3 · Notch area** | Hover-operated panel, persistent local text/image clipboard history and local Apple Music/Spotify controls. | Planned |
 
-The intended release format is a signed and notarized DMG published through GitHub Releases. A Homebrew Cask may be added later as an installation option.
+The collapsed notch-area panel will show nothing. It will use the active built-in MacBook display when available, otherwise the main display.
 
-Mac Manager will check GitHub Releases at most once a week by default, with a manual check and an option to disable automatic checks. Updates will open the release page for manual DMG installation; Homebrew and Sparkle are not the update mechanism.
+**Next:** [Stage 1, step 8](docs/11-plan-kroku-8.md) adds weekly and manual GitHub Releases checks, local diagnostics and a privacy audit.
 
-## Build and run locally
+## Requirements
 
-Requires Apple Silicon, macOS 26+ and Xcode 26+ selected with `xcode-select`. Open `MacManager.xcodeproj`, select the shared **MacManager** scheme and run on **My Mac**. The app uses a local Swift package and has no third-party dependencies or project generator.
+- Apple Silicon Mac
+- macOS 26 or later
+- Xcode 26 or later selected with `xcode-select`
+
+Mac Manager uses Swift, SwiftUI, Swift Charts and focused AppKit integrations. The repository has no third-party package dependencies and does not require a project generator.
+
+## Build and run
+
+Open `MacManager.xcodeproj`, select the shared **MacManager** scheme and run it on **My Mac**, or build from Terminal:
 
 ```sh
 xcodebuild -project MacManager.xcodeproj -scheme MacManager \
   -configuration Debug -destination 'platform=macOS,arch=arm64' \
   -derivedDataPath /tmp/macmanager-app-build build
+
 open /tmp/macmanager-app-build/Build/Products/Debug/MacManager.app
 ```
 
-Local builds use ad-hoc signing with the development bundle identifier `dev.macmanager.MacManager`. They are not signed/notarized distribution artifacts. Hardened Runtime is configured for future distribution signing; Xcode disables it for ad-hoc builds.
+Local builds use ad-hoc signing and the development bundle identifier `dev.macmanager.MacManager`. They are development artifacts, not signed or notarized releases.
 
-Test Core logic and navigation, language and live-chart UI flows:
+### Keyboard shortcuts
+
+| Shortcut | Destination |
+| --- | --- |
+| `Command-1` | Overview |
+| `Command-2` | Network |
+| `Command-,` | Settings |
+
+## Verify the project
+
+Run the Core and macOS UI test suites:
 
 ```sh
 swift test --package-path Packages/MacManagerCore
+
 xcodebuild -project MacManager.xcodeproj -scheme MacManager \
   -configuration Debug -destination 'platform=macOS,arch=arm64' \
-  -derivedDataPath /tmp/macmanager-app-build -parallel-testing-enabled NO test
+  -derivedDataPath /tmp/macmanager-app-build \
+  -parallel-testing-enabled NO test
 ```
 
-UI tests launch the app and use an isolated preferences domain. The live-metrics test reads local hardware; all UI tests keep network services stopped. Scroll UI tests use permission/driver fixtures and never install global event taps or change macOS permissions. Allow the Xcode test runner to control the Mac if macOS requests permission. Application content switches language immediately; macOS-owned menus and dialogs follow system localization. Shortcuts: ⌘1 Overview, ⌘2 Network, ⌘, Settings.
+UI tests use an isolated preferences domain. Network services remain stopped, and scroll tests use permission and driver fixtures without installing global event taps or changing macOS permissions. The live-metrics test reads local hardware. macOS may ask for permission to let the Xcode test runner control the Mac.
 
-The standalone feasibility probes are separate from the GUI:
+Hardware and input feasibility probes are separate from the app:
 
 ```sh
 swift test --package-path Prototypes/Stage1
 swift run --package-path Prototypes/Stage1 mac-manager-probe metrics
 ```
 
-See the [prototype instructions](Prototypes/Stage1/README.md) and [initial findings](docs/reports/etap-1-krok-1.md). Hardware availability is partially verified; power semantics and VPN coverage remain under investigation. The passive input probe also exercises the production automatic scroll classifier.
+See the [prototype guide](Prototypes/Stage1/README.md) and [initial findings](docs/reports/etap-1-krok-1.md) before interpreting probe results.
 
-See [network implementation](docs/reports/etap-1-krok-5.md), [metrics implementation](docs/reports/etap-1-krok-3.md), [history implementation](docs/reports/etap-1-krok-4.md) and [scroll implementation](docs/reports/etap-1-krok-6.md) for tested behavior and remaining hardware validation.
+## Architecture
 
-## Privacy by design
+| Path | Responsibility |
+| --- | --- |
+| `MacManager/` | SwiftUI application, AppKit integrations and resources |
+| `Packages/MacManagerCore/` | Testable domain models, formatting and shared logic |
+| `MacManagerUITests/` | End-to-end macOS UI flows |
+| `Prototypes/Stage1/` | Hardware and input feasibility probes |
+| `Design/AppIcon/` | Reproducible application icon source and export notes |
+| `docs/` | Polish product, architecture, privacy, release and validation documentation |
 
-No accounts, ads, telemetry, automatic crash-report uploads, or application-managed cloud sync. Settings, charts, and clipboard history stay local.
+Detailed implementation reports cover [network](docs/reports/etap-1-krok-5.md), [metrics](docs/reports/etap-1-krok-3.md), [history](docs/reports/etap-1-krok-4.md), [scroll](docs/reports/etap-1-krok-6.md), [menu bar](docs/reports/etap-1-krok-7b.md), [Dock and window behavior](docs/reports/etap-1-krok-7c.md), [launch at login](docs/reports/etap-1-krok-7d.md) and the [current navigation](docs/reports/etap-1-krok-7e.md).
 
-Public IPv4 discovery and release checks contact external HTTPS services, which necessarily see the request's source IP. Local storage does not mean the application makes no network requests. See the [privacy and data design](docs/05-dane-i-prywatnosc.md).
+## Privacy
 
-## Documentation
+Mac Manager has no accounts, ads, telemetry, automatic crash-report uploads or application-managed cloud sync. Settings and metric history stay on the Mac.
 
-The detailed specification is written in Polish:
+Public IPv4 discovery and the planned release check contact external HTTPS services, which can see the request's source IP. The app does not send system metrics or user content. Read the complete [privacy and data design](docs/05-dane-i-prywatnosc.md).
 
-- [Documentation index](docs/README.md)
-- [Product scope and defaults](docs/01-produkt.md)
-- [Interface specification](docs/02-interfejs.md)
-- [Technical architecture](docs/03-architektura.md)
-- [Feasibility and risks](docs/04-wykonalnosc.md)
-- [Privacy and data handling](docs/05-dane-i-prywatnosc.md)
-- [Implementation and test plan](docs/06-plan-i-testy.md)
-- [Distribution plan](docs/07-wydania.md)
-- [Decision log](docs/08-decyzje.md)
+## Distribution
 
-These documents distinguish approved requirements, engineering choices, and capabilities requiring further validation. Prototype results do not imply completed product features.
+The first public build will be a signed and notarized arm64 DMG published through GitHub Releases. A Homebrew Cask may later install the same DMG.
+
+Mac Manager will check stable GitHub Releases at most once a week by default, with a manual action and an option to disable automatic checks. It will open the selected release page for manual installation. It will not use Homebrew, Sparkle or a silent installer as an update mechanism. See the [release plan](docs/07-wydania.md).
 
 ## Contributing
 
-Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request. After cloning, enable the repository-local Conventional Commits hook:
+Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request. Then enable and verify the repository-local Git hooks:
 
 ```sh
 ./scripts/install-git-hooks.sh
 ./scripts/test-git-hooks.sh
 ```
 
-The hook uses native Git and shell tools. It does not install Node.js, Husky, or a global Git configuration. See the [repository workflow](docs/09-praca-z-repozytorium.md) for its exact behavior and limits.
+The hooks enforce [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) and reject the prohibited Unicode em dash. They use native Git and shell tools, with no Husky, Node.js or global Git configuration. The exact behavior is documented in the [repository workflow](docs/09-praca-z-repozytorium.md).
 
-Security issues should be reported according to [SECURITY.md](SECURITY.md).
+Report security issues according to [SECURITY.md](SECURITY.md).
 
 ## License
 
-[MIT](LICENSE), with [attributed Apache-2.0 adaptations](THIRD_PARTY_NOTICES.md) from Scroll Reverser. The commitment to free official releases does not restrict rights granted to third parties by the MIT license.
+Mac Manager is available under the [MIT License](LICENSE). Adapted Scroll Reverser components retain their [Apache-2.0 attribution](THIRD_PARTY_NOTICES.md). Official releases will always remain free.
