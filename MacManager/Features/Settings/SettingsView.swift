@@ -56,7 +56,7 @@ struct SettingsView: View {
                 }
             }
             Divider()
-            MenuBarSettingsView()
+            LaunchAtLoginSettingsView()
             Divider()
             UpdateSettingsView()
             Divider()

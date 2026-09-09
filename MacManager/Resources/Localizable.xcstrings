@@ -534,13 +534,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Choose whether Mac Manager appears alongside your other apps."
+            "value": "Choose how Mac Manager appears in the Dock and menu bar."
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Wybierz, czy Mac Manager ma być widoczny obok pozostałych aplikacji."
+            "value": "Wybierz sposób wyświetlania Mac Managera w Docku i pasku menu."
           }
         }
       }
