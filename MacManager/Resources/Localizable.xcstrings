@@ -140,15 +140,35 @@
     "nav.scroll": {
       "extractionState": "manual",
       "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "Scroll" } },
-        "pl": { "stringUnit": { "state": "translated", "value": "Przewijanie" } }
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scroll"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Przewijanie"
+          }
+        }
       }
     },
     "nav.dock": {
       "extractionState": "manual",
       "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "Dock" } },
-        "pl": { "stringUnit": { "state": "translated", "value": "Dock" } }
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dock"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dock"
+          }
+        }
       }
     },
     "nav.settings": {
@@ -548,13 +568,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Language, appearance, app behavior and privacy."
+            "value": "Language, appearance, app behavior, updates, diagnostics and privacy."
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Język, wygląd, działanie aplikacji i prywatność."
+            "value": "Język, wygląd, działanie aplikacji, aktualizacje, diagnostyka i prywatność."
           }
         }
       }
@@ -1259,15 +1279,35 @@
     "scroll.page.title": {
       "extractionState": "manual",
       "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "Scroll customization" } },
-        "pl": { "stringUnit": { "state": "translated", "value": "Personalizacja przewijania" } }
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scroll customization"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Personalizacja przewijania"
+          }
+        }
       }
     },
     "scroll.page.subtitle": {
       "extractionState": "manual",
       "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "Control mouse scrolling independently from the trackpad." } },
-        "pl": { "stringUnit": { "state": "translated", "value": "Steruj przewijaniem myszy niezależnie od gładzika." } }
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Control mouse scrolling independently from the trackpad."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Steruj przewijaniem myszy niezależnie od gładzika."
+          }
+        }
       }
     },
     "scroll.title": {
@@ -1511,64 +1551,154 @@
     "integration.loginItem": {
       "extractionState": "manual",
       "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "Launch at login" } },
-        "pl": { "stringUnit": { "state": "translated", "value": "Uruchamiaj po zalogowaniu" } }
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Launch at login"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uruchamiaj po zalogowaniu"
+          }
+        }
       }
     },
     "integration.loginItem.note": {
       "extractionState": "manual",
       "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "Mac Manager starts in the background. The status below comes directly from macOS." } },
-        "pl": { "stringUnit": { "state": "translated", "value": "Mac Manager uruchamia się w tle. Poniższy stan pochodzi bezpośrednio z macOS." } }
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mac Manager starts in the background. The status below comes directly from macOS."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mac Manager uruchamia się w tle. Poniższy stan pochodzi bezpośrednio z macOS."
+          }
+        }
       }
     },
     "integration.loginItem.openSettings": {
       "extractionState": "manual",
       "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "Open Login Items" } },
-        "pl": { "stringUnit": { "state": "translated", "value": "Otwórz rzeczy uruchamiane przy logowaniu" } }
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Login Items"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Otwórz rzeczy uruchamiane przy logowaniu"
+          }
+        }
       }
     },
     "integration.loginItem.status.disabled": {
       "extractionState": "manual",
       "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "Off in macOS" } },
-        "pl": { "stringUnit": { "state": "translated", "value": "Wyłączone w macOS" } }
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Off in macOS"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wyłączone w macOS"
+          }
+        }
       }
     },
     "integration.loginItem.status.enabled": {
       "extractionState": "manual",
       "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "On in macOS" } },
-        "pl": { "stringUnit": { "state": "translated", "value": "Włączone w macOS" } }
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On in macOS"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Włączone w macOS"
+          }
+        }
       }
     },
     "integration.loginItem.status.failed": {
       "extractionState": "manual",
       "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "The last change failed" } },
-        "pl": { "stringUnit": { "state": "translated", "value": "Ostatnia zmiana nie powiodła się" } }
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The last change failed"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ostatnia zmiana nie powiodła się"
+          }
+        }
       }
     },
     "integration.loginItem.status.requiresApproval": {
       "extractionState": "manual",
       "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "Approval required in macOS" } },
-        "pl": { "stringUnit": { "state": "translated", "value": "Wymaga zgody w macOS" } }
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Approval required in macOS"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wymaga zgody w macOS"
+          }
+        }
       }
     },
     "integration.loginItem.status.unavailable": {
       "extractionState": "manual",
       "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "Unavailable" } },
-        "pl": { "stringUnit": { "state": "translated", "value": "Niedostępne" } }
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unavailable"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Niedostępne"
+          }
+        }
       }
     },
     "integration.loginItem.status.unknown": {
       "extractionState": "manual",
       "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "Checking macOS" } },
-        "pl": { "stringUnit": { "state": "translated", "value": "Sprawdzanie stanu macOS" } }
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Checking macOS"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sprawdzanie stanu macOS"
+          }
+        }
       }
     },
     "integration.settings.title": {
@@ -1635,6 +1765,516 @@
           "stringUnit": {
             "state": "translated",
             "value": "macOS nie mógł zmienić widoczności ikony Docka."
+          }
+        }
+      }
+    },
+    "updates.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Updates"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aktualizacje"
+          }
+        }
+      }
+    },
+    "updates.automatic": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check automatically"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sprawdzaj automatycznie"
+          }
+        }
+      }
+    },
+    "updates.note": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Checks stable GitHub Releases at most once every 7 days. Mac Manager never downloads or installs an update."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sprawdza stabilne wydania GitHub najwyżej raz na 7 dni. Mac Manager nigdy nie pobiera ani nie instaluje aktualizacji."
+          }
+        }
+      }
+    },
+    "updates.status.neverChecked": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not checked yet"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jeszcze nie sprawdzano"
+          }
+        }
+      }
+    },
+    "updates.status.checking": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Checking GitHub Releases…"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sprawdzanie GitHub Releases…"
+          }
+        }
+      }
+    },
+    "updates.status.upToDate": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You have the latest public version"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Masz najnowszą publiczną wersję"
+          }
+        }
+      }
+    },
+    "updates.status.updateAvailable": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Version %@ is available"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dostępna jest wersja %@"
+          }
+        }
+      }
+    },
+    "updates.status.noPublicRelease": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No compatible public release"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Brak zgodnego publicznego wydania"
+          }
+        }
+      }
+    },
+    "updates.status.developmentBuild": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This development build is newer than the public release"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ten build deweloperski jest nowszy od publicznego wydania"
+          }
+        }
+      }
+    },
+    "updates.status.offline": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No internet connection"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Brak połączenia z internetem"
+          }
+        }
+      }
+    },
+    "updates.status.failed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The last check failed"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ostatnie sprawdzenie nie powiodło się"
+          }
+        }
+      }
+    },
+    "updates.error.offline": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The connection was lost during the check"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Połączenie zostało utracone podczas sprawdzania"
+          }
+        }
+      }
+    },
+    "updates.error.timeout": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "GitHub did not respond in time"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "GitHub nie odpowiedział w wymaganym czasie"
+          }
+        }
+      }
+    },
+    "updates.error.rateLimited": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "GitHub API rate limit reached"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Osiągnięto limit zapytań GitHub API"
+          }
+        }
+      }
+    },
+    "updates.error.server": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "GitHub returned a server error"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "GitHub zwrócił błąd serwera"
+          }
+        }
+      }
+    },
+    "updates.error.http": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "GitHub returned an unexpected response"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "GitHub zwrócił nieoczekiwaną odpowiedź"
+          }
+        }
+      }
+    },
+    "updates.error.invalidResponse": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The release metadata is invalid"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Metadane wydania są nieprawidłowe"
+          }
+        }
+      }
+    },
+    "updates.error.transport": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The update check could not connect"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nie udało się połączyć podczas sprawdzania aktualizacji"
+          }
+        }
+      }
+    },
+    "updates.known": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Previously confirmed: version %@"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wcześniej potwierdzono: wersja %@"
+          }
+        }
+      }
+    },
+    "updates.lastAttempt": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Last attempt"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ostatnia próba"
+          }
+        }
+      }
+    },
+    "updates.lastSuccess": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Last successful check"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ostatnie udane sprawdzenie"
+          }
+        }
+      }
+    },
+    "updates.never": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Never"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nigdy"
+          }
+        }
+      }
+    },
+    "updates.check": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check now"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sprawdź teraz"
+          }
+        }
+      }
+    },
+    "updates.open": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open release"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Otwórz wydanie"
+          }
+        }
+      }
+    },
+    "menuBar.update": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Update available"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dostępna aktualizacja"
+          }
+        }
+      }
+    },
+    "diagnostics.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Local diagnostics"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diagnostyka lokalna"
+          }
+        }
+      }
+    },
+    "diagnostics.note": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Review the complete report before copying it. It contains service states and public system details, but no IP addresses, user content or unique device identifiers."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Przejrzyj cały raport przed skopiowaniem. Zawiera stany usług i publiczne informacje systemowe, ale bez adresów IP, treści użytkownika i unikalnych identyfikatorów urządzenia."
+          }
+        }
+      }
+    },
+    "diagnostics.copy": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy report"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kopiuj raport"
+          }
+        }
+      }
+    },
+    "diagnostics.copied": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Report copied"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skopiowano raport"
+          }
+        }
+      }
+    },
+    "diagnostics.local": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This Mac only"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tylko ten Mac"
           }
         }
       }

@@ -2,9 +2,11 @@
 
 Krok 8 realizuje F1-07 i F1-08. Aplikacja sprawdza stabilne wydania na GitHub raz na 7 dni lub na żądanie użytkownika. Nie pobiera i nie instaluje aktualizacji. Diagnostyka pozostaje lokalna i nie zawiera danych użytkownika.
 
+Stan z 2026-09-10: punkty 8.1-8.6 są zaimplementowane na branchu `feat/stage-1`. Pozostaje pełny odbiór 8.7, w tym rozszerzone testy UI i końcowy raport kroku.
+
 ## 8.1 Model ustawień i stanu aktualizacji
 
-- Dodać trwałą zgodę na automatyczne sprawdzanie, domyślnie włączoną.
+- Dodać trwałe ustawienie automatycznego sprawdzania, domyślnie włączone.
 - Przechowywać datę ostatniej zakończonej kontroli oraz dane cache potrzebne do ograniczenia zapytań.
 - Rozdzielić stany: bez kontroli, sprawdzanie, aktualna wersja, dostępna aktualizacja i błąd.
 - Wstrzykiwać zegar, bieżącą wersję i klienta sieciowego, aby testy nie czekały rzeczywistych 7 dni.
@@ -36,8 +38,8 @@ Krok 8 realizuje F1-07 i F1-08. Aplikacja sprawdza stabilne wydania na GitHub ra
 
 - Wprowadzić kategorie `OSLog` dla cyklu życia, pomiarów, sieci, scrolla i aktualizacji.
 - Rejestrować stany i typy błędów bez adresów IP, treści schowka, identyfikatorów urządzeń i surowych danych użytkownika.
-- Dodać lokalny podgląd podstawowej diagnostyki: wersja aplikacji, wersja macOS, architektura oraz dostępność usług.
-- Eksport lub kopiowanie diagnostyki wykonywać wyłącznie po jawnej akcji użytkownika i po wcześniejszym zredagowaniu danych.
+- Dodać lokalny podgląd diagnostyki: wersja i build aplikacji, wersja macOS, architektura, model Maca, ustawienia oraz dostępność usług.
+- Kopiowanie diagnostyki wykonywać wyłącznie po jawnej akcji użytkownika, po pokazaniu pełnej treści i z opcją schowka `currentHostOnly`.
 
 ## 8.6 Audyt prywatności i ruchu sieciowego
 

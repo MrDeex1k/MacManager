@@ -16,6 +16,8 @@ public final class PreferencesStore {
         static let showsCPUInMenuBar = "preferences.integration.menuBar.showsCPU"
         static let showsRAMInMenuBar = "preferences.integration.menuBar.showsRAM"
         static let showsPowerInMenuBar = "preferences.integration.menuBar.showsPower"
+        static let automaticUpdateChecksEnabled = "preferences.updates.automaticChecksEnabled"
+        static let updateCache = "preferences.updates.cache"
     }
 
     @ObservationIgnored private let defaults: UserDefaults
@@ -54,6 +56,20 @@ public final class PreferencesStore {
         }
     }
 
+    public var automaticUpdateChecksEnabled: Bool {
+        didSet {
+            defaults.set(automaticUpdateChecksEnabled, forKey: Key.automaticUpdateChecksEnabled)
+        }
+    }
+
+    public private(set) var updateCache: UpdateCache {
+        didSet {
+            if let data = try? JSONEncoder().encode(updateCache) {
+                defaults.set(data, forKey: Key.updateCache)
+            }
+        }
+    }
+
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         reverseMouseScroll = Self.bool(defaults, forKey: Key.reverseMouseScroll, default: false)
@@ -70,12 +86,24 @@ public final class PreferencesStore {
         )
         attemptedLaunchAtLoginDefault = defaults.bool(forKey: Key.attemptedLaunchAtLoginDefault)
         language = defaults.string(forKey: Self.languageKey).flatMap(AppLanguage.init(rawValue:)) ?? .system
+        automaticUpdateChecksEnabled = Self.bool(
+            defaults,
+            forKey: Key.automaticUpdateChecksEnabled,
+            default: true
+        )
+        updateCache = defaults.data(forKey: Key.updateCache)
+            .flatMap { try? JSONDecoder().decode(UpdateCache.self, from: $0) }
+            ?? UpdateCache()
     }
 
     public var locale: Locale { Locale(identifier: language.resolvedCode()) }
 
     public func markLaunchAtLoginDefaultAttempted() {
         attemptedLaunchAtLoginDefault = true
+    }
+
+    public func saveUpdateCache(_ cache: UpdateCache) {
+        updateCache = cache
     }
 
     private static func bool(_ defaults: UserDefaults, forKey key: String, default defaultValue: Bool) -> Bool {

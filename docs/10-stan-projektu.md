@@ -13,6 +13,8 @@ Aktualizacja: 2026-09-08. Branch roboczy całego etapu: feat/stage-1. Projekt je
 - Ikona w pasku menu otwierająca natywny panel Liquid Glass z metrykami, adresami IPv4, stanem scrolla oraz przejściem do okna i Ustawień. CPU, RAM i W można włączać niezależnie obok ikony; domyślnie widoczna jest sama ikona.
 - Sterowanie ikoną Docka przez politykę aktywacji AppKit, z domyślnie widoczną ikoną i trwałym przełącznikiem w osobnej sekcji głównej. Scroll również ma własną sekcję pomiędzy Siecią i Ustawieniami. Zamknięcie głównego okna pozostawia proces aktywny, a aplikację można ponownie otworzyć z Docka, paska menu lub skrótu.
 - Autostart przez `SMAppService.mainApp`, rzeczywisty status macOS, obsługa wymaganej zgody i jednorazowa próba domyślnej rejestracji. Start przy logowaniu pozostaje w tle bez głównego okna, a wszystkie usługi uruchamiają się na poziomie procesu.
+- Kontrola stabilnych GitHub Releases przy pierwszym starcie i najwyżej raz na 7 dni, ETag, ścisła kwalifikacja tagu i DMG arm64, ręczne sprawdzanie oraz zachowanie potwierdzonego wydania w lokalnym cache.
+- Sekcje aktualizacji i diagnostyki w Ustawieniach oraz informacja o dostępnej wersji w panelu paska menu. Diagnostyka korzysta z prywatnych kategorii OSLog, jawnego podglądu i kopiowania tylko na bieżącym Macu.
 - Conventional Commits egzekwowane lokalnym hookiem. Wszystkie kroki etapu trafiają na jeden branch, bez automatycznego merge do main.
 
 ## Stan kroków etapu 1
@@ -26,12 +28,12 @@ Aktualizacja: 2026-09-08. Branch roboczy całego etapu: feat/stage-1. Projekt je
 | 5 | Sieć F1-04 | Zaimplementowana i sprawdzona lokalnie; dodatkowe wyjścia VPN pozostają nieustalone. |
 | 6 | Scroll F1-05 | Zaimplementowany z adaptacją mechanizmu Scroll Reversera; rzeczywiste próby gładzika, myszy i zmiany urządzenia rozpoznane poprawnie, bez list modeli. |
 | 7 | Okno/menu/Dock/autostart F1-06 | Zaimplementowane. Pasek menu, Dock, `SMAppService.mainApp`, cykl życia procesu i start przy logowaniu bez okna mają testy automatyczne. Próba podpisanego wydania pozostaje w kroku 9. |
-| 8 | Aktualizacje i prywatność F1-07/F1-08 | Do implementacji i odbioru. |
+| 8 | Aktualizacje i prywatność F1-07/F1-08 | Punkty 8.1-8.6 zaimplementowane; testy i końcowy odbiór 8.7 pozostają do wykonania. |
 | 9 | Testy końcowe i wydanie F1-09 | Do wykonania po wcześniejszych krokach. |
 
 ## Co dalej
 
-1. **Krok 8:** tygodniowe/ręczne sprawdzanie GitHub Releases, opcja wyłączenia, otwarcie wydania do ręcznej instalacji DMG; weryfikacja prywatności i diagnostyki zgodnie ze [szczegółowym planem](11-plan-kroku-8.md).
+1. **Krok 8:** dokończyć testy i odbiór tygodniowych/ręcznych kontroli GitHub Releases, cache, UI, prywatności i diagnostyki zgodnie ze [szczegółowym planem](11-plan-kroku-8.md).
 2. **Krok 9:** ręczna macierz sprzętu/sieci/sleep/wake, dostępność i testy obciążenia, próba autostartu z aplikacji w `/Applications`, podpis Developer ID, Hardened Runtime, notarization i DMG.
 
 Etap 2 (temperatury/RPM) i etap 3 (wyspa, schowek, muzyka) pozostają planowane. Nie są aktywne w obecnym buildzie.

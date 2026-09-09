@@ -55,6 +55,27 @@ struct MenuBarPanelView: View {
             }
             .font(.callout)
 
+            if let release = state.updates.availableRelease {
+                Divider()
+                Button {
+                    NSWorkspace.shared.open(release.pageURL)
+                } label: {
+                    HStack {
+                        Label(state.strings("menuBar.update"), systemImage: "arrow.down.circle.fill")
+                            .foregroundStyle(AppTheme.accent)
+                        Spacer()
+                        Text(release.version.description)
+                            .monospacedDigit()
+                            .foregroundStyle(.secondary)
+                        Image(systemName: "arrow.up.right")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("menuBar.update")
+            }
+
             Divider()
 
             HStack(spacing: 8) {

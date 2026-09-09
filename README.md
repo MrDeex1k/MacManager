@@ -16,7 +16,7 @@ A native macOS utility for live system monitoring, independent mouse scrolling a
 </div>
 
 > [!IMPORTANT]
-> **Stage 1 is in development. Steps 1-7 are implemented.** Update checks, final acceptance testing and the first signed DMG are still pending. There is no public release yet.
+> **Stage 1 is in development. Steps 1-7 and implementation items 8.1-8.6 are complete.** Final step 8 validation, acceptance testing and the first signed DMG are still pending. There is no public release yet.
 
 ## Built for daily use
 
@@ -41,7 +41,7 @@ A native macOS utility for live system monitoring, independent mouse scrolling a
 
 The collapsed notch-area panel will show nothing. It will use the active built-in MacBook display when available, otherwise the main display.
 
-**Next:** [Stage 1, step 8](docs/11-plan-kroku-8.md) adds weekly and manual GitHub Releases checks, local diagnostics and a privacy audit.
+**Next:** [Stage 1, step 8](docs/11-plan-kroku-8.md) validation covers weekly and manual GitHub Releases checks, local diagnostics and the completed privacy audit.
 
 ## Requirements
 

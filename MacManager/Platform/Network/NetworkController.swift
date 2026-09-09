@@ -5,6 +5,7 @@ import Network
 @MainActor
 final class NetworkController: ApplicationLifecycleParticipant {
     private let service: NetworkService
+    private let diagnostics: DiagnosticsStore
     private let reader = LocalNetworkReader()
     private let monitor = NWPathMonitor()
     private var loop: Task<Void, Never>?
@@ -13,8 +14,12 @@ final class NetworkController: ApplicationLifecycleParticipant {
     private var online = false
     private var suspended = false
     private var lastRead = -Double.infinity
+    private var reportedState: PublicIPState?
 
-    init(service: NetworkService) { self.service = service }
+    init(service: NetworkService, diagnostics: DiagnosticsStore) {
+        self.service = service
+        self.diagnostics = diagnostics
+    }
 
     func start() {
         guard loop == nil else { return }
@@ -55,7 +60,11 @@ final class NetworkController: ApplicationLifecycleParticipant {
                         }
                     }
                     // The request runs separately so local changes can invalidate it while HTTP is pending.
-                    Task { await self.service.refresh(now: ProcessInfo.processInfo.systemUptime) }
+                    Task { [weak self] in
+                        guard let self else { return }
+                        await self.service.refresh(now: ProcessInfo.processInfo.systemUptime)
+                        self.recordState()
+                    }
                 }
                 do { try await Task.sleep(for: .seconds(1)) } catch { return }
             }
@@ -71,5 +80,16 @@ final class NetworkController: ApplicationLifecycleParticipant {
         observers.removeAll()
         suspended = true
         service.setSuspended(true, now: ProcessInfo.processInfo.systemUptime)
+    }
+
+    private func recordState() {
+        guard service.state != reportedState else { return }
+        reportedState = service.state
+        if service.state == .failed {
+            diagnostics.record(.network, kind: "requestFailed")
+            MacManagerLog.network.error("Public address lookup failed")
+        } else {
+            MacManagerLog.network.info("Network state changed: \(self.service.state.rawValue, privacy: .public)")
+        }
     }
 }

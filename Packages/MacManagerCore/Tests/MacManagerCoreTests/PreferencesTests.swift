@@ -54,6 +54,8 @@ import Testing
     #expect(store.appIntegration.requestsLaunchAtLogin)
     #expect(store.appIntegration.menuBar == MenuBarDisplayPreferences())
     #expect(!store.attemptedLaunchAtLoginDefault)
+    #expect(store.automaticUpdateChecksEnabled)
+    #expect(store.updateCache == UpdateCache())
 }
 
 @MainActor
@@ -71,6 +73,30 @@ import Testing
     first.appIntegration.menuBar.showsCPU = true
 
     #expect(PreferencesStore(defaults: defaults).appIntegration == first.appIntegration)
+}
+
+@MainActor
+@Test func updatePreferencesAndCachePersist() throws {
+    let suite = "MacManagerCoreTests.\(UUID().uuidString)"
+    let defaults = try #require(UserDefaults(suiteName: suite))
+    defer { defaults.removePersistentDomain(forName: suite) }
+    let first = PreferencesStore(defaults: defaults)
+    let date = Date(timeIntervalSince1970: 1234)
+    first.automaticUpdateChecksEnabled = false
+    first.saveUpdateCache(
+        UpdateCache(
+            etag: "\"etag\"",
+            outcome: .noPublicRelease,
+            lastAttempt: date,
+            lastSuccess: date
+        )
+    )
+
+    let restored = PreferencesStore(defaults: defaults)
+    #expect(!restored.automaticUpdateChecksEnabled)
+    #expect(restored.updateCache.etag == "\"etag\"")
+    #expect(restored.updateCache.outcome == .noPublicRelease)
+    #expect(restored.updateCache.lastAttempt == date)
 }
 
 @MainActor

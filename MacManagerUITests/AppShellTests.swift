@@ -1,3 +1,4 @@
+import AppKit
 import XCTest
 
 final class AppShellTests: XCTestCase {
@@ -241,6 +242,44 @@ final class AppShellTests: XCTestCase {
     }
 
     @MainActor
+    func testUpdateSettingsCacheAndLocalDiagnostics() throws {
+        var app = launch(reset: true, updateAvailable: true)
+        app.typeKey(",", modifierFlags: .command)
+        let status = element("updates.status", in: app)
+        scrollTo(status, in: app)
+        XCTAssertTrue(status.waitForExistence(timeout: 5))
+        XCTAssertEqual(status.value as? String, "Version 0.2.0 is available")
+        XCTAssertTrue(app.buttons["updates.openRelease"].exists)
+
+        let automatic = element("updates.automatic", in: app)
+        XCTAssertEqual(switchValue(automatic), 1)
+        automatic.click()
+        XCTAssertEqual(switchValue(automatic), 0)
+
+        let copy = app.buttons["diagnostics.copy"]
+        scrollTo(copy, in: app)
+        XCTAssertTrue(copy.isHittable)
+        copy.click()
+        let report = try XCTUnwrap(NSPasteboard.general.string(forType: .string))
+        XCTAssertTrue(report.contains("Mac Manager Diagnostic Report"))
+        XCTAssertTrue(report.contains("architecture: arm64"))
+        XCTAssertTrue(report.contains("update_status: updateAvailable"))
+        XCTAssertFalse(report.contains("source_ip"))
+        app.terminate()
+
+        app = launch(reset: false, updateAvailable: true)
+        app.typeKey(",", modifierFlags: .command)
+        let restoredAutomatic = element("updates.automatic", in: app)
+        scrollTo(restoredAutomatic, in: app)
+        XCTAssertEqual(switchValue(restoredAutomatic), 0)
+        XCTAssertEqual(
+            element("updates.status", in: app).value as? String,
+            "Version 0.2.0 is available"
+        )
+        app.terminate()
+    }
+
+    @MainActor
     private func launch(
         reset: Bool,
         liveMetrics: Bool = false,
@@ -248,6 +287,7 @@ final class AppShellTests: XCTestCase {
         inputMonitoringRequired: Bool = false,
         loginItemRequiresApproval: Bool = false,
         launchedAtLogin: Bool = false,
+        updateAvailable: Bool = false,
         expectsWindow: Bool = true
     ) -> XCUIApplication {
         continueAfterFailure = false
@@ -259,6 +299,7 @@ final class AppShellTests: XCTestCase {
         if inputMonitoringRequired { app.launchArguments.append("--scroll-input-monitoring-required") }
         if loginItemRequiresApproval { app.launchArguments.append("--login-item-requires-approval") }
         if launchedAtLogin { app.launchArguments.append("--launched-at-login") }
+        if updateAvailable { app.launchArguments.append("--update-available") }
         app.launch()
         if expectsWindow {
             app.activate()
@@ -288,6 +329,14 @@ final class AppShellTests: XCTestCase {
         if let number = element.value as? NSNumber { return number.intValue }
         if let text = element.value as? String { return Int(text) }
         return nil
+    }
+
+    @MainActor
+    private func scrollTo(_ element: XCUIElement, in app: XCUIApplication) {
+        let scrollView = app.scrollViews.element(boundBy: 1)
+        for _ in 0..<10 where !element.isHittable {
+            scrollView.scroll(byDeltaX: 0, deltaY: 300)
+        }
     }
 
     @MainActor

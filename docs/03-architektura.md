@@ -134,6 +134,16 @@ LoginItemController opakowuje `SMAppService.mainApp`. Odczytuje rzeczywisty stat
 
 ApplicationLaunchContextDetector rozpoznaje `keyAELaunchedAsLogInItem` w zdarzeniu otwarcia aplikacji. Zwykłe uruchomienie prezentuje główne okno, a start przy logowaniu używa `defaultLaunchBehavior(.suppressed)`. Panel paska menu i skróty mogą później utworzyć to samo okno. Szczegóły i granice: [raport kroku 7a](reports/etap-1-krok-7a.md), [raport kroku 7b](reports/etap-1-krok-7b.md), [raport kroku 7c](reports/etap-1-krok-7c.md) oraz [raport kroku 7d](reports/etap-1-krok-7d.md).
 
+## Aktualizacje i diagnostyka - krok 8
+
+SemanticVersion wykonuje ścisłe porównanie `MAJOR.MINOR.PATCH`. GitHubReleaseClient łączy się wyłącznie ze stałym endpointem publicznego repozytorium, nie śledzi przekierowań, ogranicza czas i rozmiar odpowiedzi oraz kwalifikuje tylko tag `vMAJOR.MINOR.PATCH` z dokładnym plikiem `MacManager-vMAJOR.MINOR.PATCH-arm64.dmg`. Adres strony wydania musi należeć do oczekiwanej ścieżki na `github.com`.
+
+UpdateService jest obserwowalnym modelem na MainActor. Rozdziela stan widoczny w UI, potwierdzone wydanie oraz wynik ostatniej próby. PreferencesStore zapisuje zgodę automatycznych kontroli, ETag, minimalne metadane wydania i daty. Nie przechowuje odpowiedzi JSON ani release notes. Późniejszy błąd zachowuje wcześniej zweryfikowane wydanie.
+
+UpdateController jest uczestnikiem cyklu życia procesu. NWPathMonitor uruchamia zaległą kontrolę po odzyskaniu sieci. Jedno zaplanowane zadanie wyznacza kolejny termin po 7 dniach i jest przeliczane po zmianie zegara oraz sleep/wake. Aplikacja nie wybudza Maca. Kontrola ręczna ma 60 sekund odstępu od zakończenia poprzedniej próby.
+
+DiagnosticsStore utrzymuje w RAM tylko ostatni kontrolowany typ błędu dla każdej kategorii. OSLog otrzymuje nazwy stanów i typy błędów z jawnej listy, bez danych użytkownika. DiagnosticReportBuilder składa angielski raport z publicznych informacji systemowych i bieżących stanów usług. Widok pokazuje raport przed skopiowaniem, a NSPasteboard używa `currentHostOnly`.
+
 ## Docelowa struktura kodu
 
 ~~~text
