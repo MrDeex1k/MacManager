@@ -29,7 +29,7 @@ A native macOS utility for live system monitoring, independent mouse scrolling a
 | **Interface** | Separate Overview, Network, Scroll, Dock and Settings sections. Polish and English content switches immediately in a dark native Liquid Glass interface. |
 
 > [!NOTE]
-> Mac Manager never invents hardware data. Whole-device power stays unavailable until a reliable source is verified. Additional VPN egress addresses remain an open technical limitation.
+> Mac Manager shows a read-only AppleSMC PSTR power estimate when the sensor is available. The estimate may vary between Mac models. Additional VPN egress addresses remain an open technical limitation.
 
 ## Product direction
 

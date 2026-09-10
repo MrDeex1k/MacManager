@@ -347,13 +347,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Whole device · W"
+            "value": "Power in use · W"
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Całe urządzenie · W"
+            "value": "Wykorzystywana moc · W"
           }
         }
       }
@@ -993,13 +993,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Whole-device power is unavailable: the source has not been verified."
+            "value": "Power is estimated from the read-only AppleSMC PSTR sensor and may vary between Mac models."
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Moc całego Maca jest niedostępna: źródło nie zostało zweryfikowane."
+            "value": "Moc jest szacowana przez czujnik AppleSMC PSTR tylko do odczytu i może różnić się między modelami Maca."
           }
         }
       }
