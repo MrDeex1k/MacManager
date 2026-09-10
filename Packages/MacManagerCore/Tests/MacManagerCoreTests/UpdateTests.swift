@@ -204,6 +204,44 @@ private actor UpdateFetchCounter {
 }
 
 @MainActor
+@Test func updateServiceDiscardsInconsistentCacheState() throws {
+    let release = compatibleRelease("0.2.0")
+    let invalidRelease = UpdateRelease(
+        version: release.version,
+        tag: release.tag,
+        pageURL: URL(string: "https://example.com/release")!,
+        assetName: release.assetName
+    )
+    let inconsistentCaches = [
+        UpdateCache(etag: "\"orphan\""),
+        UpdateCache(outcome: .release),
+        UpdateCache(etag: "\"release\"", outcome: .release, release: invalidRelease),
+        UpdateCache(etag: "\"empty\"", outcome: .noPublicRelease, release: release),
+        UpdateCache(release: release)
+    ]
+
+    for cache in inconsistentCaches {
+        let suite = "MacManagerUpdates.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let preferences = PreferencesStore(defaults: defaults)
+        preferences.saveUpdateCache(cache)
+
+        let service = UpdateService(
+            preferences: preferences,
+            installedVersion: "0.1.0",
+            diagnostics: DiagnosticsStore(),
+            fetch: { _ in .noPublicRelease(etag: nil) }
+        )
+
+        #expect(service.status == .neverChecked)
+        #expect(preferences.updateCache.etag == nil)
+        #expect(preferences.updateCache.outcome == nil)
+        #expect(preferences.updateCache.release == nil)
+    }
+}
+
+@MainActor
 @Test func diagnosticsRenderStableEnglishAndRedactUnknownErrors() {
     let diagnostics = DiagnosticsStore()
     let date = Date(timeIntervalSince1970: 0)

@@ -74,7 +74,7 @@ private actor DeferredSampler: MetricsSampling {
     let sampler = DeferredSampler()
     let service = MetricsService(sampler: sampler, now: { 20 })
     let first = Task { await service.collect() }
-    while !(await sampler.ready()) { await Task.yield() }
+    #expect(await waitUntil { await sampler.ready() })
     await service.collect()
     #expect(await sampler.samples == 1)
     service.setSuspended(true)
@@ -85,7 +85,7 @@ private actor DeferredSampler: MetricsSampling {
     await first.value
     #expect(service.snapshot[.cpu].value == nil)
     let second = Task { await service.collect() }
-    while !(await sampler.ready()) { await Task.yield() }
+    #expect(await waitUntil { await sampler.ready() })
     #expect(await sampler.resets == 2)
     await sampler.complete()
     await second.value
@@ -109,7 +109,7 @@ private actor DeferredSampler: MetricsSampling {
     let sampler = DeferredSampler()
     let service = MetricsService(sampler: sampler, now: { 20 })
     let first = Task { await service.collect() }
-    while !(await sampler.ready()) { await Task.yield() }
+    #expect(await waitUntil { await sampler.ready() })
     service.setInterval(.five)
     await service.collect()
     #expect(await sampler.samples == 1)
@@ -117,7 +117,7 @@ private actor DeferredSampler: MetricsSampling {
     await first.value
     #expect(service.history.count == 0)
     let second = Task { await service.collect() }
-    while !(await sampler.ready()) { await Task.yield() }
+    #expect(await waitUntil { await sampler.ready() })
     await sampler.complete()
     await second.value
     #expect(service.history.count == 1)

@@ -3,8 +3,11 @@ import Testing
 @testable import MacManagerCore
 
 @Test func publicIPv4RejectsMalformedAndNonPublicPayloads() throws {
-    #expect(try PublicIPClient.parse(Data(#"{"ip":"8.8.4.4"}"#.utf8), status: 200) == "8.8.4.4")
-    for value in ["192.168.1.2", "127.0.0.1", "100.64.0.1", "::1", "1.2.3.999", "01.2.3.4", "8.8.8.8\n", "203.0.113.1"] {
+    for value in ["8.8.4.4", "192.0.1.1", "192.0.0.9", "192.0.0.10"] {
+        let data = try JSONEncoder().encode(["ip": value])
+        #expect(try PublicIPClient.parse(data, status: 200) == value)
+    }
+    for value in ["192.168.1.2", "192.0.0.8", "192.0.0.11", "192.0.2.1", "127.0.0.1", "100.64.0.1", "::1", "1.2.3.999", "01.2.3.4", "8.8.8.8\n", "203.0.113.1"] {
         let data = try JSONEncoder().encode(["ip": value])
         #expect(throws: PublicIPClient.Failure.self) { try PublicIPClient.parse(data, status: 200) }
     }
@@ -59,7 +62,7 @@ private actor DeferredLookup {
     let service = NetworkService { await lookup.lookup() }
     service.update(NetworkEnvironment(online: true), now: 0)
     let request = Task { await service.refresh(now: 0) }
-    while !(await lookup.ready()) { await Task.yield() }
+    #expect(await waitUntil { await lookup.ready() })
     service.setEnabled(false, now: 1)
     await lookup.complete()
     await request.value

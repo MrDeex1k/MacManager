@@ -65,8 +65,13 @@ public final class MetricsProbe {
                             errorCode: powerStatus == 0 ? nil : powerStatus)
         let whole = Reading(status: "unavailable", unit: "W", source: "no validated whole-device source",
                             detail: "PSTR and CPU/GPU sums are not promoted to whole-device power.")
-        let info = IOPSCopyPowerSourcesInfo().takeRetainedValue()
-        let source = IOPSGetProvidingPowerSourceType(info)?.takeUnretainedValue() as String? ?? "unknown"
+        let source: String
+        if let powerSources = IOPSCopyPowerSourcesInfo() {
+            let info = powerSources.takeRetainedValue()
+            source = IOPSGetProvidingPowerSourceType(info)?.takeUnretainedValue() as String? ?? "unknown"
+        } else {
+            source = "unknown"
+        }
         return MetricsSnapshot(timestamp: Date(), cpu: cpu, gpu: gpu,
                                memoryUsed: memoryReading,
                                physicalMemoryBytes: memoryStatus == 0 ? memory.physical_bytes : nil,

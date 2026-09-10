@@ -33,7 +33,6 @@ final class AppState {
     let launchContext: ApplicationLaunchContext
     let lifecycle: ApplicationLifecycleCoordinator
     @ObservationIgnored private var terminationObserver: NSObjectProtocol?
-    @ObservationIgnored private var shouldDismissInitialLoginWindow = ProcessInfo.processInfo.arguments.contains("--launched-at-login")
     var section: AppSection? = .overview
 
     init() {
@@ -122,12 +121,6 @@ final class AppState {
 
     func diagnosticReport() -> String {
         DiagnosticReportBuilder.make(state: self)
-    }
-
-    func consumeInitialLoginWindowSuppression() -> Bool {
-        guard shouldDismissInitialLoginWindow else { return false }
-        shouldDismissInitialLoginWindow = false
-        return true
     }
 
     private func observeTermination() {

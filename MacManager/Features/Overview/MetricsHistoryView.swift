@@ -70,7 +70,7 @@ struct MetricsHistoryView: View {
                     AxisGridLine().foregroundStyle(.primary.opacity(0.06))
                     AxisValueLabel(anchor: axis.as(Double.self) == 0 ? .topTrailing : .topLeading) {
                         if let seconds = axis.as(Double.self) {
-                            Text(seconds == 0 ? state.strings("history.now") : "−\(Int(-seconds / 60)) min")
+                            Text(relativeTimeLabel(seconds))
                         }
                     }
                 }
@@ -113,5 +113,14 @@ struct MetricsHistoryView: View {
                 .font(.caption).foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
+    }
+
+    private func relativeTimeLabel(_ seconds: Double) -> String {
+        guard seconds != 0 else { return state.strings("history.now") }
+        return String(
+            format: state.strings("history.minutesAgo"),
+            locale: state.preferences.locale,
+            Int64(-seconds / 60)
+        )
     }
 }

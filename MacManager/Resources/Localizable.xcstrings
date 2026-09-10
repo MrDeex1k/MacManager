@@ -1157,6 +1157,23 @@
         }
       }
     },
+    "history.minutesAgo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "−%lld min"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "−%lld min"
+          }
+        }
+      }
+    },
     "history.now": {
       "extractionState": "manual",
       "localizations": {

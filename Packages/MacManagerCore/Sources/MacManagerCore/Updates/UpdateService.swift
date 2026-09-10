@@ -36,7 +36,16 @@ public final class UpdateService {
         self.fetch = fetch
 
         var cache = preferences.updateCache
-        if let release = cache.release, !Self.validCachedRelease(release) {
+        let cacheIsConsistent: Bool
+        switch cache.outcome {
+        case nil:
+            cacheIsConsistent = cache.etag == nil && cache.release == nil
+        case .some(.noPublicRelease):
+            cacheIsConsistent = cache.release == nil
+        case .some(.release):
+            cacheIsConsistent = cache.release.map(Self.validCachedRelease) ?? false
+        }
+        if !cacheIsConsistent {
             cache.etag = nil
             cache.outcome = nil
             cache.release = nil

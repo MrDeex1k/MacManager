@@ -116,8 +116,11 @@ public enum InputProbe {
             }
             guard type == .scrollWheel else { return Unmanaged.passUnretained(event) }
             let source = counter.classifier.classify(event, at: MetricsTime.now())
+            let momentum = event.getIntegerValueField(.scrollWheelEventMomentumPhase)
+            let optionalMomentum = event.getIntegerValueField(.scrollWheelEventMomentumOptionPhase)
+            let hasMomentum = momentum != 0 || optionalMomentum != 0
             let phased = event.getIntegerValueField(.scrollWheelEventScrollPhase) != 0
-                || event.getIntegerValueField(.scrollWheelEventMomentumPhase) != 0
+                || hasMomentum
             if source == .mouse && phased { counter.mouseGesture += 1 }
             if source == .trackpad && !phased { counter.trackpadPlain += 1 }
             switch source {
@@ -128,7 +131,7 @@ public enum InputProbe {
             if event.getIntegerValueField(.scrollWheelEventIsContinuous) != 0 { counter.continuous += 1 }
             else { counter.discrete += 1 }
             if event.getIntegerValueField(.scrollWheelEventScrollPhase) != 0 { counter.phase += 1 }
-            if event.getIntegerValueField(.scrollWheelEventMomentumPhase) != 0 { counter.momentum += 1 }
+            if hasMomentum { counter.momentum += 1 }
             return Unmanaged.passUnretained(event)
         }
         guard let tap = CGEvent.tapCreate(tap: .cgSessionEventTap, place: .tailAppendEventTap,

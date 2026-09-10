@@ -225,15 +225,16 @@ final class AppShellTests: XCTestCase {
     }
 
     @MainActor
-    func testLoginLaunchStaysInBackgroundAndStartsServices() throws {
+    func testLoginLaunchStaysInBackgroundAndProvidesMenuBar() throws {
         let app = launch(reset: true, liveMetrics: true, launchedAtLogin: true, expectsWindow: false)
         XCTAssertFalse(app.windows.firstMatch.waitForExistence(timeout: 2))
+        let statusItem = app.menuBars.statusItems["Mac Manager"]
+        XCTAssertTrue(statusItem.waitForExistence(timeout: 5))
+        statusItem.click()
+        XCTAssertTrue(statusItem.exists)
+        statusItem.click()
         app.activate()
         app.typeKey("1", modifierFlags: .command)
-        if !app.windows.firstMatch.waitForExistence(timeout: 5) {
-            app.activate()
-            app.typeKey("1", modifierFlags: .command)
-        }
         XCTAssertTrue(app.windows.firstMatch.waitForExistence(timeout: 10))
         let current = NSPredicate(format: "value == %@", "Current")
         expectation(for: current, evaluatedWith: app.staticTexts["metric.cpu.status"])
