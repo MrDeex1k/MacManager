@@ -230,9 +230,11 @@ final class AppShellTests: XCTestCase {
         XCTAssertFalse(app.windows.firstMatch.waitForExistence(timeout: 2))
         let statusItem = app.menuBars.statusItems["Mac Manager"]
         XCTAssertTrue(statusItem.waitForExistence(timeout: 5))
+        let panel = element("menuBar.panel", in: app)
         statusItem.click()
-        XCTAssertTrue(statusItem.exists)
+        XCTAssertTrue(panel.waitForExistence(timeout: 5))
         statusItem.click()
+        XCTAssertTrue(waitForElement(panel, exists: false))
         app.activate()
         app.typeKey("1", modifierFlags: .command)
         XCTAssertTrue(app.windows.firstMatch.waitForExistence(timeout: 10))
@@ -344,6 +346,13 @@ final class AppShellTests: XCTestCase {
     private func waitForWindow(in app: XCUIApplication, exists: Bool) -> Bool {
         let predicate = NSPredicate(format: "exists == %@", NSNumber(value: exists))
         let expectation = XCTNSPredicateExpectation(predicate: predicate, object: app.windows.firstMatch)
+        return XCTWaiter.wait(for: [expectation], timeout: 5) == .completed
+    }
+
+    @MainActor
+    private func waitForElement(_ element: XCUIElement, exists: Bool) -> Bool {
+        let predicate = NSPredicate(format: "exists == %@", NSNumber(value: exists))
+        let expectation = XCTNSPredicateExpectation(predicate: predicate, object: element)
         return XCTWaiter.wait(for: [expectation], timeout: 5) == .completed
     }
 }
