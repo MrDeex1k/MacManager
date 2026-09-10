@@ -17,5 +17,7 @@ typedef struct {
 int32_t mm_cpu_read(MMCPUTicks *ticks);
 int32_t mm_memory_read(MMMemory *memory);
 int32_t mm_gpu_read(double *percent);
+// Reads the AppleSMC PSTR power estimate. No SMC write operation is exposed.
+int32_t mm_power_read(double *watts);
 
 #endif

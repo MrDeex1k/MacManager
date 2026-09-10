@@ -76,3 +76,88 @@ int32_t mm_gpu_read(double *percent) {
     *percent = result;
     return 0;
 }
+
+// Undocumented, read-only AppleSMC user-client ABI.
+typedef struct {
+    uint8_t major, minor, build, reserved;
+    uint16_t release;
+} MMFirmware;
+
+typedef struct {
+    uint16_t version, length;
+    uint32_t cpu, gpu, memory;
+} MMLimits;
+
+typedef struct {
+    uint32_t length, type;
+    uint8_t attributes;
+} MMKeyInfo;
+
+typedef struct {
+    uint32_t key;
+    MMFirmware firmware;
+    MMLimits limits;
+    MMKeyInfo info;
+    uint8_t result, status, command;
+    uint32_t argument;
+    uint8_t bytes[32];
+} MMTransaction;
+
+_Static_assert(sizeof(MMTransaction) == 80, "Unexpected SMC ABI size");
+_Static_assert(offsetof(MMTransaction, bytes) == 48, "Unexpected SMC data offset");
+
+static int32_t mm_smc_call(io_connect_t connection, MMTransaction *request,
+                           MMTransaction *response) {
+    size_t length = sizeof(*response);
+    memset(response, 0, sizeof(*response));
+    kern_return_t status = IOConnectCallStructMethod(
+        connection, 2, request, sizeof(*request), response, &length);
+    if (status != KERN_SUCCESS) return status;
+    if (length != sizeof(*response)) return kIOReturnUnderrun;
+    if (response->result != 0) return kIOReturnNotFound;
+    return 0;
+}
+
+int32_t mm_power_read(double *watts) {
+    if (!watts) return kIOReturnBadArgument;
+    *watts = NAN;
+
+    io_service_t service = IOServiceGetMatchingService(
+        kIOMainPortDefault, IOServiceMatching("AppleSMC"));
+    if (!service) return kIOReturnNotFound;
+
+    io_connect_t connection = 0;
+    kern_return_t status = IOServiceOpen(service, mach_task_self(), 0, &connection);
+    IOObjectRelease(service);
+    if (status != KERN_SUCCESS) return status;
+
+    MMTransaction request = {0}, response = {0};
+    request.key = 0x50535452; // PSTR
+    request.command = 9; // Read metadata
+    status = mm_smc_call(connection, &request, &response);
+    if (status == 0) {
+        request.info = response.info;
+        if (request.info.length == 0 || request.info.length > sizeof(response.bytes)) {
+            status = kIOReturnUnsupported;
+        } else {
+            request.command = 5; // Read value
+            status = mm_smc_call(connection, &request, &response);
+        }
+    }
+    IOServiceClose(connection);
+    if (status != 0) return status;
+
+    if (request.info.type == 0x666c7420 && request.info.length == 4) { // flt
+        float value;
+        memcpy(&value, response.bytes, sizeof(value));
+        *watts = value;
+    } else if (request.info.type == 0x73703738 && request.info.length == 2) { // sp78
+        uint16_t bits = ((uint16_t)response.bytes[0] << 8) | response.bytes[1];
+        *watts = (int16_t)bits / 256.0;
+    } else {
+        return kIOReturnUnsupported;
+    }
+
+    if (!isfinite(*watts) || *watts < 0) return kIOReturnBadArgument;
+    return 0;
+}

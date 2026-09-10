@@ -16,7 +16,7 @@ Całość rozwijamy na feat/stage-1. Numer kroku obejmuje prototypy, więc krok 
 
 1. Prototypy P01–P04 - narzędzia gotowe, walidacja sprzętowa częściowa.
 2. Szkielet aplikacji F1-01 - gotowy; SwiftUI, lokalny Core, domyślny Liquid Glass, PL/EN.
-3. Usługi pomiarów F1-02 - zaimplementowane po kroku 5; [raport](reports/etap-1-krok-3.md). Moc pozostaje jawnie niedostępna.
+3. Usługi pomiarów F1-02 - zaimplementowane po kroku 5; [raport](reports/etap-1-krok-3.md). Odczyt mocy AppleSMC PSTR został następnie włączony jako szacunek dostępny na obsługiwanych urządzeniach.
 4. Wykresy i historia F1-03 - zaimplementowane; bufor 300 s, Swift Charts i luki; [raport](reports/etap-1-krok-4.md).
 5. Sieć F1-04 - zaimplementowana przed krokiem 3; wyniki i ograniczenia w [raporcie](reports/etap-1-krok-5.md).
 6. Scroll F1-05 - zaimplementowany; automatyczne rozróżnianie z gestów dotykowych, transformacja, zgody i cykl życia; [raport](reports/etap-1-krok-6.md).
@@ -29,7 +29,7 @@ Całość rozwijamy na feat/stage-1. Numer kroku obejmuje prototypy, więc krok 
 | ID | Kiedy | Badanie | Wynik wymagany do dalszych prac |
 | --- | --- | --- | --- |
 | P01 | Początek fazy 1 | CPU/RAM/GPU na M4 Pro, pomiar kosztu odczytu. | Definicje, źródła i raport poprawności; GPU nie zastąpione estymatą CPU. |
-| P02 | Początek fazy 1 | Moc całego Maca: bateria, AC, ładowanie, ekran, obciążenie. | Zweryfikowane źródło albo jawnie niedostępny MET-02; bez sumy CPU+GPU jako całości. |
+| P02 | Faza 1 | Moc Maca: bateria i AC. | PSTR potwierdzony na AC i baterii na urządzeniu testowym. Produkcja pokazuje go jako szacunek AppleSMC i zachowuje stan niedostępny, gdy czujnika nie ma. |
 | P03 | Początek fazy 1 | Scroll: klasyfikacja urządzeń i zgody. | Odwrócona mysz, niezmieniony gładzik; lista przetestowanych urządzeń i ograniczeń. |
 | P04 | Faza 1 | IPv4, zwykły VPN, split tunnel, wiele tuneli. | Dowód znaczenia podstawowego IP; dodatkowe wyjścia tylko jeśli potwierdzone. |
 | P05 | Początek fazy 3 | Schowek, zgody macOS 26, currentHostOnly, obrazy i retencja. | Poprawny zapis/przywrócenie i odmowa, brak wysyłania oraz zapętlenia historii. |
