@@ -62,6 +62,22 @@ git config --local core.commentChar ';'
 check_message accept '; editor comment\ndocs: add a guide'
 git config --local --unset core.commentChar
 
+# Staged text must not contain a Unicode em dash.
+printf '%s\n' 'regular hyphen - accepted' > allowed.txt
+git add allowed.txt
+.githooks/pre-commit
+git rm --cached -q allowed.txt
+rm allowed.txt
+
+printf 'forbidden \342\200\224 character\n' > forbidden.txt
+git add forbidden.txt
+if .githooks/pre-commit > "$test_root/output" 2>&1; then
+    printf '%s\n' 'Pre-commit unexpectedly accepted a Unicode em dash.' >&2
+    exit 1
+fi
+git rm --cached -q forbidden.txt
+rm forbidden.txt
+
 for body in '' 'update docs' 'Merge branch main' 'fixup! feat: add a panel' \
     'unknown: change something' 'feat:no space' 'feat: ' 'feat:  ' \
     'feat:  double space' 'feat:  invalid: still invalid' 'feat(): empty scope' 'feat(two words): invalid scope' \
@@ -97,4 +113,4 @@ if ./scripts/install-git-hooks.sh > "$test_root/output" 2>&1; then
     exit 1
 fi
 
-printf '%s\n' "Passed $checks message cases, Git commit integration, and installer safety checks."
+printf '%s\n' "Passed $checks message cases, staged-content policy, Git commit integration, and installer safety checks."

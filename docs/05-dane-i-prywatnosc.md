@@ -16,7 +16,7 @@ Wymaganie: lokalne ustawienia i historia, bez kont, reklam, telemetrii, automaty
 | Indeks wyszukiwania schowka | RAM; brak plaintextowego indeksu treści na dysku. |
 | Klucz historii | Keychain, bez synchronizacji, związany z lokalnym urządzeniem. |
 | Stan kontroli aktualizacji | Daty kontroli i próby, ETag/cache metadanych, bez osobowego ID. |
-| Diagnostyka | Rotowany lokalny log bez treści użytkownika; propozycja limitu 5 MB / 7 dni. |
+| Diagnostyka | Systemowy OSLog oraz ostatni zredagowany typ błędu każdej usługi w RAM. Raport powstaje na żądanie i nie jest automatycznie zapisywany. |
 | Stan muzyki / okładka | Bieżący snapshot i ograniczony cache w RAM. |
 
 Decyzja inżynierska: systemowy SQLite dla metadanych i osobne pliki zaszyfrowanych payloadów oraz miniatur. Treść chroniona AES-GCM przez CryptoKit, klucz w Keychain, unikalny nonce dla każdego szyfrowania. SQLite przechowuje jedynie identyfikatory, typ, czasy, rozmiary i ścieżki względne; źródłowy bundle ID i treść pozostają w zaszyfrowanym payloadzie. [API AES.GCM](https://developer.apple.com/documentation/cryptokit/aes/gcm).
@@ -70,7 +70,7 @@ Wszystkie trzy limity są konfigurowalne i muszą pozostać dodatnie. Zmniejszen
 
 | Funkcja | Zgoda / obsługa |
 | --- | --- |
-| Scroll | Dostępność, proszona przy włączeniu; pozostałe funkcje działają po odmowie. |
+| Scroll | Dostępność do zmiany scrolla i Monitorowanie wprowadzania do gestów; proszone po świadomym włączeniu. Pozostałe funkcje działają po odmowie. |
 | Historia | Dostęp do schowka zgodnie z macOS 26; stan i droga naprawy w UI. |
 | Sterowanie muzyką | Automatyzacja osobno dla Music/Spotify, przy konfiguracji danego źródła. |
 | Autostart | SMAppService i faktyczny status ustawień systemowych. |
@@ -84,9 +84,19 @@ Nie prosić profilaktycznie o Full Disk Access, Screen Recording ani Input Monit
 | Cel | Dane wysyłane | Sterowanie |
 | --- | --- | --- |
 | ipify | Standardowe żądanie echo IPv4; serwis widzi adres wyjściowy. | Wyłączenie funkcji publicznego IP. |
-| GitHub API | Żądanie publicznych metadanych release, standardowy User-Agent, opcjonalny ETag. | Raz na 7 dni lub ręcznie; automatyczne można wyłączyć. |
+| GitHub API | `GET https://api.github.com/repos/MrDeex1k/MacManager/releases/latest`; publiczne metadane wydania, `User-Agent` z wersją aplikacji i opcjonalny ETag. | Pierwszy start, potem najwyżej raz na 7 dni lub ręcznie; automatyczne można wyłączyć. |
 | Strona GitHub Release | Otwierana w przeglądarce po kliknięciu. | Wyłącznie świadoma akcja. |
 | Muzyka | Apple Events lokalnie; odtwarzacze mają własne połączenia. | Wybrane źródło i jego zgoda. |
 
 Okładki: preferowany lokalny obraz udostępniony przez odtwarzacz. Jeśli adapter zwróci jedynie zewnętrzny URL, w początkowym zakresie używamy placeholdera. Pobieranie okładek z sieci wymagałoby jawnego rozszerzenia tej tabeli; nie wysyłamy tytułów utworów do serwisu wyszukiwania okładek.
 
+
+Krok 6 obserwuje wyłącznie zdarzenia scrolla oraz pasywne gesty dotykowe. Klasyfikator przechowuje w RAM liczbę dotknięć, czas i ostatnie rozpoznane źródło; nie zapisuje pozycji palców, identyfikatorów urządzeń, klawiszy ani treści aplikacji. Stan jest usuwany przy zatrzymaniu. Prototyp diagnostyczny zwraca wyłącznie zagregowane liczniki.
+
+## Audyt ruchu i diagnostyki, krok 8
+
+Audyt kodu z 2026-09-10 potwierdza dwa produkcyjne endpointy HTTPS: `api.ipify.org` dla publicznego IPv4 oraz stały endpoint `api.github.com` dla najnowszego wydania. Adresy stron GitHub Release są jedynie otwierane przez świadomą akcję użytkownika. Schemat `x-apple.systempreferences` otwiera lokalne Ustawienia systemowe i nie jest połączeniem sieciowym. Nie znaleziono klienta telemetrii, kont, reklam, synchronizacji ani wysyłania metryk.
+
+Cache aktualizacji w UserDefaults zawiera wyłącznie ETag, zweryfikowaną wersję, tag, nazwę DMG, stronę wydania, daty kontroli oraz kontrolowany typ ostatniego błędu. Nie zapisuje release notes, odpowiedzi API, IP ani identyfikatora instalacji.
+
+Kategorie OSLog to `lifecycle`, `metrics`, `network`, `scroll` i `updates`. Logowane są wyłącznie kontrolowane nazwy stanów i błędów. Raport diagnostyczny pokazuje pełną treść przed skopiowaniem, używa angielskich nazw pól i zapisuje schowek z opcją `currentHostOnly`.

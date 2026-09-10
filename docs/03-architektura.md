@@ -64,7 +64,7 @@ Jeden harmonogram metryk współdzielony przez wszystkie widoki, bez nakładają
 | PlayerSnapshot | Źródło, utwór opcjonalny, wykonawca, długość, pozycja, stan, dostępne akcje, okładka opcjonalna. |
 | ReleaseInfo | Wersja, tag, adres strony wydania, zgodny asset DMG, czas kontroli. |
 
-Model metryki musi rozróżniać poprawne zero od braku wartości. Przy pierwszym odczycie licznika różnicowego zbieramy bazę; nie publikujemy fikcyjnego zera. Czas monotoniczny służy do różnic liczników; czas kalendarzowy do dat w UI i retencji. Po uśpieniu resetujemy bazę tam, gdzie liczniki nie zapewniają poprawnej różnicy.
+Model metryki musi rozróżniać poprawne zero od braku wartości. Przy pierwszym odczycie licznika różnicowego zbieramy bazę; nie publikujemy fikcyjnego zera. Czas monotoniczny uwzględniający sen (mach_continuous_time) służy do różnic liczników i retencji metryk; czas kalendarzowy do dat w UI. Po uśpieniu resetujemy bazę tam, gdzie liczniki nie zapewniają poprawnej różnicy.
 
 Seria przy interwale 1 s zawiera około 300 punktów na metrykę. Zmiana interwału nie wydłuża okna ponad 5 minut. Współdzielona historia jest niezależna od tego, czy wskaźnik w pasku menu jest włączony.
 
@@ -78,7 +78,73 @@ Odświeżenie przy starcie/wznowieniu usługi, zmianie sieci po 2 s stabilizacji
 
 VPN: brak skanowania internetowych celów ani uruchamiania innych aplikacji w celu wykrywania ich tras. Przypisanie żądania do interfejsu to tylko kandydat do prototypu. Wynik wolno opisać nazwą tunelu dopiero po potwierdzeniu ścieżki. Sam obecny utun, odpowiedź serwera ani adres bramy nie dowodzą osobnego publicznego IP. Jeśli adapter nie potrafi tego wykazać, zwraca unknown.
 
-## Struktura przyszłego kodu
+## Zaimplementowany szkielet - krok 2
+
+MacManager.xcodeproj zawiera target aplikacji i testy UI oraz współdzielony scheme MacManager. Lokalne Packages/MacManagerCore dostarcza AppLanguage i PreferencesStore (Observation, MainActor, wstrzykiwany UserDefaults). AppState utrzymuje nawigację i jedną instancję ustawień; AppStrings wybiera PL/EN z kompilowanego String Catalog, dzięki czemu zmiana treści jest natychmiastowa. SwiftUI Locale odpowiada za formatowanie. Systemowe menu i okna macOS zachowują język systemu.
+
+App/ zawiera scenę pojedynczego okna, nawigację, komendy i motyw. Features/ zawiera Przegląd, Sieć, Przewijanie, Dock i Ustawienia. W kroku 2 widoki nie uruchamiały usług pomiarowych i zapisywały wyłącznie język. Kroki 5 i 3 podłączyły sieć, bieżące metryki oraz ustawienia publicznego IP i interwału, zgodnie z opisem poniżej. Prototypy CLI pozostają osobnymi narzędziami. W Debug flagi --ui-testing i --reset-preferences izolują ustawienia testów od profilu użytkownika; w Release nie są obsługiwane.
+
+Konfiguracja: arm64, minimalny macOS 26.0, Swift 6, bez zależności zewnętrznych i generatora projektu. Identyfikator rozwojowy: dev.macmanager.MacManager. Podpis lokalny ad-hoc, bez skonfigurowanego Developer ID. ENABLE_HARDENED_RUNTIME jest włączone w projekcie, lecz Xcode wyłącza Hardened Runtime przy ad-hoc signing; weryfikacja podpisanego wydania pozostaje osobną bramką.
+
+## Zaimplementowane usługi - kroki 5 i 3
+
+NetworkService i MetricsService w Core są obserwowalne na MainActor. Kontrolery w Platform/Network i Platform/Metrics uruchamiają po jednej pętli na AppState i reagują na sleep/wake. Nawigacja nie tworzy dodatkowych samplerów. AppState uruchamia wspólny koordynator wraz z procesem, więc metryki, sieć, scroll, Dock i autostart nie zależą od istnienia głównego okna. Zamknięcie okna nie kończy procesu.
+
+Core zawiera MMHardware (C): wyłącznie odczyty Mach CPU/VM i IOKit AGX. HardwareMetricsSampler jest actorem serializującym odczyty. Generacja żądania chroni UI przed wynikiem sprzed uśpienia, następna próbka CPU wymaga nowej bazy. MetricsService nie rozpoczyna kolejnego odczytu przed zakończeniem poprzedniego; po trzech interwałach pokazuje stale bez wartości. Adapter mocy nie jest aktywny, brak SMC w produkcyjnym targetcie.
+
+Snapshot metryk zawiera czas kalendarzowy, uptime, źródło, status, jednostkę wynikającą z rodzaju metryki, opcjonalną wartość i pojemność RAM. Krok 4 dodał bufor historii i wykresy opisane poniżej. Definicja pamięci: (internal − purgeable + wired + physical compressor) × pageSize; cache plików i logiczna wielkość danych skompresowanych nie są dodawane do użytej pamięci. Nie jest to presja pamięci ani suma RSS procesów.
+
+Debug --ui-testing wyłącza kontrolery i korzysta z osobnej domeny ustawień. Dodatkowe --live-metrics uruchamia wyłącznie pomiary lokalne do testu GUI. Release ignoruje te flagi. Kontrolery nie uruchamiają narzędzi CLI, nie wymagają sudo i nie proszą o uprawnienia schowka ani scrolla.
+
+## Historia i wykresy - krok 4
+
+MetricsService przechowuje MetricsHistory w RAM. Okno to (teraz − 300 s, teraz]; zegar MetricsTime opiera się na mach_continuous_time i uwzględnia uśpienie, bez zależności od zegara kalendarzowego. Pole snapshot.uptime używa tego samego zegara. Usuwanie wygasłych próbek odbywa się przy odczycie, każdym tyknięciu kontrolera oraz powiadomieniu sleep/wake. Nie ma zapisu na dysk ani odtwarzania po restarcie. Typowy bufor zawiera do 300 snapshotów przy interwale 1 s.
+
+Każda metryka tworzy osobne segmenty: brak dostępnej wartości, zmiana źródła lub interwału, przerwa dłuższa niż 1,5 interwału oraz sleep/wake przerywają linię. Poprawne zero pozostaje punktem; stale nie dopisuje powtórzonej wartości. Zmiana interwału unieważnia trwający odczyt i resetuje bazę CPU, utrzymując blokadę równoległych odczytów do zakończenia poprzedniego.
+
+MetricsHistoryView korzysta wyłącznie z historii wspólnej usługi. Swift Charts rysuje osobne serie liniowe i punkty, ze stałą osią −5 min…Teraz, skalą 0–100% dla CPU/GPU oraz GiB dla RAM. Minimum, maksimum i liczba próbek odnoszą się do wybranej metryki w zachowanym oknie. Moc ma pusty stan, dopóki nie istnieje zweryfikowane źródło. Nie interpolujemy przez przerwy i nie animujemy wartości pomiarów.
+
+## Scroll - krok 6
+
+ScrollService na MainActor łączy intencję użytkownika z prawdziwym stanem dwóch zgód i sterownika. Ustawienie reverseMouseScroll domyślnie jest wyłączone. Odczyt uprawnień nie prosi o zgodę przy starcie; prośba następuje tylko przez świadomą akcję w Ustawieniach. ScrollController sprawdza stan co sekundę i zatrzymuje usługę przy uśpieniu, nieaktywnej sesji i zakończeniu aplikacji. Zamknięcie okna jej nie zatrzymuje.
+
+ScrollDriver utrzymuje jeden wątek z run loop i dwa tapy: pasywny dla NSEvent.gesture i modyfikujący dla scrollWheel. Takie rozdzielenie zachowuje działanie systemowych gestów. ScrollSourceClassifier automatycznie korzysta z dotyku co najmniej dwóch palców, czasu i bezwładności; nie ma list producentów, modeli ani profili. Jest adaptacją mechanizmu Scroll Reversera, z początkowym stanem unknown. Osobny kontekst gestu i bezwładności zapobiega przejęciu źródła trwającego przewijania gładzika przez zdarzenie myszy. Unknown przepuszcza zdarzenie bez zmian.
+
+MMInput (C) odczytuje wszystkie delty przed zmianą: ustawienie wartości liniowej w Quartz może zmienić wartości punktowe i stałoprzecinkowe. Odwracamy obie osie i odpowiadające im wartości dołączonego zdarzenia IOHID, pozostawiając inne metadane. Zdarzenie wraca z callbacku, bez ponownego postowania. Prywatne symbole CGEventCopyIOHIDEvent/IOHIDEventGetFloatValue/IOHIDEventSetFloatValue są izolowane, rozwiązywane dynamicznie; brak symboli zatrzymuje start funkcji zamiast używać zgadywanego ABI.
+
+Blokada chroni bramkę wyłączenia i stan sterownika; callback nie wykonuje sieci, logowania ani zapisu ustawień. Po timeoutach dopuszczamy maksymalnie trzy wznowienia na minutę. Kolejne przerwanie lub wyłączenie przez system zatrzymuje oba tapy i wymaga świadomego ponowienia. Zmiana uprawnień jest sprawdzana co sekundę; cofnięcie którejkolwiek zatrzymuje funkcję. Testy GUI używają TestScrollDriver bez globalnego przechwytywania wejścia.
+
+Informacje Apache-2.0 dla adaptowanych fragmentów są w [THIRD_PARTY_NOTICES](../THIRD_PARTY_NOTICES.md) oraz w zasobach dystrybuowanej aplikacji. Pozostały kod projektu pozostaje MIT.
+
+## Integracja aplikacji - kroki 7a, 7b, 7c i 7d
+
+AppIntegrationPreferences grupuje trwałe ustawienia Docka, intencję autostartu i trzy niezależne wskaźniki paska menu. Domyślnie Dock i autostart są włączone, a CPU, RAM i moc w pasku wyłączone. LaunchAtLoginState jest osobnym modelem rzeczywistego wyniku systemowego; zapisana intencja nie zastępuje odczytu `SMAppService.status`.
+
+ApplicationLifecycleCoordinator z Core nie zależy od AppKit. Otrzymuje uczestników zgodnych z ApplicationLifecycleParticipant, uruchamia ich jeden raz i zatrzymuje w odwrotnej kolejności. AppState składa z niego kontrolery metryk, sieci i scrolla, a wspólna obserwacja zakończenia procesu wywołuje terminate. Każdy kontroler jawnie anuluje pętle i usuwa własne obserwacje.
+
+MenuBarExtra tworzy status item z ikoną `macbook` i panelem w stylu okna. Etykieta opcjonalnie składa CPU, RAM i moc w jeden ciąg o stałej kolejności. MenuBarStatusFormatter w Core oddziela reguły wyboru, jednostek i braku danych od SwiftUI. Panel korzysta ze wspólnych snapshotów metryk i sieci, nie tworzy osobnego samplera. Otwieranie sekcji głównego okna odbywa się przez środowiskową akcję `openWindow`.
+
+Ustawienia paska menu są wiązane bezpośrednio z trwałym AppIntegrationPreferences. Domyślnie widoczna jest sama ikona. Wartości niedostępne pozostają oznaczone jako `-`, a moc nie jest estymowana.
+
+DockController jest uczestnikiem wspólnego cyklu życia. Mapuje preferencję widoczności na `NSApplication.ActivationPolicy.regular` lub `.accessory`. Zapis ustawienia następuje po udanym zastosowaniu polityki, dzięki czemu zapisany stan nie przeczy wynikowi AppKit. Kontroler nie usuwa ikony paska menu i nie kończy procesu.
+
+Delegat aplikacji pozostawia proces aktywny po zamknięciu ostatniego okna i przywraca główne okno po ponownym otwarciu aplikacji z Docka. Panel paska menu i komendy SwiftUI używają `openWindow(id: "main")`, wybierają sekcję przed otwarciem i aktywują aplikację. Nadal istnieje tylko jedno główne okno.
+
+LoginItemController opakowuje `SMAppService.mainApp`. Odczytuje rzeczywisty status macOS, rejestruje lub wyrejestrowuje aplikację na żądanie i odświeża status po ponownej aktywacji aplikacji. Stan `requiresApproval` prowadzi użytkownika do panelu Login Items w Ustawieniach systemowych. Jednorazowy znacznik w PreferencesStore pozwala spróbować domyślnego włączenia tylko przy pierwszej konfiguracji i zapobiega ponownemu wymuszaniu decyzji odrzuconej później w macOS.
+
+ApplicationLaunchContextDetector rozpoznaje `keyAELaunchedAsLogInItem` w zdarzeniu otwarcia aplikacji. Zwykłe uruchomienie prezentuje główne okno, a start przy logowaniu używa `defaultLaunchBehavior(.suppressed)`. Panel paska menu i skróty mogą później utworzyć to samo okno. Szczegóły i granice: [raport kroku 7a](reports/etap-1-krok-7a.md), [raport kroku 7b](reports/etap-1-krok-7b.md), [raport kroku 7c](reports/etap-1-krok-7c.md) oraz [raport kroku 7d](reports/etap-1-krok-7d.md).
+
+## Aktualizacje i diagnostyka - krok 8
+
+SemanticVersion wykonuje ścisłe porównanie `MAJOR.MINOR.PATCH`. GitHubReleaseClient łączy się wyłącznie ze stałym endpointem publicznego repozytorium, nie śledzi przekierowań, ogranicza czas i rozmiar odpowiedzi oraz kwalifikuje tylko tag `vMAJOR.MINOR.PATCH` z dokładnym plikiem `MacManager-vMAJOR.MINOR.PATCH-arm64.dmg`. Adres strony wydania musi należeć do oczekiwanej ścieżki na `github.com`.
+
+UpdateService jest obserwowalnym modelem na MainActor. Rozdziela stan widoczny w UI, potwierdzone wydanie oraz wynik ostatniej próby. PreferencesStore zapisuje zgodę automatycznych kontroli, ETag, minimalne metadane wydania i daty. Nie przechowuje odpowiedzi JSON ani release notes. Późniejszy błąd zachowuje wcześniej zweryfikowane wydanie.
+
+UpdateController jest uczestnikiem cyklu życia procesu. NWPathMonitor uruchamia zaległą kontrolę po odzyskaniu sieci. Jedno zaplanowane zadanie wyznacza kolejny termin po 7 dniach i jest przeliczane po zmianie zegara oraz sleep/wake. Aplikacja nie wybudza Maca. Kontrola ręczna ma 60 sekund odstępu od zakończenia poprzedniej próby.
+
+DiagnosticsStore utrzymuje w RAM tylko ostatni kontrolowany typ błędu dla każdej kategorii. OSLog otrzymuje nazwy stanów i typy błędów z jawnej listy, bez danych użytkownika. DiagnosticReportBuilder składa angielski raport z publicznych informacji systemowych i bieżących stanów usług. Widok pokazuje raport przed skopiowaniem, a NSPasteboard używa `currentHostOnly`.
+
+## Docelowa struktura kodu
 
 ~~~text
 MacManager/
@@ -99,5 +165,4 @@ MacManagerUITests/
 docs/
 ~~~
 
-To projekt struktury, nie katalogi istniejącej implementacji. Poszczególne funkcje dodajemy w przypisanych fazach. Test doubles dla zegara, adapterów, pasteboardu, repozytorium i HTTP umożliwiają sprawdzenie awarii bez prawdziwych danych użytkownika.
-
+Istnieją App/, Features/Overview, Network, Settings, Resources, lokalny Core i MacManagerUITests. Pozostałe katalogi i funkcje dodajemy w przypisanych krokach i fazach. Test doubles dla zegara, adapterów, pasteboardu, repozytorium i HTTP umożliwiają sprawdzenie awarii bez prawdziwych danych użytkownika.

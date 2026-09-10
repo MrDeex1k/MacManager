@@ -1,6 +1,6 @@
 # Wykonalność, źródła i ryzyka
 
-Rozpoznanie dokumentacyjne wykonane 2026-09-07. Nie wykonano jeszcze prototypów ani walidacji czujników. Poniższe techniki są kandydatami do implementacji; biblioteki i aplikacje referencyjne nie gwarantują zgodności Mac Manager.
+Rozpoznanie dokumentacyjne wykonane 2026-09-07. Aktualizacja 2026-09-08: uruchomiono pierwsze prototypy P01–P04, opisane w [raporcie](reports/etap-1-krok-1.md). Walidacja pozostaje częściowa. Biblioteki i aplikacje referencyjne nie gwarantują zgodności Mac Manager.
 
 ## Macierz
 
@@ -14,7 +14,7 @@ Rozpoznanie dokumentacyjne wykonane 2026-09-07. Nie wykonano jeszcze prototypów
 | Lokalny IPv4 | getifaddrs + konfiguracja interfejsów | Wysoka wykonalność; LAN, Ethernet, Wi-Fi, link-local, brak sieci. |
 | Publiczny IPv4 | Żądanie HTTPS do usługi echo IP | Wykonalne dla konkretnego połączenia. |
 | Wiele wyjść VPN | Prototyp ścieżek związanych z tunelami | Best effort; pełna mapa per-app poza gwarancją. |
-| Scroll | Modyfikujący CGEvent tap, klasyfikator źródła | Uprawnienie Dostępność i testy urządzeń. |
+| Scroll | Pasywny tap gestów + modyfikujący tap scrolla, klasyfikator dotyku | Dostępność, Monitorowanie wprowadzania i testy urządzeń. |
 | Schowek | NSPasteboard, changeCount, kontrola dostępu | Wykonalne z ograniczeniami obserwacji i zgód. |
 | Muzyka | Apple Events / ScriptingBridge, osobny adapter odtwarzacza | Zweryfikować słowniki i zgody w aktualnych wersjach aplikacji. |
 | Wyspa | NSPanel + NSHostingView, geometria NSScreen | Prototyp hover, fokusu, Spaces i monitorów. |
@@ -39,6 +39,8 @@ Apple rozróżnia nasłuchiwanie wejścia od jego modyfikowania: modyfikujący t
 [scrollWheelEventIsContinuous](https://developer.apple.com/documentation/coregraphics/cgeventfield/scrollwheeleventiscontinuous) jest sygnałem o zdarzeniu, nie dowodem, że pochodzi z gładzika. Myszy z płynnym scrollem i sterowniki mogą zmieniać charakterystykę zdarzeń. Prosty UI nie oznacza, że implementacja może utożsamić wszystkie zdarzenia ciągłe z touchpadem.
 
 P03 sprawdza mysz USB/Bluetooth, Magic Mouse, gładzik wbudowany i zewnętrzny oraz kombinację dwóch urządzeń. Niepewnej klasyfikacji nie wolno naprawiać przez odwracanie wszystkich zdarzeń. Przy nieobsługiwanym przypadku lepszy jest brak zmiany niż zmiana gestów gładzika; ograniczenie należy ujawnić.
+
+W pierwszych próbach z użytkownikiem oba urządzenia generowały continuous, ale różniły się obecnością phase/momentum. Szczegóły w raporcie P03; nie uznajemy jeszcze tego sygnału za pewny identyfikator wszystkich urządzeń.
 
 ## Publiczny IPv4 i VPN
 
@@ -74,3 +76,4 @@ Publiczna dystrybucja wymaga przygotowania Developer ID, Hardened Runtime i nota
 
 Każdy prototyp P01–P07 z [planu](06-plan-i-testy.md) pozostawia krótki raport: model, wersja OS i odtwarzaczy/sterowników, użyte API, semantyka odczytu, wymagane zgody, zachowanie błędów, koszt działania i decyzja „wdrażamy / ograniczona obsługa / niedostępne”. Raporty nie zawierają danych schowka ani rzeczywistych IP.
 
+Krok 6 zaadaptował [mechanizm Scroll Reversera](https://github.com/pilotmoon/Scroll-Reverser/blob/187bf3945b6107cd8486327c6165f32e523535a4/MouseTap.m): obserwację dotyku dwóch palców, kontekst czasowy i bezwładność. Rozróżnianie jest automatyczne, niezależne od list modeli. Adapter aktualizuje też reprezentację IOHID przy użyciu izolowanego SPI; jego zgodność z kolejnymi wersjami macOS pozostaje częścią walidacji wydań. Szczegóły w [raporcie](reports/etap-1-krok-6.md).

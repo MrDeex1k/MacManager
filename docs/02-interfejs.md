@@ -4,9 +4,23 @@
 
 Pełne okno służy do wykresów i szczegółów; pasek menu do szybkiego odczytu i przełączników; wyspa od fazy 3 do schowka i muzyki. Wszystkie pokazują ten sam stan usług. Otwarcie drugiego widoku nie uruchamia drugiego zestawu pomiarów.
 
-Okno: boczna nawigacja „Przegląd”, „Sieć”, od fazy 2 „Czujniki”, od fazy 3 „Schowek”, oraz „Ustawienia”. Przegląd zawiera CPU, GPU, RAM, W i wykresy pięciominutowe. Sekcja Schowek umożliwia wygodne przeglądanie tej samej historii co wyspa, także gdy użytkownik wyłączy wyspę.
+Okno: boczna nawigacja „Przegląd”, „Sieć”, „Przewijanie”, „Dock”, od fazy 2 „Czujniki”, od fazy 3 „Schowek”, oraz „Ustawienia”. Przewijanie i Dock są osobnymi sekcjami personalizacji umieszczonymi między Siecią i Ustawieniami. Przegląd zawiera CPU, GPU, RAM, W i wykresy pięciominutowe. Sekcja Schowek umożliwia wygodne przeglądanie tej samej historii co wyspa, także gdy użytkownik wyłączy wyspę.
 
 Liquid Glass jest natywną warstwą interfejsu i kontrolek, nie nakładką utrudniającą odczyt wykresów. Ciemny motyw obowiązuje również w panelach AppKit należących do aplikacji. Systemowe okna uprawnień pozostają pod kontrolą macOS.
+
+## Liquid Glass - domyślny materiał od macOS 26
+
+Minimalny system to macOS 26, więc używamy nowych API bez ścieżki zgodności ze starszym macOS i bez przełącznika włączającego Liquid Glass. System może ograniczyć przezroczystość lub animacje zgodnie z preferencjami dostępności użytkownika; aplikacja tego nie omija.
+
+Kompozycja: ciemna powierzchnia robocza, typografia systemowa i jeden akcent. Sekcje danych rozdzielają odstępy i separatory, bez mozaiki dekoracyjnych kart. Nagłówki opisują zadanie lub stan. Natywne animacje przycisków i panelu bocznego sygnalizują interakcję, bez ciągłych efektów w tle.
+
+| Miejsce | Sposób użycia | Etap |
+| --- | --- | --- |
+| Nawigacja boczna i pasek narzędzi | Standardowe NavigationSplitView, SidebarCommands i ToolbarItem, z wyglądem dostarczanym przez macOS 26. Bez dodatkowej szklanej nakładki. | 1, szkielet |
+| Akcja otwarcia szczegółów sieci | Natywny styl przycisku .glass; system obsługuje stany interakcji i dostępność. | 1, szkielet |
+| Metryki, adresy, wykresy i opisy | Czytelna powierzchnia treści; szkło w kontrolkach, bez rozmywania samych danych. | 1 |
+| Panel paska menu | Systemowe materiały panelu i szklane akcje; bez nakładania kilku warstw szkła. | 1, integracja systemowa |
+| Rozwinięta wyspa | Materiał panelu i grupy akcji; dobór kontrastu na rzeczywistym tle. Zwinięty stan nadal pusty. | 3 |
 
 ## Pasek menu i Dock
 
@@ -35,7 +49,7 @@ Decyzja inżynierska: metryka jest przeterminowana po trzech interwałach bez no
 
 Jeden przełącznik „Odwróć przewijanie myszy”. Gładzik zachowuje ustawienie systemowe i gesty. Nie ma ustawień każdej myszy ani oddzielnych kontrolek osi. Decyzja inżynierska: zmieniamy znak przewijania myszy w obsługiwanych osiach, zachowując wielkość, tempo, przyciski i modyfikatory zdarzenia.
 
-Przy pierwszym włączeniu funkcji wyjaśniamy potrzebę Dostępności. Odmowa nie blokuje monitorowania. Po cofnięciu zgody funkcja pokazuje stan nieaktywny. Nie resetujemy systemowego „naturalnego przewijania”.
+Przy pierwszym włączeniu funkcji wyjaśniamy potrzebę Dostępności do zmiany scrolla i Monitorowania wprowadzania do pasywnej obserwacji gestów. Osobne stany i przycisk kierują do brakującej zgody. Odmowa nie blokuje monitorowania. Po cofnięciu zgody funkcja pokazuje stan nieaktywny. Nie resetujemy systemowego „naturalnego przewijania”.
 
 ## Wyspa
 
@@ -75,4 +89,3 @@ Brak okładki nie blokuje odtwarzania: neutralny placeholder. Brak odtwarzacza i
 PL/EN w String Catalog, bez sklejania przetłumaczonych fragmentów i bez hardkodowania formatów liczb. VoiceOver opisuje wartości, jednostki i przyciski. Stanów nie kodujemy wyłącznie kolorem. Uwzględniamy Reduce Motion, Reduce Transparency oraz Increase Contrast, nawet przy wymuszonym ciemnym motywie.
 
 Wyspa ma alternatywną drogę otwarcia z paska menu; użytkownik klawiatury nie musi najpierw najechać kursorem ani przypisywać skrótu. Szczegóły schowka są także w pełnym oknie.
-

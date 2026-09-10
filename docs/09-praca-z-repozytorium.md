@@ -2,6 +2,14 @@
 
 Wszystkie nowe commity muszą stosować projektową konwencję opartą na [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/). Dotyczy to także zmian dokumentacji i konfiguracji. Zalecany język wiadomości: angielski. Rozdzielać niezależne zmiany na osobne, logiczne commity.
 
+## Branche
+
+Stosujemy prefiksy opisujące rodzaj pracy: feat/, fix/, docs/, chore/ lub refactor/. Nie stosujemy prefiksu codex/.
+
+Cały etap rozwijamy na jednym docelowym branchu: dla etapu 1 jest to feat/stage-1. Kolejne kroki trafiają bezpośrednio na ten branch jako osobne logiczne commity. Nie tworzymy branchy poszczególnych kroków i nie scalamy automatycznie do main.
+
+Historia prototypów kroku 1 została zachowana przez fast-forward do feat/stage-1. Pomocnicze branche kroków 1 i 2 usunięto po zmianie sposobu pracy zatwierdzonej przez właściciela projektu.
+
 ## Instalacja lokalna
 
 Po każdym nowym klonowaniu, przed pierwszym commitem:
@@ -12,7 +20,7 @@ Po każdym nowym klonowaniu, przed pierwszym commitem:
 
 Skrypt ustawia wyłącznie lokalne core.hooksPath na .githooks. Nie zmienia globalnej konfiguracji, nie instaluje pakietów i nie korzysta z GitHub Actions. Można uruchomić go ponownie. Odmawia zastąpienia innego hooksPath lub wyłączenia istniejących aktywnych hooków; w takim przypadku należy najpierw połączyć ich działanie.
 
-Mechanizm: wersjonowany [commit-msg](../.githooks/commit-msg), uruchamiany przez Git przed utworzeniem commita. Implementacja używa systemowego /bin/sh, awk i Gita. Nie wymaga Node.js, Husky, Pythona, Swift Package ani Homebrew.
+Mechanizm: wersjonowane hooki [pre-commit](../.githooks/pre-commit) i [commit-msg](../.githooks/commit-msg), uruchamiane przez Git przed utworzeniem commita. Pre-commit odrzuca niedozwolony znak Unicode em dash w plikach tekstowych dodanych do indeksu. Commit-msg sprawdza format wiadomości. Implementacja używa systemowego /bin/sh, awk i Gita. Nie wymaga Node.js, Husky, Pythona, Swift Package ani Homebrew.
 
 Sprawdzenie aktywacji:
 
@@ -49,7 +57,7 @@ refactor(core)!: replace the metrics interface
 
 Hook waliduje strukturę nagłówka, separator treści oraz niepusty opis jawnej stopki BREAKING CHANGE/BREAKING-CHANGE. Nie ocenia, czy autor wybrał semantycznie właściwy typ, czy zmiana faktycznie jest breaking ani całej gramatyki dowolnych stopek. Za to odpowiada autor i review.
 
-Nie ma wyjątków dla domyślnych wiadomości Merge, Revert, fixup! czy squash!. Jeśli tworzysz takie commity, nadaj im zgodną wiadomość, np. chore(merge): integrate a feature lub revert: undo the scroll change. Nie zmieniamy wstecz istniejącego Initial commit.
+Nie ma wyjątków dla domyślnych wiadomości Merge, Revert, fixup! czy squash!. Jeśli tworzysz takie commity, nadaj im zgodną wiadomość, np. chore(merge): integrate a feature lub revert: undo the scroll change.
 
 ## Testowanie
 
@@ -60,6 +68,7 @@ Nie ma wyjątków dla domyślnych wiadomości Merge, Revert, fixup! czy squash!.
 Testy tworzą tymczasowe repozytorium i sprawdzają:
 - prawidłowe typy, scope, !, treść, stopki i komentarze edytora;
 - odrzucanie błędnych nagłówków, pustych opisów i złego separatora;
+- przyjmowanie zwykłego łącznika i odrzucanie znaku Unicode em dash w plikach dodanych do indeksu;
 - rzeczywisty git commit: odrzucenie nie zmienia HEAD;
 - ponowną instalację i ochronę już istniejących hooków;
 - działanie w ścieżce zawierającej spacje.
@@ -70,6 +79,6 @@ Historia roboczego repozytorium i konfiguracja globalna nie są zmieniane przez 
 
 Git nie aktywuje wersjonowanych hooków automatycznie po clone. Każdy współtwórca musi wykonać skrypt instalacyjny. Klient GUI musi rzeczywiście uruchamiać hooki Gita; należy sprawdzić go błędną wiadomością w repozytorium testowym.
 
-Hook commit-msg można świadomie ominąć opcją --no-verify lub zmianą konfiguracji. Operacje odtwarzające istniejące commity nie zawsze uruchamiają ten hook. Jest to lokalna kontrola normalnego tworzenia commitów, nie nieusuwalna polityka serwera. Nie obiecujemy blokowania zmian tworzonych w interfejsie GitHub lub w klonie bez aktywacji. W tym projekcie nie dodajemy do tego celu GitHub Actions ani globalnych hooków.
+Hooki można świadomie ominąć opcją --no-verify lub zmianą konfiguracji. Operacje odtwarzające istniejące commity nie zawsze uruchamiają hooki. Jest to lokalna kontrola normalnego tworzenia commitów, nie nieusuwalna polityka serwera. Nie obiecujemy blokowania zmian tworzonych w interfejsie GitHub lub w klonie bez aktywacji. W tym projekcie nie dodajemy do tego celu GitHub Actions ani globalnych hooków.
 
 Źródła: [Git hooks](https://git-scm.com/docs/githooks), [core.hooksPath](https://git-scm.com/docs/git-config#Documentation/git-config.txt-corehooksPath).

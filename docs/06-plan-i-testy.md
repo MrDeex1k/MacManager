@@ -1,12 +1,28 @@
 # Plan realizacji i kryteria odbioru
 
+Bieżący stan implementacji i następne kroki: [stan projektu](10-stan-projektu.md).
+
 ## Zasada realizacji
 
 Trzy fazy są zatwierdzone. W ramach każdej zaczynamy od rozpoznania zależności technicznych, następnie budujemy funkcję i sprawdzamy zachowanie użytkowe. Nie deklarujemy terminów bez wyników prototypów.
 
 Moc w W jest częścią fazy 1. Temperatury i RPM trafiają do fazy 2. Cała historia schowka i integracje muzyczne, również w zwykłym oknie, trafiają dopiero do fazy 3.
 
-Status wszystkich zadań poniżej: planowane. Ta dokumentacja nie stanowi raportu wykonanych testów.
+Aktualizacja 2026-09-08: zaimplementowano narzędzia CLI dla kroku 1 i wykonano pierwsze próby P01–P04; szczegóły i brakujące dowody w [raporcie](reports/etap-1-krok-1.md). Prototypy są w toku walidacji. Krok 2 (F1-01: szkielet aplikacji) jest zaimplementowany; buildy Debug/Release, testy Core i przepływy UI opisuje [raport kroku 2](reports/etap-1-krok-2.md). F1-04 wdrożono w kroku 5, a F1-02 w następującym po nim kroku 3; następnie wdrożono F1-03 w kroku 4; pozostałe zadania i późniejsze fazy są w realizacji lub planowane.
+
+## Kolejność kroków etapu 1
+
+Całość rozwijamy na feat/stage-1. Numer kroku obejmuje prototypy, więc krok 2 odpowiada zadaniu F1-01, a krok 3 - F1-02.
+
+1. Prototypy P01–P04 - narzędzia gotowe, walidacja sprzętowa częściowa.
+2. Szkielet aplikacji F1-01 - gotowy; SwiftUI, lokalny Core, domyślny Liquid Glass, PL/EN.
+3. Usługi pomiarów F1-02 - zaimplementowane po kroku 5; [raport](reports/etap-1-krok-3.md). Moc pozostaje jawnie niedostępna.
+4. Wykresy i historia F1-03 - zaimplementowane; bufor 300 s, Swift Charts i luki; [raport](reports/etap-1-krok-4.md).
+5. Sieć F1-04 - zaimplementowana przed krokiem 3; wyniki i ograniczenia w [raporcie](reports/etap-1-krok-5.md).
+6. Scroll F1-05 - zaimplementowany; automatyczne rozróżnianie z gestów dotykowych, transformacja, zgody i cykl życia; [raport](reports/etap-1-krok-6.md).
+7. Okno, pasek menu, Dock i autostart F1-06 - zaimplementowane; model ustawień, cykl życia procesu, pasek menu, opcjonalne CPU/RAM/W, Dock, `SMAppService.mainApp` i start bez okna przy logowaniu są gotowe. Próba z podpisaną aplikacją w `/Applications` pozostaje w odbiorze wydania.
+8. Aktualizacje, prywatność i diagnostyka F1-07/F1-08 - szczegółowy podział: [plan kroku 8](11-plan-kroku-8.md).
+9. Odbiór i wydanie F1-09.
 
 ## Prototypy i bramki techniczne
 
@@ -24,7 +40,7 @@ Faza 2 dodatkowo rozszerza raport P02 o katalog temperatur i RPM, w tym modele b
 
 Jeśli prototyp nie potwierdzi zachowania, raport wskazuje konkretną granicę. Zatwierdzony fallback dla mocy i dodatkowych adresów VPN pozwala wydać aplikację z komunikatem niedostępności. Nie jest ogólną zgodą na pominięcie CPU, RAM, GPU lub scrolla.
 
-## Faza 1 — monitorowanie i podstawy
+## Faza 1 - monitorowanie i podstawy
 
 | Zadanie | Zależności | Gotowe, gdy |
 | --- | --- | --- |
@@ -32,7 +48,7 @@ Jeśli prototyp nie potwierdzi zachowania, raport wskazuje konkretną granicę. 
 | F1-02: usługi pomiarów | P01, P02 | Jedno próbkowanie, poprawne jednostki, brak fikcyjnych zer. |
 | F1-03: wykresy i historia | F1-02 | Dokładnie okno 300 s, 1/2/5 s, luki i reset baz po wybudzeniu. |
 | F1-04: sieć | P04 | LAN/publiczny IPv4, kopiowanie, offline, jawna niepewność VPN. |
-| F1-05: scroll | P03 | Jeden przełącznik, zgoda i cofnięcie zgody; niezależne zachowanie myszy/gładzika. |
+| F1-05: scroll | P03 | Jeden przełącznik, Dostępność i Monitorowanie wprowadzania, cofnięcie zgód; niezależne zachowanie myszy/gładzika. |
 | F1-06: okno/menu/Dock/autostart | F1-01 | Domyślne ustawienia zgodne z produktem; zamknięcie okna pozostawia tło, zakończenie zamyka proces. |
 | F1-07: GitHub Releases | F1-01 | Harmonogram 7 dni, kontrola ręczna, wyłączenie, link do zgodnego wydania. |
 | F1-08: prywatność i diagnostyka | F1-02–07 | Brak telemetrii, lokalne logi bez danych użytkownika; sprawdzony ruch sieciowy. |
@@ -40,13 +56,13 @@ Jeśli prototyp nie potwierdzi zachowania, raport wskazuje konkretną granicę. 
 
 Pierwsze testy wewnętrzne mogą korzystać z lokalnego builda. Wydanie publiczne ma spełniać kryteria dystrybucji w [dokumencie wydań](07-wydania.md).
 
-## Faza 2 — czujniki
+## Faza 2 - czujniki
 
 Rozszerzyć katalog i adaptery o CPU/GPU w °C, konwersję wyłącznie w warstwie prezentacji, fizyczne wentylatory i RPM. Dodać widok szczegółów oraz niezależne ustawienia paska menu. Zapewnić czyszczenie historii odłączonego/niedostępnego źródła i odpowiednie stany.
 
 Bramka: odczyty porównane z niezależną referencją dostępną na modelu; opisany zakres czujnika, brak jakichkolwiek komend zapisu do SMC, admin helpera lub regulacji RPM. Chłodzenie pasywne i 0 RPM są różnymi poprawnymi stanami. Ponownie zmierzyć koszt pracy w tle.
 
-## Faza 3 — wyspa, schowek, muzyka
+## Faza 3 - wyspa, schowek, muzyka
 
 Kolejność: P05/P06/P07 → panel i obsługa ekranów → lokalne repozytorium schowka → retencja i ochrona danych → przywracanie i UI → adaptery muzyki → wspólny panel → testy dostępności, migracji i obciążenia.
 
@@ -80,13 +96,13 @@ Bramka: zwinięta wyspa nie pokazuje żadnej treści; schowek działa również 
 
 ## Strategia testów
 
-Testy jednostkowe dla rzeczywistej logiki: różnice liczników, normalizacja, bufor czasu, jednostki, granice retencji, własne zmiany schowka, parser wersji i harmonogram aktualizacji. Zegar oraz sieć wstrzykiwane — brak testów zależnych od rzeczywistego oczekiwania tygodnia.
+Testy jednostkowe dla rzeczywistej logiki: różnice liczników, normalizacja, bufor czasu, jednostki, granice retencji, własne zmiany schowka, parser wersji i harmonogram aktualizacji. Zegar oraz sieć wstrzykiwane - brak testów zależnych od rzeczywistego oczekiwania tygodnia.
 
 Integracyjne: adaptery i repozytorium na syntetycznych danych, odmowy, niedostępność, timeouty, migracja. UI: kluczowe przepływy, fokus i cykl życia; nie testować wyłącznie struktury widoków. Testy TCC i hardware wykonywać ręcznie na czystym profilu użytkownika, dokumentując zgody.
 
 Macierz sprzętowa: referencyjny M4 Pro; co najmniej starszy M1/M2 z wentylatorem; Air bez wentylatora; Mac stacjonarny lub udokumentowana luka jego walidacji. macOS 26.0 oraz bieżąca obsługiwana aktualizacja, ekrany z notchem/bez, zewnętrzny monitor i tryb clamshell. Wynik fixture nie zastępuje fizycznego testu.
 
-## Budżet wydajności — cele do pomiaru
+## Budżet wydajności - cele do pomiaru
 
 Decyzje inżynierskie, nie wyniki: na referencyjnym M4 Pro przy próbkowaniu co 2 s, faza 1 w tle powinna średnio zużywać poniżej 1% jednego rdzenia CPU w oknie 10 minut i około 100 MB lub mniej pamięci rezydentnej. Dla fazy 3 celem jest około 200 MB przy domyślnych limitach, z dekodowaniem tylko widocznych miniatur. Tymczasowe szczyty obrazów mierzyć osobno.
 
@@ -95,4 +111,3 @@ Nie robić testu akceptacyjnego samego poboru W z odczytu aplikacji, która mier
 ## Definicja ukończenia fazy
 
 Kod i istotne testy przechodzą; scenariusze przypisane do fazy mają wynik; pozostałe ograniczenia są jawne i zgodne z zakresem. Dokumentacja, tłumaczenia i release notes odpowiadają rzeczywistemu buildowi. Brak sekretów i danych użytkownika w artefaktach. Nie oznaczać fazy jako ukończonej samym przygotowaniem dokumentacji.
-
