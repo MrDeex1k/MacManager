@@ -124,7 +124,7 @@ ApplicationLifecycleCoordinator z Core nie zależy od AppKit. Otrzymuje uczestni
 
 MenuBarExtra tworzy status item z ikoną `macbook` i panelem w stylu okna. Etykieta opcjonalnie składa CPU, RAM i moc w jeden ciąg o stałej kolejności. MenuBarStatusFormatter w Core oddziela reguły wyboru, jednostek i braku danych od SwiftUI. Panel korzysta ze wspólnych snapshotów metryk i sieci, nie tworzy osobnego samplera. Otwieranie sekcji głównego okna odbywa się przez środowiskową akcję `openWindow`.
 
-Ustawienia paska menu są wiązane bezpośrednio z trwałym AppIntegrationPreferences. Domyślnie widoczna jest sama ikona. Wartości niedostępne pozostają oznaczone jako `-`, a moc nie jest estymowana.
+Ustawienia paska menu są wiązane bezpośrednio z trwałym AppIntegrationPreferences. Domyślnie widoczna jest sama ikona. Wartości niedostępne pozostają oznaczone jako `-`, a dostępny odczyt PSTR jest pokazywany jako szacunek mocy AppleSMC.
 
 DockController jest uczestnikiem wspólnego cyklu życia. Mapuje preferencję widoczności na `NSApplication.ActivationPolicy.regular` lub `.accessory`. Zapis ustawienia następuje po udanym zastosowaniu polityki, dzięki czemu zapisany stan nie przeczy wynikowi AppKit. Kontroler nie usuwa ikony paska menu i nie kończy procesu.
 

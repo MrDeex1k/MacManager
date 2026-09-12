@@ -16,7 +16,7 @@ A native macOS utility for live system monitoring, independent mouse scrolling a
 </div>
 
 > [!IMPORTANT]
-> **Stage 1 is in development. Steps 1-7 and implementation items 8.1-8.6 are complete.** Final step 8 validation, acceptance testing and the first signed DMG are still pending. There is no public release yet.
+> **Stage 1 is in development. Steps 1-8 are complete.** Final release validation and the first signed DMG in step 9 are still pending. There is no public release yet.
 
 ## Built for daily use
 
@@ -35,13 +35,13 @@ A native macOS utility for live system monitoring, independent mouse scrolling a
 
 | Stage | Scope | Status |
 | --- | --- | --- |
-| **1 · Mac essentials** | Metrics and five-minute history, network, mouse scroll, menu bar, Dock, launch at login and GitHub release checks. | Steps 1-7 of 9 implemented |
+| **1 · Mac essentials** | Metrics and five-minute history, network, mouse scroll, menu bar, Dock, launch at login and GitHub release checks. | Steps 1-8 of 9 complete |
 | **2 · Hardware sensors** | CPU/GPU temperature in °C or °F and fan RPM monitoring. Fans are never controlled. | Planned |
 | **3 · Notch area** | Hover-operated panel, persistent local text/image clipboard history and local Apple Music/Spotify controls. | Planned |
 
 The collapsed notch-area panel will show nothing. It will use the active built-in MacBook display when available, otherwise the main display.
 
-**Next:** [Stage 1, step 8](docs/11-plan-kroku-8.md) validation covers weekly and manual GitHub Releases checks, local diagnostics and the completed privacy audit.
+**Next:** Stage 1, step 9 covers the final hardware and accessibility matrix, performance checks, Developer ID signing, notarization and the first arm64 DMG.
 
 ## Requirements
 
@@ -108,7 +108,7 @@ See the [prototype guide](Prototypes/Stage1/README.md) and [initial findings](do
 | `Design/AppIcon/` | Reproducible application icon source and export notes |
 | `docs/` | Polish product, architecture, privacy, release and validation documentation |
 
-Detailed implementation reports cover [network](docs/reports/etap-1-krok-5.md), [metrics](docs/reports/etap-1-krok-3.md), [history](docs/reports/etap-1-krok-4.md), [scroll](docs/reports/etap-1-krok-6.md), [menu bar](docs/reports/etap-1-krok-7b.md), [Dock and window behavior](docs/reports/etap-1-krok-7c.md), [launch at login](docs/reports/etap-1-krok-7d.md) and the [current navigation](docs/reports/etap-1-krok-7e.md).
+Detailed implementation reports cover [network](docs/reports/etap-1-krok-5.md), [metrics](docs/reports/etap-1-krok-3.md), [history](docs/reports/etap-1-krok-4.md), [scroll](docs/reports/etap-1-krok-6.md), [menu bar](docs/reports/etap-1-krok-7b.md), [Dock and window behavior](docs/reports/etap-1-krok-7c.md), [launch at login](docs/reports/etap-1-krok-7d.md), [current navigation](docs/reports/etap-1-krok-7e.md) and [updates, diagnostics and privacy](docs/reports/etap-1-krok-8.md).
 
 ## Privacy
 

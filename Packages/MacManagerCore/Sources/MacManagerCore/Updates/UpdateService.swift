@@ -80,7 +80,6 @@ public final class UpdateService {
     }
 
     public func setOnline(_ online: Bool) {
-        guard online != isOnline else { return }
         isOnline = online
         guard request == nil else { return }
         status = online ? cachedStatus : .offline

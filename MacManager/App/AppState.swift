@@ -61,14 +61,15 @@ final class AppState {
                 diagnostics: diagnostics,
                 fetch: fixture.fetch
             )
-            updates.setOnline(true)
+            let updateOffline = ProcessInfo.processInfo.arguments.contains("--update-offline")
+            updates.setOnline(!updateOffline)
             updateController = UpdateController(service: updates)
             var participants: [any ApplicationLifecycleParticipant] = [
                 dock,
                 loginItem,
-                ScrollController(service: scroll, diagnostics: diagnostics),
-                updateController
+                ScrollController(service: scroll, diagnostics: diagnostics)
             ]
+            if !updateOffline { participants.append(updateController) }
             if ProcessInfo.processInfo.arguments.contains("--live-metrics") {
                 participants.append(MetricsController(service: metrics, diagnostics: diagnostics))
             }

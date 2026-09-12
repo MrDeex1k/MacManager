@@ -36,7 +36,8 @@ import Testing
     for mutation in [
         ("draft", true as Any),
         ("prerelease", true as Any),
-        ("assets", [] as Any)
+        ("assets", [] as Any),
+        ("assets", [["name": "MacManager-v0.2.0-arm64.dmg", "state": "new"]] as Any)
     ] {
         let data = releaseJSON(version: "0.2.0", mutation: mutation)
         switch try GitHubReleaseClient.parse(data, status: 200, etag: nil) {
@@ -53,6 +54,16 @@ import Testing
     )
     #expect(throws: UpdateCheckFailure.self) {
         try GitHubReleaseClient.parse(wrongPage, status: 200, etag: nil)
+    }
+
+    let invalidTag = releaseJSON(version: "0.2.0", mutation: ("tag_name", "v0.2.0-beta"))
+    #expect(throws: UpdateCheckFailure.self) {
+        try GitHubReleaseClient.parse(invalidTag, status: 200, etag: nil)
+    }
+
+    let oversized = Data(repeating: 0, count: GitHubReleaseClient.maximumResponseBytes + 1)
+    #expect(throws: UpdateCheckFailure.self) {
+        try GitHubReleaseClient.parse(oversized, status: 200, etag: nil)
     }
 }
 
@@ -171,6 +182,63 @@ private actor UpdateFetchCounter {
     #expect(service.lastSuccess == oldDate)
     #expect(service.lastFailure?.kind == .timeout)
     #expect(diagnostics.lastErrors[.updates]?.kind == "timeout")
+}
+
+@MainActor
+@Test func initialOfflineStateIsVisibleBeforeAnyCheck() throws {
+    let suite = "MacManagerUpdates.\(UUID().uuidString)"
+    let defaults = try #require(UserDefaults(suiteName: suite))
+    defer { defaults.removePersistentDomain(forName: suite) }
+    let service = UpdateService(
+        preferences: PreferencesStore(defaults: defaults),
+        installedVersion: "0.1.0",
+        diagnostics: DiagnosticsStore(),
+        fetch: { _ in .noPublicRelease(etag: nil) }
+    )
+
+    service.setOnline(false)
+
+    #expect(service.status == .offline)
+    #expect(service.lastAttempt == nil)
+}
+
+@MainActor
+@Test func disabledAutomaticCheckSkipsFetchAndManualNotModifiedRefreshesCache() async throws {
+    let suite = "MacManagerUpdates.\(UUID().uuidString)"
+    let defaults = try #require(UserDefaults(suiteName: suite))
+    defer { defaults.removePersistentDomain(forName: suite) }
+    let preferences = PreferencesStore(defaults: defaults)
+    let oldDate = Date(timeIntervalSince1970: 100)
+    let release = compatibleRelease("0.2.0")
+    preferences.saveUpdateCache(UpdateCache(
+        etag: "\"old\"",
+        outcome: .release,
+        release: release,
+        lastAttempt: oldDate,
+        lastSuccess: oldDate
+    ))
+    preferences.automaticUpdateChecksEnabled = false
+
+    let completed = Date(timeIntervalSince1970: 1_000)
+    let counter = UpdateFetchCounter(payload: .notModified(etag: "\"new\""))
+    let service = UpdateService(
+        preferences: preferences,
+        installedVersion: "0.1.0",
+        diagnostics: DiagnosticsStore(),
+        clock: { completed },
+        fetch: { etag in await counter.fetch(etag) }
+    )
+    service.setOnline(true)
+
+    #expect(!(await service.check(trigger: .automatic, now: completed)))
+    #expect(await counter.count == 0)
+    #expect(await service.check(trigger: .manual, now: completed))
+    #expect(await counter.count == 1)
+    #expect(service.status == .updateAvailable)
+    #expect(service.availableRelease == release)
+    #expect(preferences.updateCache.etag == "\"new\"")
+    #expect(service.lastAttempt == completed)
+    #expect(service.lastSuccess == completed)
 }
 
 @MainActor

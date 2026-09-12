@@ -8,7 +8,7 @@ Trzy fazy są zatwierdzone. W ramach każdej zaczynamy od rozpoznania zależnoś
 
 Moc w W jest częścią fazy 1. Temperatury i RPM trafiają do fazy 2. Cała historia schowka i integracje muzyczne, również w zwykłym oknie, trafiają dopiero do fazy 3.
 
-Aktualizacja 2026-09-08: zaimplementowano narzędzia CLI dla kroku 1 i wykonano pierwsze próby P01–P04; szczegóły i brakujące dowody w [raporcie](reports/etap-1-krok-1.md). Prototypy są w toku walidacji. Krok 2 (F1-01: szkielet aplikacji) jest zaimplementowany; buildy Debug/Release, testy Core i przepływy UI opisuje [raport kroku 2](reports/etap-1-krok-2.md). F1-04 wdrożono w kroku 5, a F1-02 w następującym po nim kroku 3; następnie wdrożono F1-03 w kroku 4; pozostałe zadania i późniejsze fazy są w realizacji lub planowane.
+Aktualizacja 2026-09-12: kroki 1-8 są zaimplementowane. Odbiór GitHub Releases, diagnostyki i prywatności opisuje [raport kroku 8](reports/etap-1-krok-8.md). Do zamknięcia etapu 1 pozostaje krok 9.
 
 ## Kolejność kroków etapu 1
 
@@ -21,7 +21,7 @@ Całość rozwijamy na feat/stage-1. Numer kroku obejmuje prototypy, więc krok 
 5. Sieć F1-04 - zaimplementowana przed krokiem 3; wyniki i ograniczenia w [raporcie](reports/etap-1-krok-5.md).
 6. Scroll F1-05 - zaimplementowany; automatyczne rozróżnianie z gestów dotykowych, transformacja, zgody i cykl życia; [raport](reports/etap-1-krok-6.md).
 7. Okno, pasek menu, Dock i autostart F1-06 - zaimplementowane; model ustawień, cykl życia procesu, pasek menu, opcjonalne CPU/RAM/W, Dock, `SMAppService.mainApp` i start bez okna przy logowaniu są gotowe. Próba z podpisaną aplikacją w `/Applications` pozostaje w odbiorze wydania.
-8. Aktualizacje, prywatność i diagnostyka F1-07/F1-08 - szczegółowy podział: [plan kroku 8](11-plan-kroku-8.md).
+8. Aktualizacje, prywatność i diagnostyka F1-07/F1-08 - gotowe; [plan](11-plan-kroku-8.md) i [raport odbioru](reports/etap-1-krok-8.md).
 9. Odbiór i wydanie F1-09.
 
 ## Prototypy i bramki techniczne

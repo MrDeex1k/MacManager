@@ -55,16 +55,25 @@ final class AppShellTests: XCTestCase {
         expectation(for: current, evaluatedWith: app.staticTexts["metric.cpu.status"])
         waitForExpectations(timeout: 12)
         XCTAssertNotEqual(app.staticTexts["metric.cpu.value"].value as? String, "-")
-        XCTAssertEqual(app.staticTexts["metric.power.status"].value as? String, "Unavailable")
-        XCTAssertEqual(app.staticTexts["metric.power.value"].value as? String, "-")
+        let powerStatus = app.staticTexts["metric.power.status"].value as? String
+        if powerStatus == "Current" {
+            XCTAssertNotEqual(app.staticTexts["metric.power.value"].value as? String, "-")
+        } else {
+            XCTAssertEqual(powerStatus, "Unavailable")
+            XCTAssertEqual(app.staticTexts["metric.power.value"].value as? String, "-")
+        }
         XCTAssertTrue(element("history.summary", in: app).waitForExistence(timeout: 5))
         let metricPicker = element("history.metric", in: app)
         metricPicker.radioButtons["RAM"].click()
         XCTAssertTrue(element("history.summary", in: app).exists)
         capture("RAM history EN", app: app)
         metricPicker.radioButtons["Power"].click()
-        XCTAssertTrue(element("history.empty", in: app).exists)
-        XCTAssertFalse(element("history.summary", in: app).exists)
+        if powerStatus == "Current" {
+            XCTAssertTrue(element("history.summary", in: app).waitForExistence(timeout: 5))
+        } else {
+            XCTAssertTrue(element("history.empty", in: app).exists)
+            XCTAssertFalse(element("history.summary", in: app).exists)
+        }
         metricPicker.radioButtons["CPU"].click()
         XCTAssertTrue(element("history.summary", in: app).exists)
         capture("CPU history EN", app: app)
@@ -246,7 +255,7 @@ final class AppShellTests: XCTestCase {
 
     @MainActor
     func testUpdateSettingsCacheAndLocalDiagnostics() throws {
-        var app = launch(reset: true, updateAvailable: true)
+        var app = launch(reset: true, updateFixture: .available)
         app.typeKey(",", modifierFlags: .command)
         let status = element("updates.status", in: app)
         scrollTo(status, in: app)
@@ -270,7 +279,7 @@ final class AppShellTests: XCTestCase {
         XCTAssertFalse(report.contains("source_ip"))
         app.terminate()
 
-        app = launch(reset: false, updateAvailable: true)
+        app = launch(reset: false, updateFixture: .available)
         app.typeKey(",", modifierFlags: .command)
         let restoredAutomatic = element("updates.automatic", in: app)
         scrollTo(restoredAutomatic, in: app)
@@ -283,6 +292,48 @@ final class AppShellTests: XCTestCase {
     }
 
     @MainActor
+    func testUpdateCurrentNoReleaseFailureAndOfflineStates() throws {
+        for (fixture, expected) in [
+            (UpdateFixture.current, "You have the latest public version"),
+            (.noRelease, "No compatible public release"),
+            (.failure, "GitHub did not respond in time"),
+            (.offline, "No internet connection")
+        ] {
+            let app = launch(reset: true, updateFixture: fixture)
+            app.typeKey(",", modifierFlags: .command)
+            let status = element("updates.status", in: app)
+            scrollTo(status, in: app)
+            XCTAssertTrue(status.waitForExistence(timeout: 5))
+            let predicate = NSPredicate(format: "value == %@", expected)
+            expectation(for: predicate, evaluatedWith: status)
+            waitForExpectations(timeout: 8)
+            XCTAssertFalse(app.buttons["updates.openRelease"].exists)
+            app.terminate()
+        }
+    }
+
+    @MainActor
+    func testAvailableUpdateAndDiagnosticsLocalizeToPolish() throws {
+        let app = launch(reset: true, updateFixture: .available)
+        app.typeKey(",", modifierFlags: .command)
+        let picker = element("settings.language", in: app)
+        XCTAssertTrue(picker.waitForExistence(timeout: 5))
+        picker.click()
+        XCTAssertTrue(app.menuItems["Polski"].waitForExistence(timeout: 5))
+        app.menuItems["Polski"].click()
+
+        let status = element("updates.status", in: app)
+        scrollTo(status, in: app)
+        XCTAssertEqual(status.value as? String, "Dostępna jest wersja 0.2.0")
+        XCTAssertEqual(app.buttons["updates.openRelease"].label, "Otwórz stronę wydania")
+
+        let copy = app.buttons["diagnostics.copy"]
+        scrollTo(copy, in: app)
+        XCTAssertEqual(copy.label, "Kopiuj diagnostykę")
+        app.terminate()
+    }
+
+    @MainActor
     private func launch(
         reset: Bool,
         liveMetrics: Bool = false,
@@ -290,7 +341,7 @@ final class AppShellTests: XCTestCase {
         inputMonitoringRequired: Bool = false,
         loginItemRequiresApproval: Bool = false,
         launchedAtLogin: Bool = false,
-        updateAvailable: Bool = false,
+        updateFixture: UpdateFixture = .noRelease,
         expectsWindow: Bool = true
     ) -> XCUIApplication {
         continueAfterFailure = false
@@ -302,7 +353,7 @@ final class AppShellTests: XCTestCase {
         if inputMonitoringRequired { app.launchArguments.append("--scroll-input-monitoring-required") }
         if loginItemRequiresApproval { app.launchArguments.append("--login-item-requires-approval") }
         if launchedAtLogin { app.launchArguments.append("--launched-at-login") }
-        if updateAvailable { app.launchArguments.append("--update-available") }
+        if let argument = updateFixture.argument { app.launchArguments.append(argument) }
         app.launch()
         if expectsWindow {
             app.activate()
@@ -312,6 +363,24 @@ final class AppShellTests: XCTestCase {
             XCTAssertTrue(app.windows.firstMatch.waitForExistence(timeout: 10))
         }
         return app
+    }
+
+    private enum UpdateFixture {
+        case noRelease
+        case current
+        case available
+        case failure
+        case offline
+
+        var argument: String? {
+            switch self {
+            case .noRelease: nil
+            case .current: "--update-current"
+            case .available: "--update-available"
+            case .failure: "--update-failure"
+            case .offline: "--update-offline"
+            }
+        }
     }
 
     @MainActor

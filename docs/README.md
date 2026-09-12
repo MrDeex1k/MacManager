@@ -1,6 +1,6 @@
 # Dokumentacja Mac Manager
 
-Status: wymagania zatwierdzone przez właściciela projektu po wywiadzie Q1–Q28 i końcowym potwierdzeniu. Dokumentacja opisuje plan aplikacji, nie gotowy produkt. Data opracowania: 2026-09-07. Aktualizacja 2026-09-08: prototypy CLI i częściowa walidacja P01–P04; gotowy szkielet aplikacji SwiftUI (krok 2 / F1-01), PL/EN i domyślny Liquid Glass. Dodano obsługę sieci (krok 5), bieżące pomiary CPU/GPU/RAM (krok 3), pięciominutową historię i wykresy (krok 4) oraz automatyczne rozróżnianie myszy/gładzika i odwracanie scrolla (krok 6). Krok 7 ma gotowy cykl życia procesu, pasek menu, opcjonalne CPU/RAM/W, Dock, autostart przez `SMAppService.mainApp` i start przy logowaniu bez głównego okna.
+Status: wymagania zatwierdzone przez właściciela projektu po wywiadzie Q1-Q28 i końcowym potwierdzeniu. Kroki 1-8 etapu 1 są zaimplementowane. Aktualizacje przez GitHub Releases, lokalna diagnostyka i audyt prywatności mają zakończony odbiór. Do zamknięcia etapu 1 pozostaje krok 9.
 
 Aktualny punkt prac i kolejność kolejnych zadań: [Stan projektu](10-stan-projektu.md).
 
@@ -19,6 +19,7 @@ Aktualny punkt prac i kolejność kolejnych zadań: [Stan projektu](10-stan-proj
 | [Rejestr decyzji](08-decyzje.md) | Zatwierdzone decyzje i drzewo zależności. |
 | [Praca z repozytorium](09-praca-z-repozytorium.md) | Lokalne hooki, Conventional Commits, instalacja i testy. |
 | [Plan kroku 8](11-plan-kroku-8.md) | Aktualizacje przez GitHub Releases, lokalna diagnostyka, prywatność i testy. |
+| [Raport kroku 8](reports/etap-1-krok-8.md) | Wyniki testów aktualizacji, interfejsu, diagnostyki i audytu prywatności. |
 | [Raport prototypów](reports/etap-1-krok-1.md) | Wyniki pierwszych uruchomień etapu 1 i brakujące dowody. |
 | [Raport szkieletu](reports/etap-1-krok-2.md) | Projekt Xcode, lokalny Core, interfejs i wyniki testów kroku 2. |
 

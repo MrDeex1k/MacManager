@@ -1214,13 +1214,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Power history is unavailable until whole-device measurement is verified."
+            "value": "Waiting for power measurements"
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Historia mocy będzie dostępna po potwierdzeniu pomiaru całego urządzenia."
+            "value": "Oczekiwanie na pomiary mocy"
           }
         }
       }
