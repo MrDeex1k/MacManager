@@ -153,6 +153,7 @@ struct MenuBarPanelView: View {
 
     private func open(_ section: AppSection) {
         state.section = section
+        state.mainWindowVisible = true
         openWindow(id: "main")
         NSApp.activate()
     }

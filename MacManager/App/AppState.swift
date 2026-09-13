@@ -34,9 +34,11 @@ final class AppState {
     let lifecycle: ApplicationLifecycleCoordinator
     @ObservationIgnored private var terminationObserver: NSObjectProtocol?
     var section: AppSection? = .overview
+    var mainWindowVisible = false
 
     init() {
         launchContext = ApplicationLaunchContextDetector.detect()
+        mainWindowVisible = launchContext != .loginItem
         diagnostics = DiagnosticsStore()
         let appVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.1.0"
         #if DEBUG

@@ -99,8 +99,8 @@ private struct MetricValue: View {
                     .font(.caption).foregroundStyle(.secondary)
                     .accessibilityIdentifier("metric.\(kind.rawValue).status")
                 Text(detail)
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
+                    .font(.callout.weight(.medium))
+                    .foregroundStyle(.white)
             }
         }
     }

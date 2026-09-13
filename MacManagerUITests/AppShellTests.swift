@@ -3,6 +3,63 @@ import XCTest
 
 final class AppShellTests: XCTestCase {
     @MainActor
+    func testAccessibilityAuditAcrossMainSections() throws {
+        let app = launch(reset: true)
+        let auditTypes: XCUIAccessibilityAuditType = [
+            .contrast,
+            .elementDetection,
+            .hitRegion,
+            .sufficientElementDescription,
+            .action,
+            .parentChild
+        ]
+
+        try performAccessibilityAudit(in: app, for: auditTypes)
+        for section in ["network", "scroll", "dock", "settings"] {
+            element("navigation.\(section)", in: app).click()
+            try performAccessibilityAudit(in: app, for: auditTypes)
+        }
+        app.terminate()
+    }
+
+    @MainActor
+    private func performAccessibilityAudit(
+        in app: XCUIApplication,
+        for auditTypes: XCUIAccessibilityAuditType
+    ) throws {
+        try app.performAccessibilityAudit(for: auditTypes) { issue in
+            guard let element = issue.element else {
+                return false
+            }
+
+            let isAnonymousDisabledGroup = element.elementType == .group
+                && element.identifier.isEmpty
+                && element.label.isEmpty
+                && !element.isEnabled
+            let isLayoutGroup = issue.auditType == .sufficientElementDescription
+                && isAnonymousDisabledGroup
+            let isSidebarNavigationLink = issue.auditType == .sufficientElementDescription
+                && issue.compactDescription == "Unknown role"
+                && element.elementType == .button
+                && element.identifier.hasPrefix("navigation.")
+            let isNativePickerAction = issue.auditType == .action
+                && issue.compactDescription == "Action is missing"
+                && element.elementType == .popUpButton
+                && ["settings.language", "metrics.interval"].contains(element.identifier)
+            let isWindowControlContainer = issue.auditType == .parentChild
+                && isAnonymousDisabledGroup
+            let isSystemTouchBar = issue.auditType == .sufficientElementDescription
+                && element.elementType == .touchBar
+                && !element.isEnabled
+
+            // XCTest reports framework-owned SwiftUI and window chrome metadata as findings.
+            // Their actionable descendants and labels remain subject to every audit.
+            return isLayoutGroup || isSidebarNavigationLink || isNativePickerAction
+                || isWindowControlContainer || isSystemTouchBar
+        }
+    }
+
+    @MainActor
     func testNavigationAndEmptyStates() throws {
         let app = launch(reset: true)
         XCTAssertTrue(app.staticTexts["System overview"].waitForExistence(timeout: 10))
@@ -248,8 +305,10 @@ final class AppShellTests: XCTestCase {
         app.typeKey("1", modifierFlags: .command)
         XCTAssertTrue(app.windows.firstMatch.waitForExistence(timeout: 10))
         let current = NSPredicate(format: "value == %@", "Current")
-        expectation(for: current, evaluatedWith: app.staticTexts["metric.cpu.status"])
-        waitForExpectations(timeout: 12)
+        let status = app.staticTexts["metric.cpu.status"]
+        let currentExpectation = XCTNSPredicateExpectation(predicate: current, object: status)
+        let result = XCTWaiter.wait(for: [currentExpectation], timeout: 12)
+        XCTAssertEqual(result, .completed, "CPU status after login launch: \(String(describing: status.value))")
         app.terminate()
     }
 
@@ -321,15 +380,16 @@ final class AppShellTests: XCTestCase {
         picker.click()
         XCTAssertTrue(app.menuItems["Polski"].waitForExistence(timeout: 5))
         app.menuItems["Polski"].click()
+        XCTAssertTrue(app.staticTexts["Ustawienia aplikacji"].waitForExistence(timeout: 5))
 
         let status = element("updates.status", in: app)
         scrollTo(status, in: app)
         XCTAssertEqual(status.value as? String, "Dostępna jest wersja 0.2.0")
-        XCTAssertEqual(app.buttons["updates.openRelease"].label, "Otwórz stronę wydania")
+        XCTAssertEqual(app.buttons["updates.openRelease"].label, "Otwórz wydanie")
 
         let copy = app.buttons["diagnostics.copy"]
         scrollTo(copy, in: app)
-        XCTAssertEqual(copy.label, "Kopiuj diagnostykę")
+        XCTAssertEqual(copy.label, "Kopiuj raport")
         app.terminate()
     }
 

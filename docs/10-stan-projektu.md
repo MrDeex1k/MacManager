@@ -1,6 +1,6 @@
 # Aktualny stan projektu i dalsza kolejność
 
-Aktualizacja: 2026-09-12. Projekt jest w trakcie etapu 1; nie ma jeszcze publicznego wydania DMG. Kroki 1-8 są zaimplementowane i odebrane, a do zamknięcia etapu pozostaje krok 9.
+Aktualizacja: 2026-09-13. Projekt jest w trakcie etapu 1; nie ma jeszcze publicznego wydania DMG. Kroki 1-8 są zaimplementowane i odebrane. W kroku 9 wykonano pełne testy automatyczne, audyt dostępności oraz 10-minutowy pomiar pracy w tle. Ręczne punkty 2 i 3 oraz odbiór dystrybucji pozostają do wykonania.
 
 ## Co działa
 
@@ -29,18 +29,18 @@ Aktualizacja: 2026-09-12. Projekt jest w trakcie etapu 1; nie ma jeszcze publicz
 | 6 | Scroll F1-05 | Zaimplementowany z adaptacją mechanizmu Scroll Reversera; rzeczywiste próby gładzika, myszy i zmiany urządzenia rozpoznane poprawnie, bez list modeli. |
 | 7 | Okno/menu/Dock/autostart F1-06 | Zaimplementowane. Pasek menu, Dock, `SMAppService.mainApp`, cykl życia procesu i start przy logowaniu bez okna mają testy automatyczne. Próba podpisanego wydania pozostaje w kroku 9. |
 | 8 | Aktualizacje i prywatność F1-07/F1-08 | Gotowy. Harmonogram, kwalifikacja wydania, cache, ETag, UI PL/EN, diagnostyka i prywatność zostały odebrane; szczegóły w [raporcie](reports/etap-1-krok-8.md). |
-| 9 | Testy końcowe i wydanie F1-09 | Do wykonania po wcześniejszych krokach. |
+| 9 | Testy końcowe i wydanie F1-09 | W toku. Punkty 1, 4 i 5 części testowej są wykonane; [raport](reports/etap-1-krok-9a.md). Ręczne punkty 2 i 3 oraz podpisane wydanie pozostają otwarte. |
 
 ## Co dalej
 
-1. **Krok 9:** ręczna macierz sprzętu/sieci/sleep/wake, dostępność i testy obciążenia, próba autostartu z aplikacji w `/Applications`, podpis Developer ID, Hardened Runtime, notarization i DMG.
+1. **Krok 9:** ręczne punkty 2 i 3, w tym macierz sprzętu/sieci/sleep/wake i próba autostartu z aplikacji w `/Applications`, a następnie podpis Developer ID, Hardened Runtime, notarization i DMG.
 
 Etap 2 (temperatury/RPM) i etap 3 (wyspa, schowek, muzyka) pozostają planowane. Nie są aktywne w obecnym buildzie.
 
 ## Dowody i granice
 
-51 testów Core i 9 testów prototypów przechodzi. Trzynaście scenariuszy XCTest UI obejmuje nawigację, język z restartem, rzeczywiste metryki z trwałym interwałem, wykresy, trzy przepływy scrolla, ustawienia paska menu, sterowanie Dockiem i oknem, autostart, kontrolę aktualizacji oraz diagnostykę. Zestaw UI kompiluje się, a nowe stany aktualizacji sprawdzono bezpośrednio w aplikacji, ponieważ uruchomienie runnera zatrzymał systemowy monit uwierzytelnienia automatyzacji. Debug i Release kompilują się dla arm64, a plik Release zawiera wyłącznie arm64.
+51 testów Core i 9 testów prototypów przechodzi. Czternaście scenariuszy XCTest UI obejmuje nawigację, język z restartem, rzeczywiste metryki z trwałym interwałem, wykresy, trzy przepływy scrolla, ustawienia paska menu, sterowanie Dockiem i oknem, autostart, kontrolę aktualizacji, diagnostykę oraz audyt dostępności pięciu sekcji. Debug i Release kompilują się dla arm64, a plik Release zawiera wyłącznie arm64. Pomiar Release przez 602 s przy zamkniętym oknie wykazał średnio 0,413% CPU, 96,81 MB RSS i brak wzrostu pamięci; szczegóły zawiera [raport kroku 9](reports/etap-1-krok-9a.md).
 
-Raporty szczegółowe: [prototypy](reports/etap-1-krok-1.md), [szkielet](reports/etap-1-krok-2.md), [sieć](reports/etap-1-krok-5.md), [pomiary](reports/etap-1-krok-3.md), [historia i wykresy](reports/etap-1-krok-4.md), [scroll](reports/etap-1-krok-6.md), [model ustawień i cykl życia](reports/etap-1-krok-7a.md), [ikona i panel paska menu](reports/etap-1-krok-7b.md), [Dock i okno](reports/etap-1-krok-7c.md), [autostart i tryb uruchomienia](reports/etap-1-krok-7d.md), [osobne sekcje Docka i scrolla](reports/etap-1-krok-7e.md), [aktualizacje, prywatność i diagnostyka](reports/etap-1-krok-8.md). Projekt ikony i odtwarzanie zasobów: [Design/AppIcon](../Design/AppIcon/README.md).
+Raporty szczegółowe: [prototypy](reports/etap-1-krok-1.md), [szkielet](reports/etap-1-krok-2.md), [sieć](reports/etap-1-krok-5.md), [pomiary](reports/etap-1-krok-3.md), [historia i wykresy](reports/etap-1-krok-4.md), [scroll](reports/etap-1-krok-6.md), [model ustawień i cykl życia](reports/etap-1-krok-7a.md), [ikona i panel paska menu](reports/etap-1-krok-7b.md), [Dock i okno](reports/etap-1-krok-7c.md), [autostart i tryb uruchomienia](reports/etap-1-krok-7d.md), [osobne sekcje Docka i scrolla](reports/etap-1-krok-7e.md), [aktualizacje, prywatność i diagnostyka](reports/etap-1-krok-8.md), [testy automatyczne, dostępność i praca w tle](reports/etap-1-krok-9a.md). Projekt ikony i odtwarzanie zasobów: [Design/AppIcon](../Design/AppIcon/README.md).
 
 To nie jest zamknięty odbiór etapu 1. Nie deklarujemy przetestowania wszystkich Maców Apple Silicon, każdej konfiguracji VPN ani kosztu całej aplikacji na podstawie czasu pojedynczego odczytu. Lokalne buildy są podpisane ad-hoc; nie są wydaniami notarized.

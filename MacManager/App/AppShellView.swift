@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 struct AppShellView: View {
@@ -5,7 +6,26 @@ struct AppShellView: View {
 
     var body: some View {
         @Bindable var state = state
-        NavigationSplitView {
+        Group {
+            if state.mainWindowVisible {
+                content(state: state)
+            } else {
+                Color.clear
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { notification in
+            guard isMainWindow(notification.object) else { return }
+            state.mainWindowVisible = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.willCloseNotification)) { notification in
+            guard isMainWindow(notification.object) else { return }
+            state.mainWindowVisible = false
+        }
+    }
+
+    private func content(state source: AppState) -> some View {
+        @Bindable var state = source
+        return NavigationSplitView {
             List(AppSection.allCases, selection: $state.section) { section in
                 NavigationLink(value: section) {
                     Label(state.strings(section.titleKey), systemImage: section.symbol)
@@ -21,8 +41,8 @@ struct AppShellView: View {
                     Label("Mac Manager", systemImage: "macbook")
                         .font(.callout.weight(.semibold))
                     Text(state.strings("sidebar.private"))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .font(.callout.weight(.semibold))
+                        .foregroundStyle(.white)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(20)
@@ -56,5 +76,10 @@ struct AppShellView: View {
             }
         }
         .navigationSplitViewStyle(.balanced)
+    }
+
+    private func isMainWindow(_ object: Any?) -> Bool {
+        guard let window = object as? NSWindow else { return false }
+        return window.canBecomeMain && window.styleMask.contains(.titled) && window.level == .normal
     }
 }

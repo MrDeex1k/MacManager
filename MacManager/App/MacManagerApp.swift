@@ -38,7 +38,9 @@ final class AppearanceDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows _: Bool) -> Bool {
-        if let mainWindow = sender.windows.first(where: { $0.title == "Mac Manager" && $0.canBecomeMain }) {
+        if let mainWindow = sender.windows.first(where: {
+            $0.canBecomeMain && $0.styleMask.contains(.titled) && $0.level == .normal
+        }) {
             mainWindow.makeKeyAndOrderFront(nil)
             sender.activate()
         }
@@ -69,6 +71,7 @@ struct AppCommands: Commands {
 
     private func navigate(_ section: AppSection) {
         state.section = section
+        state.mainWindowVisible = true
         openWindow(id: "main")
         NSApp.activate()
     }
