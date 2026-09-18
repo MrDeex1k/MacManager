@@ -45,8 +45,9 @@ final class ScrollDriver: ScrollDriving {
     }
 }
 
-/// The lock protects the stop gate and reported state. Tap and timeout counters belong to one worker thread.
-/// Keeping the gate locked during transformation makes stop() a barrier for event modification.
+/// The lock protects the stop gate, reported state and gesture observer resources.
+/// Tap and timeout counters belong to one worker thread. Keeping the gate locked during
+/// transformation makes stop() a barrier for event modification.
 private final class ScrollTapWorker: @unchecked Sendable {
     private let lock = NSLock()
     private var wanted = true
@@ -99,21 +100,25 @@ private final class ScrollTapWorker: @unchecked Sendable {
         ), let gestureSource = CFMachPortCreateRunLoopSource(nil, gestureTap, 0) else {
             return false
         }
-        self.gestureTap = gestureTap
-        self.gestureSource = gestureSource
-        CFRunLoopAddSource(CFRunLoopGetMain(), gestureSource, .commonModes)
+        lock.withLock {
+            self.gestureTap = gestureTap
+            self.gestureSource = gestureSource
+            CFRunLoopAddSource(CFRunLoopGetMain(), gestureSource, .commonModes)
+        }
         return true
     }
 
     private func stopGestureObservation() {
         precondition(Thread.isMainThread)
-        if let gestureSource {
-            CFRunLoopRemoveSource(CFRunLoopGetMain(), gestureSource, .commonModes)
-            self.gestureSource = nil
-        }
-        if let gestureTap {
-            CFMachPortInvalidate(gestureTap)
-            self.gestureTap = nil
+        lock.withLock {
+            if let gestureTap {
+                CFMachPortInvalidate(gestureTap)
+            }
+            if let gestureSource {
+                CFRunLoopRemoveSource(CFRunLoopGetMain(), gestureSource, .commonModes)
+            }
+            gestureTap = nil
+            gestureSource = nil
         }
     }
 
@@ -122,8 +127,13 @@ private final class ScrollTapWorker: @unchecked Sendable {
         let loop = CFRunLoopGetCurrent()!
         lock.withLock { runLoop = loop }
         defer { lock.withLock { runLoop = nil } }
+        defer {
+            DispatchQueue.main.async { [self] in
+                stopGestureObservation()
+            }
+        }
         guard lock.withLock({ wanted }) else { return }
-        guard let gestureTap else {
+        guard lock.withLock({ gestureTap != nil }) else {
             lock.withLock { if wanted { reported = .failed } }
             return
         }
@@ -150,6 +160,13 @@ private final class ScrollTapWorker: @unchecked Sendable {
         while lock.withLock({ wanted }) {
             autoreleasepool { _ = CFRunLoopRunInMode(.defaultMode, 1, false) }
             lock.withLock {
+                guard let gestureTap else {
+                    if wanted {
+                        wanted = false
+                        reported = .interrupted
+                    }
+                    return
+                }
                 if wanted && (!CFMachPortIsValid(tap) || !CFMachPortIsValid(gestureTap)
                     || !CGEvent.tapIsEnabled(tap: tap) || !CGEvent.tapIsEnabled(tap: gestureTap)) {
                     wanted = false

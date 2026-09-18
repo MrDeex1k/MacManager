@@ -517,13 +517,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Language, appearance, app behavior, updates, diagnostics and privacy."
+            "value": "Language, appearance, app behavior, updates and diagnostics."
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Język, wygląd, działanie aplikacji, aktualizacje, diagnostyka i prywatność."
+            "value": "Język, wygląd, działanie aplikacji, aktualizacje i diagnostyka."
           }
         }
       }
