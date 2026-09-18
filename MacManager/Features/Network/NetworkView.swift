@@ -15,7 +15,7 @@ struct NetworkView: View {
                        detail: network.environment.primary?.interface ?? strings("network.local.unknown"))
             Divider()
             addressRow(title: strings("network.public"), address: network.publicAddress,
-                       detail: strings("network.state.\(network.state.rawValue)"))
+                       detail: nil)
             if let date = network.observedAt {
                 Text(date, format: .dateTime.hour().minute().second())
                     .font(.caption).foregroundStyle(.secondary)
@@ -36,9 +36,11 @@ struct NetworkView: View {
                 .disabled(!network.enabled || !network.environment.online || network.state == .loading || network.state == .suspended)
                 .accessibilityIdentifier("network.refresh")
             }
-            Text(strings("network.state.\(network.state.rawValue)"))
-                .font(.callout).foregroundStyle(.secondary)
-                .accessibilityIdentifier("network.unavailable")
+            if network.state != .available {
+                Text(strings("network.state.\(network.state.rawValue)"))
+                    .font(.callout).foregroundStyle(.secondary)
+                    .accessibilityIdentifier("network.unavailable")
+            }
             Divider()
             VStack(alignment: .leading, spacing: 10) {
                 Text(strings("network.interfaces")).font(.headline)

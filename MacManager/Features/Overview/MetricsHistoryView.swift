@@ -109,9 +109,6 @@ struct MetricsHistoryView: View {
                 .accessibilityElement(children: .combine)
                 .accessibilityIdentifier("history.summary")
             }
-            Text(state.strings("history.note"))
-                .font(.caption).foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
         }
     }
 

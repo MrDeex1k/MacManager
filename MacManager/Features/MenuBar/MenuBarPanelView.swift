@@ -46,12 +46,6 @@ struct MenuBarPanelView: View {
             VStack(spacing: 9) {
                 addressRow(label: strings("network.local"), address: state.network.environment.primary?.address)
                 addressRow(label: strings("network.public"), address: state.network.publicAddress)
-                HStack {
-                    Label(strings("menuBar.scroll"), systemImage: "computermouse")
-                    Spacer()
-                    Text(strings("scroll.status.\(state.scroll.status.rawValue)"))
-                        .foregroundStyle(.secondary)
-                }
             }
             .font(.callout)
 
@@ -79,20 +73,26 @@ struct MenuBarPanelView: View {
             Divider()
 
             HStack(spacing: 8) {
-                Button(strings("menuBar.open"), systemImage: "macwindow") { open(.overview) }
+                Button {
+                    open(.overview)
+                } label: {
+                    Label(strings("menuBar.open"), systemImage: "macwindow")
+                        .frame(maxWidth: .infinity)
+                }
                     .buttonStyle(.glassProminent)
                     .accessibilityIdentifier("menuBar.open")
-                Button(strings("nav.settings"), systemImage: "gearshape") { open(.settings) }
-                    .buttonStyle(.glass)
-                    .accessibilityIdentifier("menuBar.settings")
-                Spacer(minLength: 0)
-                Button(strings("menuBar.quit"), systemImage: "power") { NSApp.terminate(nil) }
+                Button {
+                    NSApp.terminate(nil)
+                } label: {
+                    Label(strings("menuBar.quit"), systemImage: "power")
+                        .frame(maxWidth: .infinity)
+                }
                     .buttonStyle(.glass)
                     .accessibilityIdentifier("menuBar.quit")
             }
         }
         .padding(16)
-        .frame(width: 370)
+        .frame(width: 330)
         .preferredColorScheme(.dark)
         .tint(AppTheme.accent)
         .accessibilityIdentifier("menuBar.panel")
@@ -123,7 +123,10 @@ struct MenuBarPanelView: View {
         case .cpu, .gpu:
             return Int(value.rounded()).formatted(.number.locale(state.preferences.locale)) + "%"
         case .memory:
-            return Int64(value).formatted(.byteCount(style: .memory).locale(state.preferences.locale))
+            let physicalMemory = state.metrics.snapshot.physicalMemory
+            guard physicalMemory > 0 else { return "-" }
+            let percentage = value / Double(physicalMemory) * 100
+            return Int(percentage.rounded()).formatted(.number.locale(state.preferences.locale)) + "%"
         case .power:
             return value.formatted(.number.precision(.fractionLength(1)).locale(state.preferences.locale))
         }
@@ -152,6 +155,7 @@ struct MenuBarPanelView: View {
     }
 
     private func open(_ section: AppSection) {
+        NSApp.keyWindow?.orderOut(nil)
         state.section = section
         state.setMainWindowVisible(true)
         openWindow(id: "main")

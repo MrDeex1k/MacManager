@@ -14,6 +14,7 @@ public final class PreferencesStore {
         static let requestsLaunchAtLogin = "preferences.integration.requestsLaunchAtLogin"
         static let attemptedLaunchAtLoginDefault = "preferences.integration.attemptedLaunchAtLoginDefault"
         static let showsCPUInMenuBar = "preferences.integration.menuBar.showsCPU"
+        static let showsGPUInMenuBar = "preferences.integration.menuBar.showsGPU"
         static let showsRAMInMenuBar = "preferences.integration.menuBar.showsRAM"
         static let showsPowerInMenuBar = "preferences.integration.menuBar.showsPower"
         static let automaticUpdateChecksEnabled = "preferences.updates.automaticChecksEnabled"
@@ -40,6 +41,7 @@ public final class PreferencesStore {
             defaults.set(appIntegration.showsDockIcon, forKey: Key.showsDockIcon)
             defaults.set(appIntegration.requestsLaunchAtLogin, forKey: Key.requestsLaunchAtLogin)
             defaults.set(appIntegration.menuBar.showsCPU, forKey: Key.showsCPUInMenuBar)
+            defaults.set(appIntegration.menuBar.showsGPU, forKey: Key.showsGPUInMenuBar)
             defaults.set(appIntegration.menuBar.showsRAM, forKey: Key.showsRAMInMenuBar)
             defaults.set(appIntegration.menuBar.showsPower, forKey: Key.showsPowerInMenuBar)
         }
@@ -80,6 +82,7 @@ public final class PreferencesStore {
             requestsLaunchAtLogin: Self.bool(defaults, forKey: Key.requestsLaunchAtLogin, default: true),
             menuBar: MenuBarDisplayPreferences(
                 showsCPU: Self.bool(defaults, forKey: Key.showsCPUInMenuBar, default: false),
+                showsGPU: Self.bool(defaults, forKey: Key.showsGPUInMenuBar, default: false),
                 showsRAM: Self.bool(defaults, forKey: Key.showsRAMInMenuBar, default: false),
                 showsPower: Self.bool(defaults, forKey: Key.showsPowerInMenuBar, default: false)
             )

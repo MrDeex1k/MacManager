@@ -2,11 +2,18 @@ import Foundation
 
 public struct MenuBarDisplayPreferences: Equatable, Sendable {
     public var showsCPU: Bool
+    public var showsGPU: Bool
     public var showsRAM: Bool
     public var showsPower: Bool
 
-    public init(showsCPU: Bool = false, showsRAM: Bool = false, showsPower: Bool = false) {
+    public init(
+        showsCPU: Bool = false,
+        showsGPU: Bool = false,
+        showsRAM: Bool = false,
+        showsPower: Bool = false
+    ) {
         self.showsCPU = showsCPU
+        self.showsGPU = showsGPU
         self.showsRAM = showsRAM
         self.showsPower = showsPower
     }

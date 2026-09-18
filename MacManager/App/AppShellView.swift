@@ -36,13 +36,8 @@ struct AppShellView: View {
             .navigationTitle("Mac Manager")
             .navigationSplitViewColumnWidth(min: 190, ideal: 215, max: 250)
             .safeAreaInset(edge: .bottom) {
-                VStack(alignment: .leading, spacing: 5) {
-                    Label("Mac Manager", systemImage: "macbook")
-                        .font(.callout.weight(.semibold))
-                    Text(state.strings("sidebar.private"))
-                        .font(.callout.weight(.semibold))
-                        .foregroundStyle(.white)
-                }
+                Label(state.strings("app.name"), systemImage: "macbook")
+                    .font(.callout.weight(.semibold))
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(20)
             }
@@ -61,6 +56,7 @@ struct AppShellView: View {
                 .frame(maxWidth: 1100)
                 .frame(maxWidth: .infinity)
             }
+            .accessibilityIdentifier("main.detailScroll")
             .background(AppTheme.canvas)
             .navigationTitle(state.strings((state.section ?? .overview).titleKey))
             .toolbar {

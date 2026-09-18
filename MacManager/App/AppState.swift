@@ -41,7 +41,7 @@ final class AppState {
         let initiallyShowsMainWindow = launchContext != .loginItem
         mainWindowVisible = initiallyShowsMainWindow
         diagnostics = DiagnosticsStore()
-        let appVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.1.0"
+        let appVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.8.0"
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("--ui-testing"),
            let defaults = UserDefaults(suiteName: "dev.macmanager.MacManager.UITests") {
@@ -191,9 +191,9 @@ private struct TestUpdateFixture: Sendable {
         case .noRelease:
             return .noPublicRelease(etag: "\"ui-test\"")
         case .current:
-            return .release(release(version: "0.1.0"), etag: "\"ui-test\"")
+            return .release(release(version: "0.8.0"), etag: "\"ui-test\"")
         case .available:
-            return .release(release(version: "0.2.0"), etag: "\"ui-test\"")
+            return .release(release(version: "0.9.0"), etag: "\"ui-test\"")
         case .failed:
             throw UpdateCheckFailure(.timeout)
         }

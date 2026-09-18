@@ -52,6 +52,8 @@ struct DockSettingsView: View {
                     HStack(spacing: 22) {
                         Toggle("CPU", isOn: $preferences.appIntegration.menuBar.showsCPU)
                             .accessibilityIdentifier("menuBar.showCPU")
+                        Toggle("GPU", isOn: $preferences.appIntegration.menuBar.showsGPU)
+                            .accessibilityIdentifier("menuBar.showGPU")
                         Toggle("RAM", isOn: $preferences.appIntegration.menuBar.showsRAM)
                             .accessibilityIdentifier("menuBar.showRAM")
                         Toggle("W", isOn: $preferences.appIntegration.menuBar.showsPower)

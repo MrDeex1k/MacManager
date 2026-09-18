@@ -1,3 +1,4 @@
+import Darwin
 import MacManagerCore
 import SwiftUI
 
@@ -7,35 +8,19 @@ struct OverviewView: View {
     var body: some View {
         let strings = state.strings
         VStack(alignment: .leading, spacing: 28) {
-            HStack(alignment: .top, spacing: 20) {
-                PageHeading(title: strings("overview.title"), subtitle: strings("overview.subtitle"))
-                Spacer(minLength: 0)
-                Button { state.section = .network } label: {
-                    Label(strings("overview.openNetwork"), systemImage: "arrow.right")
-                        .padding(.horizontal, 8).padding(.vertical, 5)
-                }
-                .buttonStyle(.glass)
-                .accessibilityIdentifier("overview.openNetwork")
-            }
+            PageHeading(title: strings("overview.title"), subtitle: strings("overview.subtitle"))
             Surface {
                 HStack(spacing: 22) {
                     Image(systemName: "macbook")
                         .font(.system(size: 48, weight: .light))
                         .foregroundStyle(AppTheme.accent)
                         .accessibilityHidden(true)
-                    VStack(alignment: .leading, spacing: 7) {
-                        Text("Mac")
-                            .font(.title2.weight(.semibold))
-                        Text("Apple Silicon · macOS \(ProcessInfo.processInfo.operatingSystemVersion.majorVersion)")
-                            .foregroundStyle(.secondary)
-                        Text(Int64(ProcessInfo.processInfo.physicalMemory).formatted(
-                            .byteCount(style: .memory).locale(state.preferences.locale)))
-                            .font(.callout.monospacedDigit())
-                            .foregroundStyle(.secondary)
-                    }
+                    Text(systemSummary)
+                        .font(.title3.weight(.medium))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
                     Spacer(minLength: 0)
-                    Label(strings("privacy.local"), systemImage: "lock.shield")
-                        .font(.caption).foregroundStyle(.secondary)
                 }
             }
             Divider()
@@ -48,16 +33,26 @@ struct OverviewView: View {
             }
             Divider()
             MetricsHistoryView()
-            Divider()
-            Label(strings("metrics.power.unverified"), systemImage: "info.circle")
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityIdentifier("metrics.unavailable")
-            Text(strings("metrics.memory.definition"))
-                .font(.caption).foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
         }
+    }
+
+    private var systemSummary: String {
+        let version = ProcessInfo.processInfo.operatingSystemVersion
+        let memoryInGB = ProcessInfo.processInfo.physicalMemory / 1_073_741_824
+        return "\(processorName) · macOS \(version.majorVersion).\(version.minorVersion) · \(memoryInGB) GB"
+    }
+
+    private var processorName: String {
+        var size = 0
+        guard sysctlbyname("machdep.cpu.brand_string", nil, &size, nil, 0) == 0, size > 0 else {
+            return "Apple Silicon"
+        }
+        var bytes = [CChar](repeating: 0, count: size)
+        guard sysctlbyname("machdep.cpu.brand_string", &bytes, &size, nil, 0) == 0 else {
+            return "Apple Silicon"
+        }
+        let content = bytes.prefix { $0 != 0 }.map { UInt8(bitPattern: $0) }
+        return String(decoding: content, as: UTF8.self)
     }
 }
 
