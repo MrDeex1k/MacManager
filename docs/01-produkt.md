@@ -20,7 +20,7 @@ Odbiorca: użytkownik Maca Apple Silicon, który chce odczytów systemowych i wy
 | NET-02 | 1 | Dodatkowe adresy publiczne VPN wyłącznie wtedy, gdy można je wiarygodnie ustalić. |
 | SCR-01 | 1 | Jeden przełącznik odwracania przewijania myszy, gładzik bez zmian. |
 | APP-01 | 1 | Pełne okno, panel w pasku menu oraz praca w tle po zamknięciu okna. |
-| APP-02 | 1 | Dock domyślnie widoczny, autostart domyślnie włączony; oba konfigurowalne. |
+| APP-02 | 1 | Dock domyślnie widoczny przy otwartym oknie i automatycznie ukrywany po jego zamknięciu; widoczność przy otwartym oknie i autostart są konfigurowalne. |
 | BAR-01 | 1 | Domyślnie sama ikona; CPU, RAM i W włączane niezależnie. |
 | UPD-01 | 1 | GitHub Releases: automatyczna kontrola raz w tygodniu i kontrola ręczna. |
 | SEN-01 | 2 | Temperatura CPU/GPU, wybór °C/°F. |

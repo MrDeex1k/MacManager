@@ -28,7 +28,7 @@ Ikona zawsze pozwala otworzyć panel. Kolejność opcjonalnych wskaźników: CPU
 
 Panel: bieżące wartości, lokalny/publiczny IPv4, stan scrolla, informacja o dostępnej aktualizacji oraz „Otwórz okno”, „Ustawienia”, „Zakończ”. Kliknięcie adresu lub przycisku kopiowania kopiuje dokładny IPv4. Pełne szczegóły VPN znajdują się w sekcji Sieć.
 
-Zamknięcie ostatniego okna nie kończy procesu. ⌘Q i „Zakończ” zamykają go, zatrzymując obserwacje. Ukrycie Docka nie usuwa ikony z paska menu. Nie dopuszczać do ustawienia, które pozbawia użytkownika drogi powrotu do interfejsu.
+Zamknięcie ostatniego okna nie kończy procesu i automatycznie ukrywa ikonę Docka. Aplikacja pozostaje dostępna z paska menu, a ponowne otwarcie okna przywraca Dock zgodnie z preferencją użytkownika. ⌘Q i „Zakończ” zamykają proces i zatrzymują obserwacje. Nie dopuszczać do ustawienia, które pozbawia użytkownika drogi powrotu do interfejsu.
 
 ## Stany odczytu
 

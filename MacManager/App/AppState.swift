@@ -38,7 +38,8 @@ final class AppState {
 
     init() {
         launchContext = ApplicationLaunchContextDetector.detect()
-        mainWindowVisible = launchContext != .loginItem
+        let initiallyShowsMainWindow = launchContext != .loginItem
+        mainWindowVisible = initiallyShowsMainWindow
         diagnostics = DiagnosticsStore()
         let appVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.1.0"
         #if DEBUG
@@ -51,7 +52,10 @@ final class AppState {
             scroll = ScrollService(enabled: preferences.reverseMouseScroll, driver: TestScrollDriver())
             network = NetworkService(enabled: false)
             metrics = MetricsService(interval: preferences.samplingInterval)
-            dock = DockController(showsDockIcon: preferences.appIntegration.showsDockIcon)
+            dock = DockController(
+                showsDockIcon: preferences.appIntegration.showsDockIcon,
+                mainWindowVisible: initiallyShowsMainWindow
+            )
             loginItem = LoginItemController(
                 preferences: preferences,
                 service: TestLoginItemService(arguments: ProcessInfo.processInfo.arguments)
@@ -85,7 +89,10 @@ final class AppState {
         scroll = ScrollService(enabled: preferences.reverseMouseScroll, driver: ScrollDriver())
         network = NetworkService(enabled: preferences.publicIPEnabled)
         metrics = MetricsService(interval: preferences.samplingInterval)
-        dock = DockController(showsDockIcon: preferences.appIntegration.showsDockIcon)
+        dock = DockController(
+            showsDockIcon: preferences.appIntegration.showsDockIcon,
+            mainWindowVisible: initiallyShowsMainWindow
+        )
         loginItem = LoginItemController(preferences: preferences)
         updates = UpdateService(
             preferences: preferences,
@@ -108,6 +115,20 @@ final class AppState {
     func setDockIconVisible(_ isVisible: Bool) {
         guard dock.setVisible(isVisible) else { return }
         preferences.appIntegration.showsDockIcon = isVisible
+    }
+
+    func setMainWindowVisible(_ isVisible: Bool) {
+        mainWindowVisible = isVisible
+        _ = dock.setMainWindowVisible(isVisible)
+    }
+
+    func mainWindowWillClose() {
+        mainWindowVisible = false
+        Task { @MainActor [weak self] in
+            await Task.yield()
+            guard let self, !mainWindowVisible else { return }
+            _ = dock.setMainWindowVisible(false)
+        }
     }
 
     func setLaunchAtLoginEnabled(_ isEnabled: Bool) {

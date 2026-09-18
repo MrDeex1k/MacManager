@@ -1,6 +1,10 @@
 import AppKit
 import SwiftUI
 
+extension Notification.Name {
+    static let openMainWindowRequested = Notification.Name("dev.macmanager.open-main-window")
+}
+
 @main
 struct MacManagerApp: App {
     @NSApplicationDelegateAdaptor(AppearanceDelegate.self) private var delegate
@@ -38,6 +42,7 @@ final class AppearanceDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows _: Bool) -> Bool {
+        NotificationCenter.default.post(name: .openMainWindowRequested, object: nil)
         if let mainWindow = sender.windows.first(where: {
             $0.canBecomeMain && $0.styleMask.contains(.titled) && $0.level == .normal
         }) {
@@ -71,7 +76,7 @@ struct AppCommands: Commands {
 
     private func navigate(_ section: AppSection) {
         state.section = section
-        state.mainWindowVisible = true
+        state.setMainWindowVisible(true)
         openWindow(id: "main")
         NSApp.activate()
     }

@@ -13,13 +13,12 @@ struct AppShellView: View {
                 Color.clear
             }
         }
-        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { notification in
-            guard isMainWindow(notification.object) else { return }
-            state.mainWindowVisible = true
+        .onReceive(NotificationCenter.default.publisher(for: .openMainWindowRequested)) { _ in
+            state.setMainWindowVisible(true)
         }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.willCloseNotification)) { notification in
             guard isMainWindow(notification.object) else { return }
-            state.mainWindowVisible = false
+            state.mainWindowWillClose()
         }
     }
 

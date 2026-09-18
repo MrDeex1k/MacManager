@@ -1741,13 +1741,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Show icon in Dock"
+            "value": "Show icon in Dock while the window is open"
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Pokazuj ikonę w Docku"
+            "value": "Pokazuj ikonę w Docku, gdy okno jest otwarte"
           }
         }
       }
@@ -1758,13 +1758,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "When hidden, Mac Manager remains available from the menu bar."
+            "value": "Closing the window hides the Dock icon. Mac Manager remains available from the menu bar."
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Po ukryciu Mac Manager pozostaje dostępny z paska menu."
+            "value": "Zamknięcie okna ukrywa ikonę Docka. Mac Manager pozostaje dostępny z paska menu."
           }
         }
       }

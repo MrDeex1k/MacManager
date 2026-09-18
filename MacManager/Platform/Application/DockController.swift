@@ -25,20 +25,26 @@ final class DockController: ApplicationLifecycleParticipant {
 
     @ObservationIgnored private let application: any ApplicationActivationPolicySetting
     @ObservationIgnored private var requestedVisibility: Bool
+    @ObservationIgnored private var mainWindowVisible: Bool
     @ObservationIgnored private var isRunning = false
     @ObservationIgnored private var launchObserver: NSObjectProtocol?
 
-    init(showsDockIcon: Bool, application: any ApplicationActivationPolicySetting = NSApplication.shared) {
+    init(
+        showsDockIcon: Bool,
+        mainWindowVisible: Bool,
+        application: any ApplicationActivationPolicySetting = NSApplication.shared
+    ) {
         requestedVisibility = showsDockIcon
+        self.mainWindowVisible = mainWindowVisible
         self.application = application
-        state = showsDockIcon ? .visible : .hidden
+        state = showsDockIcon && mainWindowVisible ? .visible : .hidden
     }
 
     func start() {
         guard !isRunning else { return }
         isRunning = true
         if application.isRunning {
-            _ = apply(requestedVisibility)
+            _ = applyEffectiveVisibility()
         } else {
             launchObserver = NotificationCenter.default.addObserver(
                 forName: NSApplication.didFinishLaunchingNotification,
@@ -48,7 +54,7 @@ final class DockController: ApplicationLifecycleParticipant {
                 MainActor.assumeIsolated {
                     guard let self, self.isRunning else { return }
                     self.removeLaunchObserver()
-                    _ = self.apply(self.requestedVisibility)
+                    _ = self.applyEffectiveVisibility()
                 }
             }
         }
@@ -63,10 +69,24 @@ final class DockController: ApplicationLifecycleParticipant {
     func setVisible(_ isVisible: Bool) -> Bool {
         requestedVisibility = isVisible
         guard isRunning else {
-            state = isVisible ? .visible : .hidden
+            state = isVisible && mainWindowVisible ? .visible : .hidden
             return true
         }
-        return apply(isVisible)
+        return applyEffectiveVisibility()
+    }
+
+    @discardableResult
+    func setMainWindowVisible(_ isVisible: Bool) -> Bool {
+        mainWindowVisible = isVisible
+        guard isRunning else {
+            state = requestedVisibility && isVisible ? .visible : .hidden
+            return true
+        }
+        return applyEffectiveVisibility()
+    }
+
+    private func applyEffectiveVisibility() -> Bool {
+        apply(requestedVisibility && mainWindowVisible)
     }
 
     private func apply(_ isVisible: Bool) -> Bool {
