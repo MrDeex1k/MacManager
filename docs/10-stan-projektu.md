@@ -1,6 +1,6 @@
 # Aktualny stan projektu i dalsza kolejność
 
-Aktualizacja: 2026-09-18. Projekt jest w trakcie etapu 1; nie ma jeszcze publicznego wydania DMG. Kroki 1-8 są zaimplementowane i odebrane. W kroku 9 wykonano pełne testy automatyczne, audyt dostępności, 10-minutowy pomiar pracy w tle oraz część ręcznej próby na urządzeniu referencyjnym. Pozostają próby offline i sleep/wake, autostart z instalacji oraz odbiór dystrybucji.
+Aktualizacja: 2026-09-18. Projekt jest w trakcie etapu 1; nie ma jeszcze publicznego wydania DMG. Kroki 1-8 są zaimplementowane i odebrane. W kroku 9 wykonano pełne testy automatyczne, audyt dostępności, 10-minutowy pomiar pracy w tle oraz ręczną próbę na urządzeniu referencyjnym, w tym offline i sleep/wake. Pozostają autostart z instalacji oraz odbiór dystrybucji.
 
 ## Co działa
 
@@ -24,16 +24,16 @@ Aktualizacja: 2026-09-18. Projekt jest w trakcie etapu 1; nie ma jeszcze publicz
 | 1 | Prototypy P01–P04 | Narzędzia gotowe, część prób wykonana; walidacja sprzętu/VPN/scrolla nadal częściowa. |
 | 2 | Szkielet F1-01 | Gotowy. |
 | 3 | Usługi pomiarów F1-02 | Zaimplementowane i sprawdzone lokalnie; szersza macierz sprzętowa nadal do wykonania. |
-| 4 | Wykresy i historia F1-03 | Zaimplementowane; retencja i przerwy sprawdzane deterministycznie, wykresy w testach GUI. Fizyczny sleep/wake pozostaje w macierzy odbioru. |
+| 4 | Wykresy i historia F1-03 | Zaimplementowane; retencja i przerwy sprawdzane deterministycznie, wykresy w testach GUI, a fizyczny sleep/wake potwierdzono na urządzeniu referencyjnym. |
 | 5 | Sieć F1-04 | Zaimplementowana i sprawdzona lokalnie; dodatkowe wyjścia VPN pozostają nieustalone. |
 | 6 | Scroll F1-05 | Zaimplementowany z adaptacją mechanizmu Scroll Reversera; rzeczywiste próby gładzika, myszy i zmiany urządzenia rozpoznane poprawnie, bez list modeli. |
 | 7 | Okno/menu/Dock/autostart F1-06 | Zaimplementowane. Pasek menu, Dock, `SMAppService.mainApp`, cykl życia procesu i start przy logowaniu bez okna mają testy automatyczne. Próba podpisanego wydania pozostaje w kroku 9. |
 | 8 | Aktualizacje i prywatność F1-07/F1-08 | Gotowy. Harmonogram, kwalifikacja wydania, cache, ETag, UI PL/EN, diagnostyka i prywatność zostały odebrane; szczegóły w [raporcie](reports/etap-1-krok-8.md). |
-| 9 | Testy końcowe i wydanie F1-09 | W toku. Punkty 1, 4 i 5 są wykonane, a w punkcie 2 potwierdzono metryki, historię, sieć, cykl życia okna oraz scroll myszy i gładzika; [raport](reports/etap-1-krok-9a.md). Pozostają offline, sleep/wake, punkt 3 i podpisane wydanie. |
+| 9 | Testy końcowe i wydanie F1-09 | W toku. Punkty 1, 2, 4 i 5 są wykonane; w punkcie 2 potwierdzono metryki, historię, sieć z offline i powrotem połączenia, sleep/wake, cykl życia okna oraz scroll myszy i gładzika; [raport](reports/etap-1-krok-9a.md). Pozostają punkt 3 i podpisane wydanie. |
 
 ## Co dalej
 
-1. **Krok 9:** dokończenie punktu 2 przez próby offline i sleep/wake, następnie punkt 3 z autostartem aplikacji w `/Applications`, a później podpis Developer ID, Hardened Runtime, notarization i DMG.
+1. **Krok 9:** punkt 3 z autostartem aplikacji w `/Applications`, a później podpis Developer ID, Hardened Runtime, notarization i DMG.
 
 Etap 2 (temperatury/RPM) i etap 3 (wyspa, schowek, muzyka) pozostają planowane. Nie są aktywne w obecnym buildzie.
 
