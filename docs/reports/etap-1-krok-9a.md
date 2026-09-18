@@ -1,8 +1,8 @@
 # Etap 1, krok 9 - testy automatyczne, dostępność i praca w tle
 
-Data weryfikacji: 2026-09-13.
+Data weryfikacji: 2026-09-18.
 
-Ten raport zamyka punkty 1, 4 i 5 uzgodnionej części testowej kroku 9. Punkty 2 i 3, czyli ręczne próby funkcji na sprzęcie oraz autostart z zainstalowanej aplikacji, zostają do osobnej sesji. Podpis Developer ID, notarization i publiczny DMG nadal należą do końcowego odbioru wydania.
+Ten raport zamyka punkty 1, 4 i 5 uzgodnionej części testowej kroku 9 oraz dokumentuje wykonaną część punktu 2. W punkcie 2 potwierdzono metryki, historię, sieć, cykl życia okna i rozróżnianie myszy od gładzika na urządzeniu referencyjnym. Pozostają fizyczne próby offline i sleep/wake. Punkt 3, czyli autostart z zainstalowanej aplikacji, zostaje do osobnej sesji. Podpis Developer ID, notarization i publiczny DMG nadal należą do końcowego odbioru wydania.
 
 ## Środowisko
 
@@ -48,6 +48,18 @@ Pierwszy pomiar builda Release przy zamkniętym oknie ujawnił, że niewidoczne 
 
 Pliki CSV powstały w katalogu tymczasowym maszyny testowej i nie trafiają do repozytorium. Pomiar 8-godzinny pozostaje osobnym kryterium przed stabilnym wydaniem publicznym.
 
+## Ręczna próba na urządzeniu referencyjnym
+
+Build Release uruchomiono z rzeczywistymi zgodami Dostępności i Monitorowania wprowadzania. Potwierdzono:
+
+- bieżące wartości CPU, GPU, RAM i mocy oraz zapis historii podczas kontrolowanego obciążenia CPU,
+- utrzymanie próbkowania i historii po zamknięciu okna oraz poprawne ponowne otwarcie z paska menu,
+- podstawowy lokalny i publiczny IPv4 oraz ostrożne oznaczanie interfejsów tunelowych bez przypisywania ich do konkretnych aplikacji,
+- odwracanie pionowego i poziomego ruchu myszy przy zachowaniu naturalnego kierunku gładzika,
+- automatyczną zmianę klasyfikacji między myszą i gładzikiem bez listy modeli urządzeń.
+
+Próba scrolla ujawniła, że pasywna obserwacja gestów uruchomiona na wątku roboczym nie dostarczała stabilnie danych dotyku z AppKit. Zdarzenia gładzika trafiały wtedy do bezpiecznego fallbacku myszy i były odwracane. Obserwacja gestów działa teraz na głównej pętli AppKit, a osobny tap modyfikujący zdarzenia pozostaje na wątku roboczym. Powtórzona próba sprzętowa potwierdziła poprawne zachowanie obu urządzeń.
+
 ## Stan odbioru
 
-Punkty 1, 4 i 5 tej części kroku 9 są wykonane. Do następnej sesji pozostają uzgodnione punkty 2 i 3. Cały krok 9 zostanie zamknięty dopiero po ręcznej macierzy, próbie autostartu z instalacji i przygotowaniu podpisanego, notarized DMG.
+Punkty 1, 4 i 5 tej części kroku 9 są wykonane. Punkt 2 jest wykonany częściowo; pozostają próby offline, sleep/wake i szersza macierz sprzętowa. Punkt 3 pozostaje otwarty. Cały krok 9 zostanie zamknięty dopiero po ręcznej macierzy, próbie autostartu z instalacji i przygotowaniu podpisanego, notarized DMG.

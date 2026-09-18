@@ -1,6 +1,6 @@
 # Aktualny stan projektu i dalsza kolejność
 
-Aktualizacja: 2026-09-13. Projekt jest w trakcie etapu 1; nie ma jeszcze publicznego wydania DMG. Kroki 1-8 są zaimplementowane i odebrane. W kroku 9 wykonano pełne testy automatyczne, audyt dostępności oraz 10-minutowy pomiar pracy w tle. Ręczne punkty 2 i 3 oraz odbiór dystrybucji pozostają do wykonania.
+Aktualizacja: 2026-09-18. Projekt jest w trakcie etapu 1; nie ma jeszcze publicznego wydania DMG. Kroki 1-8 są zaimplementowane i odebrane. W kroku 9 wykonano pełne testy automatyczne, audyt dostępności, 10-minutowy pomiar pracy w tle oraz część ręcznej próby na urządzeniu referencyjnym. Pozostają próby offline i sleep/wake, autostart z instalacji oraz odbiór dystrybucji.
 
 ## Co działa
 
@@ -29,11 +29,11 @@ Aktualizacja: 2026-09-13. Projekt jest w trakcie etapu 1; nie ma jeszcze publicz
 | 6 | Scroll F1-05 | Zaimplementowany z adaptacją mechanizmu Scroll Reversera; rzeczywiste próby gładzika, myszy i zmiany urządzenia rozpoznane poprawnie, bez list modeli. |
 | 7 | Okno/menu/Dock/autostart F1-06 | Zaimplementowane. Pasek menu, Dock, `SMAppService.mainApp`, cykl życia procesu i start przy logowaniu bez okna mają testy automatyczne. Próba podpisanego wydania pozostaje w kroku 9. |
 | 8 | Aktualizacje i prywatność F1-07/F1-08 | Gotowy. Harmonogram, kwalifikacja wydania, cache, ETag, UI PL/EN, diagnostyka i prywatność zostały odebrane; szczegóły w [raporcie](reports/etap-1-krok-8.md). |
-| 9 | Testy końcowe i wydanie F1-09 | W toku. Punkty 1, 4 i 5 części testowej są wykonane; [raport](reports/etap-1-krok-9a.md). Ręczne punkty 2 i 3 oraz podpisane wydanie pozostają otwarte. |
+| 9 | Testy końcowe i wydanie F1-09 | W toku. Punkty 1, 4 i 5 są wykonane, a w punkcie 2 potwierdzono metryki, historię, sieć, cykl życia okna oraz scroll myszy i gładzika; [raport](reports/etap-1-krok-9a.md). Pozostają offline, sleep/wake, punkt 3 i podpisane wydanie. |
 
 ## Co dalej
 
-1. **Krok 9:** ręczne punkty 2 i 3, w tym macierz sprzętu/sieci/sleep/wake i próba autostartu z aplikacji w `/Applications`, a następnie podpis Developer ID, Hardened Runtime, notarization i DMG.
+1. **Krok 9:** dokończenie punktu 2 przez próby offline i sleep/wake, następnie punkt 3 z autostartem aplikacji w `/Applications`, a później podpis Developer ID, Hardened Runtime, notarization i DMG.
 
 Etap 2 (temperatury/RPM) i etap 3 (wyspa, schowek, muzyka) pozostają planowane. Nie są aktywne w obecnym buildzie.
 

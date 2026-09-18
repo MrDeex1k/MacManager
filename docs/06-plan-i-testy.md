@@ -8,7 +8,7 @@ Trzy fazy są zatwierdzone. W ramach każdej zaczynamy od rozpoznania zależnoś
 
 Moc w W jest częścią fazy 1. Temperatury i RPM trafiają do fazy 2. Cała historia schowka i integracje muzyczne, również w zwykłym oknie, trafiają dopiero do fazy 3.
 
-Aktualizacja 2026-09-13: kroki 1-8 są zaimplementowane. W kroku 9 wykonano pełne testy automatyczne, audyt dostępności i 10-minutowy pomiar pracy w tle; wyniki opisuje [raport częściowy](reports/etap-1-krok-9a.md). Ręczne punkty 2 i 3 oraz odbiór dystrybucji pozostają otwarte.
+Aktualizacja 2026-09-18: kroki 1-8 są zaimplementowane. W kroku 9 wykonano pełne testy automatyczne, audyt dostępności, 10-minutowy pomiar pracy w tle oraz część ręcznej próby na urządzeniu referencyjnym. Potwierdzono metryki, historię, sieć, cykl życia okna i automatyczne rozróżnianie myszy od gładzika. Wyniki opisuje [raport częściowy](reports/etap-1-krok-9a.md). Próby offline, sleep/wake, autostartu z instalacji i odbiór dystrybucji pozostają otwarte.
 
 ## Kolejność kroków etapu 1
 
@@ -22,7 +22,7 @@ Całość rozwijamy na feat/stage-1. Numer kroku obejmuje prototypy, więc krok 
 6. Scroll F1-05 - zaimplementowany; automatyczne rozróżnianie z gestów dotykowych, transformacja, zgody i cykl życia; [raport](reports/etap-1-krok-6.md).
 7. Okno, pasek menu, Dock i autostart F1-06 - zaimplementowane; model ustawień, cykl życia procesu, pasek menu, opcjonalne CPU/RAM/W, Dock, `SMAppService.mainApp` i start bez okna przy logowaniu są gotowe. Próba z podpisaną aplikacją w `/Applications` pozostaje w odbiorze wydania.
 8. Aktualizacje, prywatność i diagnostyka F1-07/F1-08 - gotowe; [plan](11-plan-kroku-8.md) i [raport odbioru](reports/etap-1-krok-8.md).
-9. Odbiór i wydanie F1-09 - w toku; automatyzacja, dostępność i pomiar 10-minutowy gotowe, ręczne punkty 2 i 3 oraz wydanie pozostają otwarte.
+9. Odbiór i wydanie F1-09 - w toku; automatyzacja, dostępność, pomiar 10-minutowy oraz część ręcznej próby sprzętowej są gotowe. Pozostają offline, sleep/wake, autostart z instalacji i wydanie.
 
 ## Prototypy i bramki techniczne
 
