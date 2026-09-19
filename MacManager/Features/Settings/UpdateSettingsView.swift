@@ -24,6 +24,7 @@ struct UpdateSettingsView: View {
                     .accessibilityLabel(strings("updates.automatic"))
                     .accessibilityIdentifier("updates.automatic")
                 }
+                .padding(.trailing, 20)
 
                 Text(strings("updates.note"))
                     .font(.callout)
@@ -60,6 +61,7 @@ struct UpdateSettingsView: View {
                 }
                 .font(.caption)
                 .foregroundStyle(.secondary)
+                .padding(.trailing, 20)
 
                 HStack(spacing: 8) {
                     Button(strings("updates.check"), systemImage: "arrow.clockwise") {

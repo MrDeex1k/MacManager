@@ -68,7 +68,7 @@ import Testing
     first.appIntegration = AppIntegrationPreferences(
         showsDockIcon: false,
         requestsLaunchAtLogin: false,
-        menuBar: MenuBarDisplayPreferences(showsCPU: false, showsRAM: true, showsPower: true)
+        menuBar: MenuBarDisplayPreferences(showsCPU: false, showsGPU: true, showsRAM: true, showsPower: true)
     )
     first.appIntegration.menuBar.showsCPU = true
 

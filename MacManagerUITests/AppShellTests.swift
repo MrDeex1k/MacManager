@@ -3,12 +3,76 @@ import XCTest
 
 final class AppShellTests: XCTestCase {
     @MainActor
+    func testAccessibilityAuditAcrossMainSections() throws {
+        let app = launch(reset: true)
+        let auditTypes: XCUIAccessibilityAuditType = [
+            .contrast,
+            .elementDetection,
+            .hitRegion,
+            .sufficientElementDescription,
+            .action,
+            .parentChild
+        ]
+
+        try performAccessibilityAudit(in: app, for: auditTypes)
+        for section in ["network", "scroll", "dock", "settings"] {
+            element("navigation.\(section)", in: app).click()
+            try performAccessibilityAudit(in: app, for: auditTypes)
+        }
+        app.terminate()
+    }
+
+    @MainActor
+    private func performAccessibilityAudit(
+        in app: XCUIApplication,
+        for auditTypes: XCUIAccessibilityAuditType
+    ) throws {
+        try app.performAccessibilityAudit(for: auditTypes) { issue in
+            guard let element = issue.element else {
+                return false
+            }
+
+            let isAnonymousDisabledGroup = element.elementType == .group
+                && element.identifier.isEmpty
+                && element.label.isEmpty
+                && !element.isEnabled
+            let isLayoutGroup = issue.auditType == .sufficientElementDescription
+                && isAnonymousDisabledGroup
+            let isSidebarNavigationLink = issue.auditType == .sufficientElementDescription
+                && issue.compactDescription == "Unknown role"
+                && element.elementType == .button
+                && element.identifier.hasPrefix("navigation.")
+            let isNativePickerAction = issue.auditType == .action
+                && issue.compactDescription == "Action is missing"
+                && element.elementType == .popUpButton
+                && ["settings.language", "metrics.interval"].contains(element.identifier)
+            let isWindowControlContainer = issue.auditType == .parentChild
+                && isAnonymousDisabledGroup
+            let isSystemTouchBar = issue.auditType == .sufficientElementDescription
+                && element.elementType == .touchBar
+                && !element.isEnabled
+            let sidebarLabels = [
+                "Overview", "Network", "Scroll", "Dock", "Settings",
+                "Przegląd", "Sieć", "Przewijanie", "Ustawienia"
+            ]
+            let isNativeSidebarSelectionContrast = issue.auditType == .contrast
+                && element.elementType == .staticText
+                && sidebarLabels.contains(element.value as? String ?? element.label)
+
+            // XCTest reports framework-owned SwiftUI, Liquid Glass and window chrome as findings.
+            // Their actionable descendants and labels remain subject to every audit.
+            return isLayoutGroup || isSidebarNavigationLink || isNativePickerAction
+                || isWindowControlContainer || isSystemTouchBar
+                || isNativeSidebarSelectionContrast
+        }
+    }
+
+    @MainActor
     func testNavigationAndEmptyStates() throws {
         let app = launch(reset: true)
         XCTAssertTrue(app.staticTexts["System overview"].waitForExistence(timeout: 10))
         XCTAssertTrue(element("history.empty", in: app).exists)
         capture("Overview EN", app: app)
-        XCTAssertTrue(element("metrics.unavailable", in: app).exists)
         XCTAssertFalse(app.staticTexts["Clipboard"].exists)
         XCTAssertFalse(app.staticTexts["Sensors"].exists)
         element("navigation.network", in: app).click()
@@ -22,7 +86,8 @@ final class AppShellTests: XCTestCase {
         XCTAssertTrue(element("settings.language", in: app).waitForExistence(timeout: 5))
         app.typeKey("1", modifierFlags: .command)
         XCTAssertTrue(app.staticTexts["System overview"].waitForExistence(timeout: 5))
-        app.buttons["overview.openNetwork"].click()
+        XCTAssertFalse(app.buttons["overview.openNetwork"].exists)
+        element("navigation.network", in: app).click()
         XCTAssertTrue(element("network.unavailable", in: app).waitForExistence(timeout: 5))
         app.terminate()
     }
@@ -55,16 +120,25 @@ final class AppShellTests: XCTestCase {
         expectation(for: current, evaluatedWith: app.staticTexts["metric.cpu.status"])
         waitForExpectations(timeout: 12)
         XCTAssertNotEqual(app.staticTexts["metric.cpu.value"].value as? String, "-")
-        XCTAssertEqual(app.staticTexts["metric.power.status"].value as? String, "Unavailable")
-        XCTAssertEqual(app.staticTexts["metric.power.value"].value as? String, "-")
+        let powerStatus = app.staticTexts["metric.power.status"].value as? String
+        if powerStatus == "Current" {
+            XCTAssertNotEqual(app.staticTexts["metric.power.value"].value as? String, "-")
+        } else {
+            XCTAssertEqual(powerStatus, "Unavailable")
+            XCTAssertEqual(app.staticTexts["metric.power.value"].value as? String, "-")
+        }
         XCTAssertTrue(element("history.summary", in: app).waitForExistence(timeout: 5))
         let metricPicker = element("history.metric", in: app)
         metricPicker.radioButtons["RAM"].click()
         XCTAssertTrue(element("history.summary", in: app).exists)
         capture("RAM history EN", app: app)
         metricPicker.radioButtons["Power"].click()
-        XCTAssertTrue(element("history.empty", in: app).exists)
-        XCTAssertFalse(element("history.summary", in: app).exists)
+        if powerStatus == "Current" {
+            XCTAssertTrue(element("history.summary", in: app).waitForExistence(timeout: 5))
+        } else {
+            XCTAssertTrue(element("history.empty", in: app).exists)
+            XCTAssertFalse(element("history.summary", in: app).exists)
+        }
         metricPicker.radioButtons["CPU"].click()
         XCTAssertTrue(element("history.summary", in: app).exists)
         capture("CPU history EN", app: app)
@@ -140,18 +214,23 @@ final class AppShellTests: XCTestCase {
         XCTAssertFalse(element("menuBar.showCPU", in: app).exists)
         element("navigation.dock", in: app).click()
         let cpu = element("menuBar.showCPU", in: app)
+        let gpu = element("menuBar.showGPU", in: app)
         let ram = element("menuBar.showRAM", in: app)
         let power = element("menuBar.showPower", in: app)
         XCTAssertEqual(switchValue(cpu), 0)
+        XCTAssertEqual(switchValue(gpu), 0)
         XCTAssertEqual(switchValue(ram), 0)
         XCTAssertEqual(switchValue(power), 0)
         XCTAssertTrue(cpu.isHittable)
+        XCTAssertTrue(gpu.isHittable)
         XCTAssertTrue(ram.isHittable)
         XCTAssertTrue(power.isHittable)
         cpu.click()
+        gpu.click()
         ram.click()
         power.click()
         XCTAssertEqual(switchValue(cpu), 1)
+        XCTAssertEqual(switchValue(gpu), 1)
         XCTAssertEqual(switchValue(ram), 1)
         XCTAssertEqual(switchValue(power), 1)
         app.terminate()
@@ -159,6 +238,7 @@ final class AppShellTests: XCTestCase {
         app = launch(reset: false)
         element("navigation.dock", in: app).click()
         XCTAssertEqual(switchValue(element("menuBar.showCPU", in: app)), 1)
+        XCTAssertEqual(switchValue(element("menuBar.showGPU", in: app)), 1)
         XCTAssertEqual(switchValue(element("menuBar.showRAM", in: app)), 1)
         XCTAssertEqual(switchValue(element("menuBar.showPower", in: app)), 1)
         app.terminate()
@@ -233,26 +313,45 @@ final class AppShellTests: XCTestCase {
         let panel = element("menuBar.panel", in: app)
         statusItem.click()
         XCTAssertTrue(panel.waitForExistence(timeout: 5))
-        statusItem.click()
+        let openButton = app.buttons["Open window"]
+        let quitButton = app.buttons["Quit"]
+        XCTAssertTrue(openButton.isHittable)
+        XCTAssertTrue(quitButton.isHittable)
+        XCTAssertFalse(app.buttons["Settings"].exists)
+        XCTAssertFalse(app.staticTexts["Mouse scrolling"].exists)
+        XCTAssertEqual(openButton.frame.width, quitButton.frame.width, accuracy: 1)
+        openButton.click()
         XCTAssertTrue(waitForElement(panel, exists: false))
-        app.activate()
-        app.typeKey("1", modifierFlags: .command)
         XCTAssertTrue(app.windows.firstMatch.waitForExistence(timeout: 10))
         let current = NSPredicate(format: "value == %@", "Current")
-        expectation(for: current, evaluatedWith: app.staticTexts["metric.cpu.status"])
-        waitForExpectations(timeout: 12)
+        let status = app.staticTexts["metric.cpu.status"]
+        let currentExpectation = XCTNSPredicateExpectation(predicate: current, object: status)
+        let result = XCTWaiter.wait(for: [currentExpectation], timeout: 12)
+        XCTAssertEqual(result, .completed, "CPU status after login launch: \(String(describing: status.value))")
         app.terminate()
     }
 
     @MainActor
     func testUpdateSettingsCacheAndLocalDiagnostics() throws {
-        var app = launch(reset: true, updateAvailable: true)
+        var app = launch(reset: true, updateFixture: .available)
         app.typeKey(",", modifierFlags: .command)
         let status = element("updates.status", in: app)
         scrollTo(status, in: app)
         XCTAssertTrue(status.waitForExistence(timeout: 5))
-        XCTAssertEqual(status.value as? String, "Version 0.2.0 is available")
+        XCTAssertEqual(status.value as? String, "Version 0.9.0 is available")
         XCTAssertTrue(app.buttons["updates.openRelease"].exists)
+
+        let alignedControls = [
+            element("settings.language", in: app),
+            element("settings.appearance.value", in: app),
+            element("metrics.interval", in: app),
+            element("integration.launchAtLogin", in: app),
+            element("updates.automatic", in: app)
+        ]
+        for control in alignedControls {
+            XCTAssertTrue(control.exists)
+            XCTAssertEqual(control.frame.maxX, alignedControls[0].frame.maxX, accuracy: 1)
+        }
 
         let automatic = element("updates.automatic", in: app)
         XCTAssertEqual(switchValue(automatic), 1)
@@ -270,15 +369,58 @@ final class AppShellTests: XCTestCase {
         XCTAssertFalse(report.contains("source_ip"))
         app.terminate()
 
-        app = launch(reset: false, updateAvailable: true)
+        app = launch(reset: false, updateFixture: .available)
         app.typeKey(",", modifierFlags: .command)
         let restoredAutomatic = element("updates.automatic", in: app)
         scrollTo(restoredAutomatic, in: app)
         XCTAssertEqual(switchValue(restoredAutomatic), 0)
         XCTAssertEqual(
             element("updates.status", in: app).value as? String,
-            "Version 0.2.0 is available"
+            "Version 0.9.0 is available"
         )
+        app.terminate()
+    }
+
+    @MainActor
+    func testUpdateCurrentNoReleaseFailureAndOfflineStates() throws {
+        for (fixture, expected) in [
+            (UpdateFixture.current, "You have the latest public version"),
+            (.noRelease, "No compatible public release"),
+            (.failure, "GitHub did not respond in time"),
+            (.offline, "No internet connection")
+        ] {
+            let app = launch(reset: true, updateFixture: fixture)
+            app.typeKey(",", modifierFlags: .command)
+            let status = element("updates.status", in: app)
+            scrollTo(status, in: app)
+            XCTAssertTrue(status.waitForExistence(timeout: 5))
+            let predicate = NSPredicate(format: "value == %@", expected)
+            expectation(for: predicate, evaluatedWith: status)
+            waitForExpectations(timeout: 8)
+            XCTAssertFalse(app.buttons["updates.openRelease"].exists)
+            app.terminate()
+        }
+    }
+
+    @MainActor
+    func testAvailableUpdateAndDiagnosticsLocalizeToPolish() throws {
+        let app = launch(reset: true, updateFixture: .available)
+        app.typeKey(",", modifierFlags: .command)
+        let picker = element("settings.language", in: app)
+        XCTAssertTrue(picker.waitForExistence(timeout: 5))
+        picker.click()
+        XCTAssertTrue(app.menuItems["Polski"].waitForExistence(timeout: 5))
+        app.menuItems["Polski"].click()
+        XCTAssertTrue(app.staticTexts["Ustawienia aplikacji"].waitForExistence(timeout: 5))
+
+        let status = element("updates.status", in: app)
+        scrollTo(status, in: app)
+        XCTAssertEqual(status.value as? String, "Dostępna jest wersja 0.9.0")
+        XCTAssertEqual(app.buttons["updates.openRelease"].label, "Otwórz wydanie")
+
+        let copy = app.buttons["diagnostics.copy"]
+        scrollTo(copy, in: app)
+        XCTAssertEqual(copy.label, "Kopiuj raport")
         app.terminate()
     }
 
@@ -290,7 +432,7 @@ final class AppShellTests: XCTestCase {
         inputMonitoringRequired: Bool = false,
         loginItemRequiresApproval: Bool = false,
         launchedAtLogin: Bool = false,
-        updateAvailable: Bool = false,
+        updateFixture: UpdateFixture = .noRelease,
         expectsWindow: Bool = true
     ) -> XCUIApplication {
         continueAfterFailure = false
@@ -302,7 +444,7 @@ final class AppShellTests: XCTestCase {
         if inputMonitoringRequired { app.launchArguments.append("--scroll-input-monitoring-required") }
         if loginItemRequiresApproval { app.launchArguments.append("--login-item-requires-approval") }
         if launchedAtLogin { app.launchArguments.append("--launched-at-login") }
-        if updateAvailable { app.launchArguments.append("--update-available") }
+        if let argument = updateFixture.argument { app.launchArguments.append(argument) }
         app.launch()
         if expectsWindow {
             app.activate()
@@ -312,6 +454,24 @@ final class AppShellTests: XCTestCase {
             XCTAssertTrue(app.windows.firstMatch.waitForExistence(timeout: 10))
         }
         return app
+    }
+
+    private enum UpdateFixture {
+        case noRelease
+        case current
+        case available
+        case failure
+        case offline
+
+        var argument: String? {
+            switch self {
+            case .noRelease: nil
+            case .current: "--update-current"
+            case .available: "--update-available"
+            case .failure: "--update-failure"
+            case .offline: "--update-offline"
+            }
+        }
     }
 
     @MainActor
@@ -335,10 +495,10 @@ final class AppShellTests: XCTestCase {
     }
 
     @MainActor
-    private func scrollTo(_ element: XCUIElement, in app: XCUIApplication) {
-        let scrollView = app.scrollViews.element(boundBy: 1)
-        for _ in 0..<10 where !element.isHittable {
-            scrollView.scroll(byDeltaX: 0, deltaY: 300)
+    private func scrollTo(_ target: XCUIElement, in app: XCUIApplication) {
+        let scrollView = app.scrollViews["main.detailScroll"]
+        for _ in 0..<10 where !target.isHittable {
+            scrollView.scroll(byDeltaX: 0, deltaY: -300)
         }
     }
 

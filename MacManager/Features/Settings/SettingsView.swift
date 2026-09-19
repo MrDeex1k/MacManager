@@ -21,9 +21,10 @@ struct SettingsView: View {
                             Text("Polski").tag(AppLanguage.polish)
                         }
                         .labelsHidden()
-                        .frame(width: 185)
+                        .fixedSize(horizontal: true, vertical: false)
                         .accessibilityIdentifier("settings.language")
                     }
+                    .padding(.trailing, 20)
                     Text(strings("settings.language.note"))
                         .foregroundStyle(.secondary)
                         .font(.callout)
@@ -32,8 +33,11 @@ struct SettingsView: View {
                         Label(strings("settings.appearance"), systemImage: "moon")
                             .font(.headline)
                         Spacer()
-                        Text(strings("settings.dark")).foregroundStyle(.secondary)
+                        Text(strings("settings.dark"))
+                            .foregroundStyle(.secondary)
+                            .accessibilityIdentifier("settings.appearance.value")
                     }
+                    .padding(.trailing, 20)
                     Text(strings("settings.appearance.note"))
                         .foregroundStyle(.secondary)
                         .font(.callout)
@@ -49,32 +53,24 @@ struct SettingsView: View {
                         Text("\(interval.rawValue) s").tag(interval)
                     }
                 }
-                .labelsHidden().frame(width: 185)
+                .labelsHidden()
+                .fixedSize(horizontal: true, vertical: false)
                 .accessibilityIdentifier("metrics.interval")
                 .onChange(of: preferences.samplingInterval) { _, interval in
                     state.metrics.setInterval(interval)
                 }
             }
+            .padding(.trailing, 20)
             Divider()
             LaunchAtLoginSettingsView()
             Divider()
             UpdateSettingsView()
             Divider()
             DiagnosticsView()
-            Divider()
-            Surface {
-                VStack(alignment: .leading, spacing: 12) {
-                    Label(strings("settings.privacy.title"), systemImage: "lock.shield")
-                        .font(.headline)
-                    Text(strings("settings.privacy.body"))
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
             HStack {
                 Text("Mac Manager").fontWeight(.medium)
                 Spacer()
-                Text(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.1.0")
+                Text(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.8.0")
                     .monospacedDigit()
             }
             .font(.caption)

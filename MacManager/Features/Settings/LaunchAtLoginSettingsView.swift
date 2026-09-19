@@ -30,6 +30,7 @@ struct LaunchAtLoginSettingsView: View {
                 .accessibilityLabel(state.strings("integration.loginItem"))
                 .accessibilityIdentifier("integration.launchAtLogin")
             }
+            .padding(.trailing, 20)
             Text(state.strings("integration.loginItem.note"))
                 .font(.callout)
                 .foregroundStyle(.secondary)

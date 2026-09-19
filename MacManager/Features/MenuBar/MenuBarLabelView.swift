@@ -16,7 +16,7 @@ struct MenuBarLabelView: View {
         HStack(spacing: 5) {
             Image(systemName: "macbook")
             if !segments.isEmpty {
-                Text(segments.map(\.text).joined(separator: "  "))
+                Text(segments.map(\.text).joined(separator: " / "))
                     .monospacedDigit()
             }
         }
@@ -25,6 +25,13 @@ struct MenuBarLabelView: View {
     }
 
     private var accessibilityLabel: String {
-        (["Mac Manager"] + segments.map(\.text)).joined(separator: ", ")
+        (["Mac Manager"] + segments.map { segment in
+            switch segment.kind {
+            case .cpu: "CPU \(segment.text)"
+            case .gpu: "GPU \(segment.text)"
+            case .memory: "RAM \(segment.text)"
+            case .power: "\(state.strings("metric.power.title")) \(segment.text)"
+            }
+        }).joined(separator: ", ")
     }
 }

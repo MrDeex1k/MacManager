@@ -34,7 +34,7 @@ flowchart TD
 | D04 | Taskbar oznacza górny pasek menu z otwarciem pełnego okna. | Q5 |
 | D05 | Energia oznacza chwilową moc całego Maca w W; niedostępność jest dozwolona, jeśli brak wiarygodnego źródła. | Q7, Q11 |
 | D06 | Metryki całego systemu, ostatnie 5 min w RAM, 2 s domyślnie, wybór 1/2/5 s, przerwy podczas snu. | Q9, Q14, podsumowanie |
-| D07 | Dock i autostart domyślnie włączone, oba można wyłączyć; zamknięcie okna pozostawia tło. | Q10, podsumowanie |
+| D07 | Dock jest domyślnie widoczny przy otwartym oknie i można go wyłączyć; zamknięcie okna ukrywa Dock oraz pozostawia proces w pasku menu. Autostart jest domyślnie włączony i konfigurowalny. | Q10, późniejsze doprecyzowanie |
 | D08 | Proste rozróżnienie myszy i gładzika; bez panelu profili i osobnych opcji osi. | Q12 |
 | D09 | Lokalny/publiczny IPv4; dodatkowe publiczne IP VPN tylko z potwierdzeniem, bez kompletnej mapy per aplikacja. | Q13, Q16 |
 | D10 | W pasku domyślnie ikona; CPU, RAM, W, później temperatury i RPM wybierane osobno. | Q15 |

@@ -124,11 +124,11 @@ ApplicationLifecycleCoordinator z Core nie zależy od AppKit. Otrzymuje uczestni
 
 MenuBarExtra tworzy status item z ikoną `macbook` i panelem w stylu okna. Etykieta opcjonalnie składa CPU, RAM i moc w jeden ciąg o stałej kolejności. MenuBarStatusFormatter w Core oddziela reguły wyboru, jednostek i braku danych od SwiftUI. Panel korzysta ze wspólnych snapshotów metryk i sieci, nie tworzy osobnego samplera. Otwieranie sekcji głównego okna odbywa się przez środowiskową akcję `openWindow`.
 
-Ustawienia paska menu są wiązane bezpośrednio z trwałym AppIntegrationPreferences. Domyślnie widoczna jest sama ikona. Wartości niedostępne pozostają oznaczone jako `-`, a moc nie jest estymowana.
+Ustawienia paska menu są wiązane bezpośrednio z trwałym AppIntegrationPreferences. Domyślnie widoczna jest sama ikona. Wartości niedostępne pozostają oznaczone jako `-`, a dostępny odczyt PSTR jest pokazywany jako szacunek mocy AppleSMC.
 
-DockController jest uczestnikiem wspólnego cyklu życia. Mapuje preferencję widoczności na `NSApplication.ActivationPolicy.regular` lub `.accessory`. Zapis ustawienia następuje po udanym zastosowaniu polityki, dzięki czemu zapisany stan nie przeczy wynikowi AppKit. Kontroler nie usuwa ikony paska menu i nie kończy procesu.
+DockController jest uczestnikiem wspólnego cyklu życia. Łączy preferencję użytkownika ze stanem głównego okna i mapuje wynik na `NSApplication.ActivationPolicy.regular` lub `.accessory`. Zamknięte okno zawsze oznacza `.accessory`; przy otwartym oknie o widoczności Docka decyduje preferencja. Zapis ustawienia następuje po udanym zastosowaniu polityki, dzięki czemu zapisany stan nie przeczy wynikowi AppKit. Kontroler nie usuwa ikony paska menu i nie kończy procesu.
 
-Delegat aplikacji pozostawia proces aktywny po zamknięciu ostatniego okna i przywraca główne okno po ponownym otwarciu aplikacji z Docka. Panel paska menu i komendy SwiftUI używają `openWindow(id: "main")`, wybierają sekcję przed otwarciem i aktywują aplikację. Nadal istnieje tylko jedno główne okno.
+Delegat aplikacji pozostawia proces aktywny po zamknięciu ostatniego okna i obsługuje ponowne otwarcie aplikacji jawnym zdarzeniem. Panel paska menu i komendy SwiftUI ustawiają widoczność okna przed użyciem `openWindow(id: "main")`, wybierają sekcję i aktywują aplikację. Zamknięcie najpierw wygasza zawartość, a w następnym przebiegu głównej pętli ukrywa Dock, aby nie przerwać zdarzenia AppKit. Nadal istnieje tylko jedno główne okno.
 
 LoginItemController opakowuje `SMAppService.mainApp`. Odczytuje rzeczywisty status macOS, rejestruje lub wyrejestrowuje aplikację na żądanie i odświeża status po ponownej aktywacji aplikacji. Stan `requiresApproval` prowadzi użytkownika do panelu Login Items w Ustawieniach systemowych. Jednorazowy znacznik w PreferencesStore pozwala spróbować domyślnego włączenia tylko przy pierwszej konfiguracji i zapobiega ponownemu wymuszaniu decyzji odrzuconej później w macOS.
 

@@ -19,20 +19,23 @@ public enum MenuBarStatusFormatter {
     ) -> [MenuBarStatusSegment] {
         var result: [MenuBarStatusSegment] = []
         if preferences.showsCPU {
-            result.append(.init(kind: .cpu, text: "CPU \(percentage(snapshot[.cpu].value, locale: locale))"))
+            result.append(.init(kind: .cpu, text: percentage(snapshot[.cpu].value, locale: locale)))
+        }
+        if preferences.showsGPU {
+            result.append(.init(kind: .gpu, text: percentage(snapshot[.gpu].value, locale: locale)))
         }
         if preferences.showsRAM {
             let percent = snapshot[.memory].value.flatMap { used -> Double? in
                 guard snapshot.physicalMemory > 0 else { return nil }
                 return used / Double(snapshot.physicalMemory) * 100
             }
-            result.append(.init(kind: .memory, text: "RAM \(percentage(percent, locale: locale))"))
+            result.append(.init(kind: .memory, text: percentage(percent, locale: locale)))
         }
         if preferences.showsPower {
             let value = snapshot[.power].value.map {
-                $0.formatted(.number.precision(.fractionLength(1)).locale(locale))
+                $0.formatted(.number.precision(.fractionLength(1)).locale(Locale(identifier: "en_US_POSIX"))) + "W"
             } ?? "-"
-            result.append(.init(kind: .power, text: "W \(value)"))
+            result.append(.init(kind: .power, text: value))
         }
         return result
     }

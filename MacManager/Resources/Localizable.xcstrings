@@ -35,23 +35,6 @@
         }
       }
     },
-    "menuBar.scroll": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mouse scrolling"
-          }
-        },
-        "pl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Przewijanie myszy"
-          }
-        }
-      }
-    },
     "menuBar.settings.note": {
       "extractionState": "manual",
       "localizations": {
@@ -188,36 +171,19 @@
         }
       }
     },
-    "sidebar.private": {
+    "app.name": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Local. Private. Yours."
+            "value": "Mac Manager"
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lokalnie. Prywatnie. U Ciebie."
-          }
-        }
-      }
-    },
-    "privacy.local": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "On this Mac"
-          }
-        },
-        "pl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Na tym Macu"
+            "value": "Menedżer Maca"
           }
         }
       }
@@ -252,23 +218,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Informacje o urządzeniu i aktywności systemu."
-          }
-        }
-      }
-    },
-    "overview.openNetwork": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Open network details"
-          }
-        },
-        "pl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Otwórz szczegóły sieci"
           }
         }
       }
@@ -568,13 +517,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Language, appearance, app behavior, updates, diagnostics and privacy."
+            "value": "Language, appearance, app behavior, updates and diagnostics."
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Język, wygląd, działanie aplikacji, aktualizacje, diagnostyka i prywatność."
+            "value": "Język, wygląd, działanie aplikacji, aktualizacje i diagnostyka."
           }
         }
       }
@@ -677,40 +626,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ciemny wygląd z natywnym Liquid Glass. Systemowe ustawienia dostępności kontrolują przezroczystość i animacje."
-          }
-        }
-      }
-    },
-    "settings.privacy.title": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Local settings"
-          }
-        },
-        "pl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ustawienia lokalne"
-          }
-        }
-      }
-    },
-    "settings.privacy.body": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No account, telemetry or cloud sync. Your preferences stay on this Mac."
-          }
-        },
-        "pl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bez konta, telemetrii i synchronizacji z chmurą. Twoje preferencje pozostają na tym Macu."
           }
         }
       }
@@ -987,40 +902,6 @@
         }
       }
     },
-    "metrics.power.unverified": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Power is estimated from the read-only AppleSMC PSTR sensor and may vary between Mac models."
-          }
-        },
-        "pl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Moc jest szacowana przez czujnik AppleSMC PSTR tylko do odczytu i może różnić się między modelami Maca."
-          }
-        }
-      }
-    },
-    "metrics.memory.definition": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "RAM excludes file cache and includes physical compressed memory. GPU availability depends on the driver."
-          }
-        },
-        "pl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "RAM nie obejmuje cache plików i uwzględnia fizyczną pamięć skompresowaną. Dostępność GPU zależy od sterownika."
-          }
-        }
-      }
-    },
     "metrics.state.loading": {
       "extractionState": "manual",
       "localizations": {
@@ -1214,13 +1095,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Power history is unavailable until whole-device measurement is verified."
+            "value": "Waiting for power measurements"
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Historia mocy będzie dostępna po potwierdzeniu pomiaru całego urządzenia."
+            "value": "Oczekiwanie na pomiary mocy"
           }
         }
       }
@@ -1272,23 +1153,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Próbki:"
-          }
-        }
-      }
-    },
-    "history.note": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Stored in memory only. Gaps indicate missing readings, sleep or a sampling interval change."
-          }
-        },
-        "pl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tylko w pamięci aplikacji. Przerwy oznaczają brak odczytów, uśpienie lub zmianę interwału próbkowania."
           }
         }
       }
@@ -1357,23 +1221,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Odwraca kółko myszy w obu osiach. Gesty gładzika zachowują kierunek systemowy. Włączenie wymaga Dostępności i Monitorowania wprowadzania."
-          }
-        }
-      }
-    },
-    "scroll.compatibility": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Automatically distinguishes mice and trackpads. If another app reverses scrolling, turn that feature off there."
-          }
-        },
-        "pl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Automatycznie rozróżnia mysz i gładzik. Jeśli inna aplikacja odwraca przewijanie, wyłącz w niej tę funkcję."
           }
         }
       }
@@ -1741,13 +1588,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Show icon in Dock"
+            "value": "Show icon in Dock while the window is open"
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Pokazuj ikonę w Docku"
+            "value": "Pokazuj ikonę w Docku, gdy okno jest otwarte"
           }
         }
       }
@@ -1758,13 +1605,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "When hidden, Mac Manager remains available from the menu bar."
+            "value": "Closing the window hides the Dock icon. Mac Manager remains available from the menu bar."
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Po ukryciu Mac Manager pozostaje dostępny z paska menu."
+            "value": "Zamknięcie okna ukrywa ikonę Docka. Mac Manager pozostaje dostępny z paska menu."
           }
         }
       }

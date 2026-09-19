@@ -34,11 +34,14 @@ final class AppState {
     let lifecycle: ApplicationLifecycleCoordinator
     @ObservationIgnored private var terminationObserver: NSObjectProtocol?
     var section: AppSection? = .overview
+    var mainWindowVisible = false
 
     init() {
         launchContext = ApplicationLaunchContextDetector.detect()
+        let initiallyShowsMainWindow = launchContext != .loginItem
+        mainWindowVisible = initiallyShowsMainWindow
         diagnostics = DiagnosticsStore()
-        let appVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.1.0"
+        let appVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.8.0"
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("--ui-testing"),
            let defaults = UserDefaults(suiteName: "dev.macmanager.MacManager.UITests") {
@@ -49,7 +52,10 @@ final class AppState {
             scroll = ScrollService(enabled: preferences.reverseMouseScroll, driver: TestScrollDriver())
             network = NetworkService(enabled: false)
             metrics = MetricsService(interval: preferences.samplingInterval)
-            dock = DockController(showsDockIcon: preferences.appIntegration.showsDockIcon)
+            dock = DockController(
+                showsDockIcon: preferences.appIntegration.showsDockIcon,
+                mainWindowVisible: initiallyShowsMainWindow
+            )
             loginItem = LoginItemController(
                 preferences: preferences,
                 service: TestLoginItemService(arguments: ProcessInfo.processInfo.arguments)
@@ -61,14 +67,15 @@ final class AppState {
                 diagnostics: diagnostics,
                 fetch: fixture.fetch
             )
-            updates.setOnline(true)
+            let updateOffline = ProcessInfo.processInfo.arguments.contains("--update-offline")
+            updates.setOnline(!updateOffline)
             updateController = UpdateController(service: updates)
             var participants: [any ApplicationLifecycleParticipant] = [
                 dock,
                 loginItem,
-                ScrollController(service: scroll, diagnostics: diagnostics),
-                updateController
+                ScrollController(service: scroll, diagnostics: diagnostics)
             ]
+            if !updateOffline { participants.append(updateController) }
             if ProcessInfo.processInfo.arguments.contains("--live-metrics") {
                 participants.append(MetricsController(service: metrics, diagnostics: diagnostics))
             }
@@ -82,7 +89,10 @@ final class AppState {
         scroll = ScrollService(enabled: preferences.reverseMouseScroll, driver: ScrollDriver())
         network = NetworkService(enabled: preferences.publicIPEnabled)
         metrics = MetricsService(interval: preferences.samplingInterval)
-        dock = DockController(showsDockIcon: preferences.appIntegration.showsDockIcon)
+        dock = DockController(
+            showsDockIcon: preferences.appIntegration.showsDockIcon,
+            mainWindowVisible: initiallyShowsMainWindow
+        )
         loginItem = LoginItemController(preferences: preferences)
         updates = UpdateService(
             preferences: preferences,
@@ -105,6 +115,20 @@ final class AppState {
     func setDockIconVisible(_ isVisible: Bool) {
         guard dock.setVisible(isVisible) else { return }
         preferences.appIntegration.showsDockIcon = isVisible
+    }
+
+    func setMainWindowVisible(_ isVisible: Bool) {
+        mainWindowVisible = isVisible
+        _ = dock.setMainWindowVisible(isVisible)
+    }
+
+    func mainWindowWillClose() {
+        mainWindowVisible = false
+        Task { @MainActor [weak self] in
+            await Task.yield()
+            guard let self, !mainWindowVisible else { return }
+            _ = dock.setMainWindowVisible(false)
+        }
     }
 
     func setLaunchAtLoginEnabled(_ isEnabled: Bool) {
@@ -167,9 +191,9 @@ private struct TestUpdateFixture: Sendable {
         case .noRelease:
             return .noPublicRelease(etag: "\"ui-test\"")
         case .current:
-            return .release(release(version: "0.1.0"), etag: "\"ui-test\"")
+            return .release(release(version: "0.8.0"), etag: "\"ui-test\"")
         case .available:
-            return .release(release(version: "0.2.0"), etag: "\"ui-test\"")
+            return .release(release(version: "0.9.0"), etag: "\"ui-test\"")
         case .failed:
             throw UpdateCheckFailure(.timeout)
         }

@@ -2,7 +2,7 @@
 
 Krok 8 realizuje F1-07 i F1-08. Aplikacja sprawdza stabilne wydania na GitHub raz na 7 dni lub na żądanie użytkownika. Nie pobiera i nie instaluje aktualizacji. Diagnostyka pozostaje lokalna i nie zawiera danych użytkownika.
 
-Stan z 2026-09-10: punkty 8.1-8.6 są zaimplementowane na branchu `feat/stage-1`. Pozostaje pełny odbiór 8.7, w tym rozszerzone testy UI i końcowy raport kroku.
+Stan z 2026-09-12: punkty 8.1-8.7 są zaimplementowane i odebrane. Wyniki, poprawiona usterka stanu offline oraz granice odbioru opisuje [raport kroku 8](reports/etap-1-krok-8.md).
 
 ## 8.1 Model ustawień i stanu aktualizacji
 
@@ -49,6 +49,8 @@ Stan z 2026-09-10: punkty 8.1-8.6 są zaimplementowane na branchu `feat/stage-1`
 - Zweryfikować ustawienia prywatności w obu językach względem faktycznego działania aplikacji.
 
 ## 8.7 Testy i odbiór kroku
+
+Stan: ukończony 2026-09-12.
 
 - Testy jednostkowe obejmą parser wersji, kwalifikację wydania, harmonogram 7 dni, ETag i wszystkie stany błędów.
 - Testy integracyjne użyją lokalnych odpowiedzi HTTP dla nowej, bieżącej, starszej i uszkodzonej wersji, prerelease, draftu, braku DMG oraz limitu API.

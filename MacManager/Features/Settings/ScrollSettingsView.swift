@@ -38,9 +38,6 @@ struct ScrollSettingsView: View {
                                 .accessibilityIdentifier("scroll.retry")
                         }
                     }
-                    Text(strings("scroll.compatibility"))
-                        .font(.caption).foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
         }
