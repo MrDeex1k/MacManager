@@ -343,7 +343,6 @@ final class AppShellTests: XCTestCase {
 
         let alignedControls = [
             element("settings.language", in: app),
-            element("settings.appearance.value", in: app),
             element("metrics.interval", in: app),
             element("integration.launchAtLogin", in: app),
             element("updates.automatic", in: app)

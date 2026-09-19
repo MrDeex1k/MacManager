@@ -28,20 +28,6 @@ struct SettingsView: View {
                     Text(strings("settings.language.note"))
                         .foregroundStyle(.secondary)
                         .font(.callout)
-                    Divider()
-                    HStack {
-                        Label(strings("settings.appearance"), systemImage: "moon")
-                            .font(.headline)
-                        Spacer()
-                        Text(strings("settings.dark"))
-                            .foregroundStyle(.secondary)
-                            .accessibilityIdentifier("settings.appearance.value")
-                    }
-                    .padding(.trailing, 20)
-                    Text(strings("settings.appearance.note"))
-                        .foregroundStyle(.secondary)
-                        .font(.callout)
-                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
             Divider()
