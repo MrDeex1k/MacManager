@@ -14,7 +14,7 @@ Ten raport zamyka punkty 1, 2, 4 i 5 uzgodnionej części testowej kroku 9. W pu
 
 ## Testy automatyczne
 
-Pełny zestaw obejmuje 51 testów `MacManagerCore`, 9 testów prototypów i 14 scenariuszy XCTest UI. Scenariusze UI sprawdzają nawigację, PL/EN, pomiary i wykresy, scroll, pasek menu, Dock, cykl życia okna, start przy logowaniu, aktualizacje i diagnostykę.
+Pełny zestaw obejmuje 52 testy `MacManagerCore`, 9 testów prototypów i 14 scenariuszy XCTest UI. Scenariusze UI sprawdzają nawigację, PL/EN, pomiary i wykresy, scroll, pasek menu, Dock, cykl życia okna, start przy logowaniu, aktualizacje i diagnostykę.
 
 Pełne uruchomienie wykryło wyścig przy pierwszym otwarciu okna po starcie jako login item. Okno mogło powstać przed rejestracją obserwatora `didBecomeKey`, przez co pozostawał pusty kontener. Akcje otwierające z menu i paska menu ustawiają teraz widoczność przed wywołaniem `openWindow`. Dodatkowe testy regresji startu w tle oraz zamknięcia i ponownego otwarcia okna przechodzą.
 

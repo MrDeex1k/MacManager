@@ -9,7 +9,7 @@ A native macOS utility for live system monitoring, independent mouse scrolling a
 [![macOS 26+](https://img.shields.io/badge/macOS-26%2B-5EEAD4?style=flat-square&logo=apple&logoColor=111827)](https://www.apple.com/macos/)
 [![Apple Silicon](https://img.shields.io/badge/Apple_Silicon-only-5EEAD4?style=flat-square&logo=apple&logoColor=111827)](docs/01-produkt.md)
 [![Swift 6](https://img.shields.io/badge/Swift-6-5EEAD4?style=flat-square&logo=swift&logoColor=111827)](https://www.swift.org/)
-[![License MIT](https://img.shields.io/badge/License-MIT-5EEAD4?style=flat-square&logoColor=111827)](LICENSE)
+[![License AGPL v3](https://img.shields.io/badge/License-AGPL_v3-5EEAD4?style=flat-square&logo=gnu&logoColor=111827)](LICENSE)
 
 [Current status](docs/10-stan-projektu.md) · [Stage 1 roadmap](docs/06-plan-i-testy.md) · [Documentation](docs/README.md) · [Contributing](CONTRIBUTING.md)
 
@@ -41,7 +41,7 @@ A native macOS utility for live system monitoring, independent mouse scrolling a
 
 The collapsed notch-area panel will show nothing. It will use the active built-in MacBook display when available, otherwise the main display.
 
-**Next:** Stage 1, step 9 covers the final hardware and accessibility matrix, performance checks, Developer ID signing, notarization and the first arm64 DMG.
+**Next:** Stage 1, step 9 still needs an installed-app launch-at-login check, broader Apple Silicon coverage, Developer ID signing, notarization and the first arm64 DMG. Automated tests, the reference-hardware pass, accessibility audit and background performance measurement are complete.
 
 ## Requirements
 
@@ -120,6 +120,8 @@ Public IPv4 discovery and the planned release check contact external HTTPS servi
 
 The first public build will be a signed and notarized arm64 DMG published through GitHub Releases. A Homebrew Cask may later install the same DMG.
 
+The local `scripts/build-release-dmg.sh` workflow archives the arm64 app, validates Developer ID and Hardened Runtime, includes the project license, creates and signs the DMG, submits it for notarization, staples the ticket and writes a SHA-256 checksum. It requires the release identity, Apple Team ID and a configured `notarytool` Keychain profile; it does not publish a GitHub Release.
+
 Mac Manager will check stable GitHub Releases at most once a week by default, with a manual action and an option to disable automatic checks. It will open the selected release page for manual installation. It will not use Homebrew, Sparkle or a silent installer as an update mechanism. See the [release plan](docs/07-wydania.md).
 
 ## Contributing
@@ -137,4 +139,4 @@ Report security issues according to [SECURITY.md](SECURITY.md).
 
 ## License
 
-Mac Manager is available under the [MIT License](LICENSE). Adapted Scroll Reverser components retain their [Apache-2.0 attribution](THIRD_PARTY_NOTICES.md). Official releases will always remain free.
+Mac Manager is available under the [GNU Affero General Public License v3.0 only](LICENSE). Adapted Scroll Reverser components retain their [Apache-2.0 attribution](THIRD_PARTY_NOTICES.md). Official releases will always remain free.

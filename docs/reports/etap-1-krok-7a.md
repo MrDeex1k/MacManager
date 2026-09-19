@@ -4,7 +4,7 @@ Data: 2026-09-08. Stan: zaimplementowany i sprawdzony lokalnie na branchu feat/s
 
 ## Zakres
 
-- `AppIntegrationPreferences` przechowuje widoczność ikony Docka, intencję autostartu oraz niezależną widoczność CPU, RAM i mocy w pasku menu.
+- `AppIntegrationPreferences` przechowuje widoczność ikony Docka, intencję autostartu oraz niezależną widoczność CPU, GPU, RAM i mocy w pasku menu.
 - Domyślne wartości odpowiadają wymaganiom produktu: Dock i autostart włączone, wszystkie wartości liczbowe paska menu wyłączone.
 - `LaunchAtLoginState` rozdziela zapis intencji od rzeczywistego stanu macOS: unknown, disabled, enabled, requiresApproval, unavailable i failed.
 - `PreferencesStore` zapisuje model w osobnych, stabilnych kluczach `UserDefaults` i odtwarza bezpieczne wartości domyślne przy braku kluczy.

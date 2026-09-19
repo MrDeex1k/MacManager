@@ -2,7 +2,7 @@
 
 ## Cel
 
-Mac Manager daje szybki dostęp do stanu Maca oraz kilku codziennych narzędzi: niezależnego kierunku przewijania myszy, historii schowka i sterowania muzyką. Najpierw służy właścicielowi do testów, następnie jest publicznie dostępny na GitHub. Oficjalne wydania pozostają bezpłatne, a kod jest otwarty na licencji MIT.
+Mac Manager daje szybki dostęp do stanu Maca oraz kilku codziennych narzędzi: niezależnego kierunku przewijania myszy, historii schowka i sterowania muzyką. Najpierw służy właścicielowi do testów, następnie jest publicznie dostępny na GitHub. Oficjalne wydania pozostają bezpłatne, a kod jest otwarty na licencji GNU AGPL v3.0 only.
 
 Odbiorca: użytkownik Maca Apple Silicon, który chce odczytów systemowych i wygodnych narzędzi w jednej aplikacji. Produkt nie jest narzędziem do czyszczenia RAM, regulowania chłodzenia ani zarządzania procesami.
 
@@ -21,7 +21,7 @@ Odbiorca: użytkownik Maca Apple Silicon, który chce odczytów systemowych i wy
 | SCR-01 | 1 | Jeden przełącznik odwracania przewijania myszy, gładzik bez zmian. |
 | APP-01 | 1 | Pełne okno, panel w pasku menu oraz praca w tle po zamknięciu okna. |
 | APP-02 | 1 | Dock domyślnie widoczny przy otwartym oknie i automatycznie ukrywany po jego zamknięciu; widoczność przy otwartym oknie i autostart są konfigurowalne. |
-| BAR-01 | 1 | Domyślnie sama ikona; CPU, RAM i W włączane niezależnie. |
+| BAR-01 | 1 | Domyślnie sama ikona; CPU, GPU, RAM i W włączane niezależnie. |
 | UPD-01 | 1 | GitHub Releases: automatyczna kontrola raz w tygodniu i kontrola ręczna. |
 | SEN-01 | 2 | Temperatura CPU/GPU, wybór °C/°F. |
 | SEN-02 | 2 | Odczyt RPM wentylatorów; osobne opcje wskaźników temperatur i wentylatorów. |

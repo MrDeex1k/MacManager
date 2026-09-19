@@ -7,7 +7,7 @@ Wszystkie decyzje produktowe poniżej zatwierdzone w wywiadzie i końcowym podsu
 ~~~mermaid
 flowchart TD
     A["Mac Manager: publiczny i bezplatny"] --> B["Apple Silicon / macOS 26+"]
-    A --> C["GitHub / DMG / MIT"]
+    A --> C["GitHub / DMG / AGPL v3"]
     A --> D["Lokalne dane, bez kont i telemetrii"]
     B --> E["SwiftUI / ciemny Liquid Glass / PL i EN"]
     B --> F["Faza 1"]
@@ -37,7 +37,7 @@ flowchart TD
 | D07 | Dock jest domyślnie widoczny przy otwartym oknie i można go wyłączyć; zamknięcie okna ukrywa Dock oraz pozostawia proces w pasku menu. Autostart jest domyślnie włączony i konfigurowalny. | Q10, późniejsze doprecyzowanie |
 | D08 | Proste rozróżnienie myszy i gładzika; bez panelu profili i osobnych opcji osi. | Q12 |
 | D09 | Lokalny/publiczny IPv4; dodatkowe publiczne IP VPN tylko z potwierdzeniem, bez kompletnej mapy per aplikacja. | Q13, Q16 |
-| D10 | W pasku domyślnie ikona; CPU, RAM, W, później temperatury i RPM wybierane osobno. | Q15 |
+| D10 | W pasku domyślnie ikona; CPU, GPU, RAM, W, później temperatury i RPM wybierane osobno. | Q15, późniejsze doprecyzowanie |
 | D11 | Dopuszczone nieudokumentowane odczyty, początkowo bez admin helpera; bez sterowania wentylatorami. | Q17 |
 | D12 | Trwały schowek tekstów/obrazów; 50 wpisów/7 dni/200 MB, pierwszy przekroczony limit; wyszukiwanie i ręczne przywrócenie. | Q18 |
 | D13 | Pauza, wykluczenia aplikacji, pomijanie oznaczonej poufnej/tymczasowej treści; brak gwarancji rozpoznania wszystkich haseł. | Q19 |
@@ -46,10 +46,11 @@ flowchart TD
 | D16 | Aktywny ekran MacBooka ma wyłączność; bez niego ekran główny. | Q22 |
 | D17 | Domyślnie ukryta nad pełnym ekranem, z możliwością zmiany. | Końcowe podsumowanie |
 | D18 | Tylko ciemny Liquid Glass, aplikacja PL/EN, dokumentacja PL, README EN. | Q23 |
-| D19 | Oficjalne wydania zawsze bezpłatne, open source na MIT. | Q24, podsumowanie |
+| D19 | Oficjalne wydania zawsze bezpłatne i open source. Początkowy wybór MIT został zastąpiony przez D23. | Q24, podsumowanie, późniejsza zmiana |
 | D20 | GitHub Releases, sprawdzanie co tydzień i ręcznie; link do strony DMG, instalacja ręczna; niezależnie od Homebrew. | Q25, Q27 |
 | D21 | Brak kont, reklam, telemetrii, automatycznych raportów i synchronizacji; dane lokalne. | Q28 |
 | D22 | Połączenia zewnętrzne potrzebne dla publicznego IP i GitHub są jawne; lokalność dotyczy danych aplikacji. | Końcowe podsumowanie |
+| D23 | Główny kod projektu jest objęty GNU AGPL v3.0 only, aby umożliwić integrację kodu na zgodnej licencji i zachować copyleft dla modyfikacji. | Zmiana właściciela z 2026-09-19 |
 
 ## Decyzje inżynierskie
 
@@ -85,4 +86,4 @@ Zmianę produktową zapisać jako nową decyzję z przyczyną, wpływem na fazę
 - Cały etap rozwijamy na jednym branchu feat/stage-1; kolejne kroki rozdzielają commity, bez osobnych branchy kroków.
 - macOS 26+ oznacza domyślne użycie natywnego Liquid Glass w nawigacji i akcjach. Nie dodajemy przełącznika ani fallbacku dla starszego macOS; respektujemy systemowe ustawienia dostępności. Szczegółowy dobór miejsc jest w dokumencie interfejsu.
 
-Uzupełnienie implementacyjne kroku 6 (2026-09-08): na prośbę właściciela funkcja ma zastąpić automatyczne rozróżnianie Scroll Reversera bez wyboru modelu. Zaadaptowano jego klasyfikację dotyku i mostek zdarzeń z zachowaniem Apache-2.0/NOTICE; główny kod pozostaje MIT. Pasywna obserwacja gestów wymaga Monitorowania wprowadzania obok Dostępności. Szczegóły i wyniki: [raport kroku 6](reports/etap-1-krok-6.md).
+Uzupełnienie implementacyjne kroku 6 (2026-09-08): na prośbę właściciela funkcja ma zastąpić automatyczne rozróżnianie Scroll Reversera bez wyboru modelu. Zaadaptowano jego klasyfikację dotyku i mostek zdarzeń z zachowaniem Apache-2.0/NOTICE. Główny kod jest obecnie objęty GNU AGPL v3.0 only. Pasywna obserwacja gestów wymaga Monitorowania wprowadzania obok Dostępności. Szczegóły i wyniki: [raport kroku 6](reports/etap-1-krok-6.md).

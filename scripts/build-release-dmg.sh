@@ -72,6 +72,7 @@ fi
 
 mkdir -p "$stage"
 ditto "$app" "$stage/MacManager.app"
+cp "$root/LICENSE" "$stage/LICENSE.txt"
 ln -s /Applications "$stage/Applications"
 hdiutil create -quiet -volname "Mac Manager $version" -srcfolder "$stage" -format UDZO "$dmg"
 codesign --force --timestamp --sign "$DEVELOPER_ID_APPLICATION" "$dmg"

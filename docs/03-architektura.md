@@ -112,17 +112,17 @@ ScrollDriver utrzymuje jeden wątek z run loop i dwa tapy: pasywny dla NSEvent.g
 
 MMInput (C) odczytuje wszystkie delty przed zmianą: ustawienie wartości liniowej w Quartz może zmienić wartości punktowe i stałoprzecinkowe. Odwracamy obie osie i odpowiadające im wartości dołączonego zdarzenia IOHID, pozostawiając inne metadane. Zdarzenie wraca z callbacku, bez ponownego postowania. Prywatne symbole CGEventCopyIOHIDEvent/IOHIDEventGetFloatValue/IOHIDEventSetFloatValue są izolowane, rozwiązywane dynamicznie; brak symboli zatrzymuje start funkcji zamiast używać zgadywanego ABI.
 
-Blokada chroni bramkę wyłączenia i stan sterownika; callback nie wykonuje sieci, logowania ani zapisu ustawień. Po timeoutach dopuszczamy maksymalnie trzy wznowienia na minutę. Kolejne przerwanie lub wyłączenie przez system zatrzymuje oba tapy i wymaga świadomego ponowienia. Zmiana uprawnień jest sprawdzana co sekundę; cofnięcie którejkolwiek zatrzymuje funkcję. Testy GUI używają TestScrollDriver bez globalnego przechwytywania wejścia.
+Blokada chroni bramkę wyłączenia, stan sterownika oraz zasoby obserwatora gestów. Każde zakończenie workera zleca usunięcie obserwatora na głównej pętli AppKit, a tworzenie, odczyt i unieważnianie `gestureTap` korzystają z tej samej blokady. Callback nie wykonuje sieci, logowania ani zapisu ustawień. Po timeoutach dopuszczamy maksymalnie trzy wznowienia na minutę. Kolejne przerwanie lub wyłączenie przez system zatrzymuje oba tapy i wymaga świadomego ponowienia. Zmiana uprawnień jest sprawdzana co sekundę; cofnięcie którejkolwiek zatrzymuje funkcję. Testy GUI używają TestScrollDriver bez globalnego przechwytywania wejścia.
 
-Informacje Apache-2.0 dla adaptowanych fragmentów są w [THIRD_PARTY_NOTICES](../THIRD_PARTY_NOTICES.md) oraz w zasobach dystrybuowanej aplikacji. Pozostały kod projektu pozostaje MIT.
+Informacje Apache-2.0 dla adaptowanych fragmentów są w [THIRD_PARTY_NOTICES](../THIRD_PARTY_NOTICES.md) oraz w zasobach dystrybuowanej aplikacji. Pozostały kod projektu jest objęty GNU AGPL v3.0 only.
 
 ## Integracja aplikacji - kroki 7a, 7b, 7c i 7d
 
-AppIntegrationPreferences grupuje trwałe ustawienia Docka, intencję autostartu i trzy niezależne wskaźniki paska menu. Domyślnie Dock i autostart są włączone, a CPU, RAM i moc w pasku wyłączone. LaunchAtLoginState jest osobnym modelem rzeczywistego wyniku systemowego; zapisana intencja nie zastępuje odczytu `SMAppService.status`.
+AppIntegrationPreferences grupuje trwałe ustawienia Docka, intencję autostartu i cztery niezależne wskaźniki paska menu. Domyślnie Dock i autostart są włączone, a CPU, GPU, RAM i moc w pasku wyłączone. LaunchAtLoginState jest osobnym modelem rzeczywistego wyniku systemowego; zapisana intencja nie zastępuje odczytu `SMAppService.status`.
 
 ApplicationLifecycleCoordinator z Core nie zależy od AppKit. Otrzymuje uczestników zgodnych z ApplicationLifecycleParticipant, uruchamia ich jeden raz i zatrzymuje w odwrotnej kolejności. AppState składa z niego kontrolery metryk, sieci i scrolla, a wspólna obserwacja zakończenia procesu wywołuje terminate. Każdy kontroler jawnie anuluje pętle i usuwa własne obserwacje.
 
-MenuBarExtra tworzy status item z ikoną `macbook` i panelem w stylu okna. Etykieta opcjonalnie składa CPU, RAM i moc w jeden ciąg o stałej kolejności. MenuBarStatusFormatter w Core oddziela reguły wyboru, jednostek i braku danych od SwiftUI. Panel korzysta ze wspólnych snapshotów metryk i sieci, nie tworzy osobnego samplera. Otwieranie sekcji głównego okna odbywa się przez środowiskową akcję `openWindow`.
+MenuBarExtra tworzy status item z ikoną `macbook` i panelem w stylu okna. Etykieta opcjonalnie składa CPU, GPU, RAM i moc w jeden ciąg o stałej kolejności. Procenty są liczbami całkowitymi, a moc ma jedno miejsce po kropce i sufiks `W`. MenuBarStatusFormatter w Core oddziela reguły wyboru, jednostek i braku danych od SwiftUI. Panel korzysta ze wspólnych snapshotów metryk i sieci, nie tworzy osobnego samplera. Akcja „Otwórz okno” zamyka panel przed pokazaniem głównego okna.
 
 Ustawienia paska menu są wiązane bezpośrednio z trwałym AppIntegrationPreferences. Domyślnie widoczna jest sama ikona. Wartości niedostępne pozostają oznaczone jako `-`, a dostępny odczyt PSTR jest pokazywany jako szacunek mocy AppleSMC.
 
