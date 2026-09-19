@@ -7,17 +7,20 @@ enum ApplicationLaunchContext: Equatable {
 }
 
 enum ApplicationLaunchContextDetector {
-    static func detect(arguments: [String] = ProcessInfo.processInfo.arguments) -> ApplicationLaunchContext {
+    static func detect(
+        arguments: [String] = ProcessInfo.processInfo.arguments,
+        event: NSAppleEventDescriptor? = NSAppleEventManager.shared().currentAppleEvent
+    ) -> ApplicationLaunchContext {
         #if DEBUG
         if arguments.contains("--launched-at-login") {
             return .loginItem
         }
         #endif
 
-        guard let event = NSAppleEventManager.shared().currentAppleEvent,
+        guard let event,
               event.eventClass == AEEventClass(kCoreEventClass),
               event.eventID == AEEventID(kAEOpenApplication),
-              event.paramDescriptor(forKeyword: AEKeyword(keyAELaunchedAsLogInItem)) != nil else {
+              event.paramDescriptor(forKeyword: AEKeyword(keyAEPropData))?.enumCodeValue == keyAELaunchedAsLogInItem else {
             return .manual
         }
         return .loginItem

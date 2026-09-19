@@ -30,14 +30,16 @@ final class AppState {
     let updates: UpdateService
     let updateController: UpdateController
     let diagnostics: DiagnosticsStore
-    let launchContext: ApplicationLaunchContext
+    private(set) var launchContext: ApplicationLaunchContext
     let lifecycle: ApplicationLifecycleCoordinator
     @ObservationIgnored private var terminationObserver: NSObjectProtocol?
+    @ObservationIgnored private var launchObserver: NSObjectProtocol?
     var section: AppSection? = .overview
     var mainWindowVisible = false
 
     init() {
-        launchContext = ApplicationLaunchContextDetector.detect()
+        let launchContext = ApplicationLaunchContextDetector.detect()
+        self.launchContext = launchContext
         let initiallyShowsMainWindow = launchContext != .loginItem
         mainWindowVisible = initiallyShowsMainWindow
         diagnostics = DiagnosticsStore()
@@ -80,6 +82,7 @@ final class AppState {
                 participants.append(MetricsController(service: metrics, diagnostics: diagnostics))
             }
             lifecycle = ApplicationLifecycleCoordinator(participants: participants)
+            observeLaunch()
             observeTermination()
             lifecycle.start()
             return
@@ -108,6 +111,7 @@ final class AppState {
             MetricsController(service: metrics, diagnostics: diagnostics),
             updateController
         ])
+        observeLaunch()
         observeTermination()
         lifecycle.start()
     }
@@ -145,6 +149,33 @@ final class AppState {
 
     func diagnosticReport() -> String {
         DiagnosticReportBuilder.make(state: self)
+    }
+
+    private func observeLaunch() {
+        launchObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.didFinishLaunchingNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                if let launchObserver = self.launchObserver {
+                    NotificationCenter.default.removeObserver(launchObserver)
+                    self.launchObserver = nil
+                }
+                guard self.launchContext == .loginItem || ApplicationLaunchContextDetector.detect() == .loginItem else { return }
+                self.launchContext = .loginItem
+                self.setMainWindowVisible(false)
+                Task { @MainActor [weak self] in
+                    guard let self, !self.mainWindowVisible else { return }
+                    for window in NSApp.windows where window.canBecomeMain
+                        && window.styleMask.contains(.titled) && window.level == .normal {
+                        window.orderOut(nil)
+                    }
+                    _ = self.dock.setMainWindowVisible(false)
+                }
+            }
+        }
     }
 
     private func observeTermination() {
