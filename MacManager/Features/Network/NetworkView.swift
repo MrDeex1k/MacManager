@@ -16,10 +16,6 @@ struct NetworkView: View {
             Divider()
             addressRow(title: strings("network.public"), address: network.publicAddress,
                        detail: nil)
-            if let date = network.observedAt {
-                Text(date, format: .dateTime.hour().minute().second())
-                    .font(.caption).foregroundStyle(.secondary)
-            }
             HStack {
                 Toggle(strings("network.enabled"), isOn: Binding(
                     get: { state.preferences.publicIPEnabled },
