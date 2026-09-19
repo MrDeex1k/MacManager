@@ -63,7 +63,9 @@ xcodebuild -project MacManager.xcodeproj -scheme MacManager \
 open /tmp/macmanager-app-build/Build/Products/Debug/MacManager.app
 ```
 
-Local builds use ad-hoc signing and the development bundle identifier `dev.macmanager.MacManager`. They are development artifacts, not signed or notarized releases.
+Local builds use ad-hoc signing and the separate development bundle identifier `dev.macmanager.MacManager.Development`. They are development artifacts, not signed or notarized releases.
+
+Development builds (Debug and local Release) use the display name **Mac Manager Dev** and separate preferences and macOS permissions. The DMG release script sets the stable public identifier `dev.macmanager.MacManager`. Install the public app in Applications before enabling scroll permissions. The Scroll screen checks both permissions and offers instructions for repairing a stale entry and revealing the running app in Finder.
 
 ### Keyboard shortcuts
 

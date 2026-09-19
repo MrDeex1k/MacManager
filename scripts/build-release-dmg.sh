@@ -38,6 +38,8 @@ xcodebuild -quiet \
     -destination 'generic/platform=macOS' \
     -archivePath "$archive" \
     archive \
+    PRODUCT_BUNDLE_IDENTIFIER=dev.macmanager.MacManager \
+    INFOPLIST_KEY_CFBundleDisplayName="Mac Manager" \
     ARCHS=arm64 \
     ONLY_ACTIVE_ARCH=NO \
     MARKETING_VERSION="$version" \
@@ -50,6 +52,12 @@ xcodebuild -quiet \
 app="$archive/Products/Applications/MacManager.app"
 if [ ! -d "$app" ]; then
     printf '%s\n' "Archive does not contain MacManager.app" >&2
+    exit 1
+fi
+
+actual_identifier=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app/Contents/Info.plist")
+if [ "$actual_identifier" != "dev.macmanager.MacManager" ]; then
+    printf '%s\n' "Release app has an unexpected bundle identifier: $actual_identifier" >&2
     exit 1
 fi
 

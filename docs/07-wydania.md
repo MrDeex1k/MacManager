@@ -57,3 +57,11 @@ Kod projektu: [GNU AGPL v3.0 only](../LICENSE), z [adaptacjami Apache-2.0](../TH
 Preferujemy frameworki systemowe. Każda przyszła zależność ma przypiętą wersję, cel i informację licencyjną. Nie kopiować kodu czujników, grafiki ani elementów cudzej aplikacji wyłącznie dlatego, że repozytorium jest publiczne. Zachować wymagane notices po dodaniu rzeczywistej zależności. Biblioteki referencyjne z analizy nie są automatycznie zależnościami projektu.
 
 CI może budować i testować na macOS, a publikację wykonywać z zaufanego tagu. Sekrety podpisywania nie są dostępne dla niezaufanych pull requestów. Automatyczny workflow publikacji nie został jeszcze utworzony; obecny proces korzysta z lokalnego skryptu wydaniowego.
+
+## Tożsamość aplikacji i zgody przewijania
+
+Lokalne buildy Debug i Release używają `dev.macmanager.MacManager.Development` oraz nazwy Mac Manager Dev. Mają osobne UserDefaults i zgody TCC. Skrypt publicznego DMG ustawia `dev.macmanager.MacManager` i nazwę Mac Manager. Zachować publiczny identyfikator i zgodną tożsamość podpisu Developer ID pomiędzy wydaniami. Nie przenosić automatycznie zgód ani ustawień z buildów developerskich.
+
+Użytkownik instaluje aplikację w `/Applications`, włącza przewijanie i nadaje wskazane zgody: Dostępność (w nowszym systemie Sterowanie urządzeniami i dostęp do danych) oraz Monitorowanie wprowadzania. Aplikacja pokazuje oba stany niezależnie i sprawdza je ponownie po powrocie. Przy nieaktualnym wpisie pomoc wskazuje rzeczywistą kopię w Finderze i opisuje ponowne dodanie tylko tej aplikacji oraz restart. Aplikacja nie kasuje samodzielnie zgód systemowych.
+
+Przed publicznym wydaniem sprawdzić nadanie zgód na czystym profilu i zachowanie zgód po aktualizacji między dwoma podpisanymi wydaniami. Testy z atrapą sterownika nie zastępują tej próby.

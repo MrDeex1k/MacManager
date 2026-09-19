@@ -1,3 +1,4 @@
+import AppKit
 import MacManagerCore
 import SwiftUI
 
@@ -21,6 +22,28 @@ struct ScrollSettingsView: View {
                     Text(strings("scroll.description"))
                         .font(.callout).foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
+                    if preferences.reverseMouseScroll {
+                        permissionRow(strings("scroll.accessibility.title"), granted: state.scroll.accessibilityGranted)
+                        permissionRow(strings("scroll.inputMonitoring.title"), granted: state.scroll.inputMonitoringGranted)
+                        if !state.scroll.accessibilityGranted || !state.scroll.inputMonitoringGranted {
+                            Text(strings("scroll.setup.help"))
+                                .font(.callout).foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                            DisclosureGroup(strings("scroll.repair.title")) {
+                                VStack(alignment: .leading, spacing: 12) {
+                                    Text(strings("scroll.repair.help"))
+                                        .fixedSize(horizontal: false, vertical: true)
+                                    Text(Bundle.main.bundleURL.path).font(.caption).textSelection(.enabled)
+                                    Button(strings("scroll.reveal")) {
+                                        NSWorkspace.shared.activateFileViewerSelecting([Bundle.main.bundleURL])
+                                    }.buttonStyle(.glass)
+                                }
+                            }
+                            Button(strings("scroll.check")) { state.scroll.retry() }
+                                .buttonStyle(.glass)
+                                .accessibilityIdentifier("scroll.check")
+                        }
+                    }
                     HStack(spacing: 12) {
                         Text(strings("scroll.status.\(state.scroll.status.rawValue)"))
                             .font(.callout)
@@ -40,6 +63,16 @@ struct ScrollSettingsView: View {
                     }
                 }
             }
+        }
+    }
+
+    private func permissionRow(_ title: String, granted: Bool) -> some View {
+        HStack {
+            Text(title)
+            Spacer()
+            Label(state.strings(granted ? "scroll.permission.granted" : "scroll.permission.missing"),
+                  systemImage: granted ? "checkmark.circle.fill" : "exclamationmark.circle")
+                .foregroundStyle(granted ? AppTheme.accent : .secondary)
         }
     }
 }

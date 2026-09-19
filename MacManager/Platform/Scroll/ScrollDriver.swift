@@ -6,6 +6,8 @@ import MacManagerCore
 final class ScrollDriver: ScrollDriving {
     private var worker: ScrollTapWorker?
     private var requestingInput = false
+    var accessibilityGranted: Bool { AXIsProcessTrusted() }
+    var inputMonitoringGranted: Bool { CGPreflightListenEventAccess() }
     var permission: ScrollPermission {
         if !AXIsProcessTrusted() { return .accessibility }
         return CGPreflightListenEventAccess() ? .granted : .inputMonitoring

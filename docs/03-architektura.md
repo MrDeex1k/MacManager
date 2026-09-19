@@ -84,7 +84,7 @@ MacManager.xcodeproj zawiera target aplikacji i testy UI oraz współdzielony sc
 
 App/ zawiera scenę pojedynczego okna, nawigację, komendy i motyw. Features/ zawiera Przegląd, Sieć, Przewijanie, Dock i Ustawienia. W kroku 2 widoki nie uruchamiały usług pomiarowych i zapisywały wyłącznie język. Kroki 5 i 3 podłączyły sieć, bieżące metryki oraz ustawienia publicznego IP i interwału, zgodnie z opisem poniżej. Prototypy CLI pozostają osobnymi narzędziami. W Debug flagi --ui-testing i --reset-preferences izolują ustawienia testów od profilu użytkownika; w Release nie są obsługiwane.
 
-Konfiguracja: arm64, minimalny macOS 26.0, Swift 6, bez zależności zewnętrznych i generatora projektu. Identyfikator rozwojowy: dev.macmanager.MacManager. Podpis lokalny ad-hoc, bez skonfigurowanego Developer ID. ENABLE_HARDENED_RUNTIME jest włączone w projekcie, lecz Xcode wyłącza Hardened Runtime przy ad-hoc signing; weryfikacja podpisanego wydania pozostaje osobną bramką.
+Konfiguracja: arm64, minimalny macOS 26.0, Swift 6, bez zależności zewnętrznych i generatora projektu. Identyfikator rozwojowy: `dev.macmanager.MacManager.Development`. Skrypt DMG ustawia publiczny identyfikator `dev.macmanager.MacManager`. Podpis lokalny ad-hoc, bez skonfigurowanego Developer ID. ENABLE_HARDENED_RUNTIME jest włączone w projekcie, lecz Xcode wyłącza Hardened Runtime przy ad-hoc signing; weryfikacja podpisanego wydania pozostaje osobną bramką.
 
 ## Zaimplementowane usługi - kroki 5 i 3
 

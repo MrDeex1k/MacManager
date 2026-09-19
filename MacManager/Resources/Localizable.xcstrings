@@ -1,6 +1,159 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "scroll.accessibility.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accessibility / Device Control"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dostępność / Sterowanie urządzeniami"
+          }
+        }
+      }
+    },
+    "scroll.inputMonitoring.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Input Monitoring"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Monitorowanie wprowadzania"
+          }
+        }
+      }
+    },
+    "scroll.permission.granted": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Granted"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Przyznana"
+          }
+        }
+      }
+    },
+    "scroll.permission.missing": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Required"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wymagana"
+          }
+        }
+      }
+    },
+    "scroll.setup.help": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Install the app in Applications before granting access. Open the required setting below and enable this app. Return here to check the next permission. If macOS asks, quit and reopen the app."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Przenieś aplikację do folderu Aplikacje przed nadaniem zgód. Otwórz wymagane ustawienie poniżej i włącz tę aplikację. Wróć tutaj, aby sprawdzić kolejną zgodę. Jeśli macOS o to poprosi, zakończ aplikację i otwórz ją ponownie."
+          }
+        }
+      }
+    },
+    "scroll.repair.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Access is enabled in macOS, but not here?"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zgoda w macOS jest włączona, ale tutaj jej brakuje?"
+          }
+        }
+      }
+    },
+    "scroll.repair.help": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The entry may belong to an older or differently signed copy. In the affected permission list, remove only this app’s old entry and add the running copy shown below, then enable access and reopen the app. You can drag the app from Finder into the permission list."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wpis może należeć do starszej lub inaczej podpisanej kopii. Na liście brakującej zgody usuń tylko stary wpis tej aplikacji, dodaj uruchomioną kopię wskazaną poniżej i włącz zgodę. Następnie otwórz aplikację ponownie. Możesz przeciągnąć ją z Findera na listę zgód."
+          }
+        }
+      }
+    },
+    "scroll.reveal": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show this app in Finder"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pokaż tę aplikację w Finderze"
+          }
+        }
+      }
+    },
+    "scroll.check": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check access again"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sprawdź zgody ponownie"
+          }
+        }
+      }
+    },
     "menuBar.open": {
       "extractionState": "manual",
       "localizations": {
