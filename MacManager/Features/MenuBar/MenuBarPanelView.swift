@@ -92,7 +92,7 @@ struct MenuBarPanelView: View {
             }
         }
         .padding(16)
-        .frame(width: 330)
+        .frame(width: 300)
         .preferredColorScheme(.dark)
         .tint(AppTheme.accent)
         .accessibilityIdentifier("menuBar.panel")
