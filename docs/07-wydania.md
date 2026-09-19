@@ -2,7 +2,7 @@
 
 ## Model dystrybucji
 
-Oficjalne wydania są zawsze bezpłatne. Główny kod na MIT; adaptowane fragmenty scrolla zachowują Apache-2.0. Podstawowym artefaktem jest podpisany i notaryzowany DMG udostępniony w GitHub Releases; architektura arm64, minimum macOS 26.
+Oficjalne wydania są zawsze bezpłatne. Główny kod jest objęty GNU AGPL v3.0 only; adaptowane fragmenty scrolla zachowują Apache-2.0. Podstawowym artefaktem jest podpisany i notaryzowany DMG udostępniony w GitHub Releases; architektura arm64, minimum macOS 26.
 
 Opcjonalny Homebrew Cask może instalować ten sam DMG. Aplikacja nigdy nie uruchamia brew do kontroli lub instalowania aktualizacji. Ręczne polecenia Homebrew użytkownika pozostają poza kontrolą aplikacji.
 
@@ -27,7 +27,7 @@ Stosować HTTPS, ETag/304 i małe ograniczone odpowiedzi. Bez tokenu użytkownik
 1. Zbudować Release arm64 z ustalonym bundle ID i deployment target.
 2. Uruchomić testy oraz sprawdzić podpisy i uprawnienia.
 3. Podpisać aplikację Developer ID z Hardened Runtime.
-4. Przygotować DMG z aplikacją i skrótem do Applications; dołączyć informacje o wersji i sumę SHA-256 do wydania.
+4. Przygotować DMG z aplikacją, skrótem do Applications i tekstem GNU AGPL v3.0; dołączyć informacje o wersji i sumę SHA-256 do wydania.
 5. Przeprowadzić notaryzację, dołączyć ticket i zweryfikować Gatekeeper na pobranym artefakcie.
 6. Przetestować instalację na czystym profilu i zastąpienie poprzedniej wersji.
 7. Opublikować release z listą zmian, znanymi ograniczeniami i przetestowanymi modelami.
@@ -41,20 +41,27 @@ Instalacja nowej wersji: zakończyć aplikację, zastąpić ją w Applications, 
 | Element | Status po opracowaniu dokumentacji |
 | --- | --- |
 | Nazwa produktu | Mac Manager. |
-| Publiczne owner/repo | Do konfiguracji przed integracją aktualizacji; nie opublikowano w tym zadaniu. |
-| Bundle ID | Do nadania przed pierwszym buildem wymagającym trwałych zgód i kluczy. |
+| Publiczne owner/repo | `MrDeex1k/MacManager`, skonfigurowane w kliencie aktualizacji. |
+| Bundle ID | `dev.macmanager.MacManager`; zmiana przed wydaniem wymaga ponownej walidacji zgód i autostartu. |
 | Apple Developer Team / Developer ID | Dostępność niezweryfikowana; wymagane przed publicznym DMG. |
 | Sekrety notaryzacji i podpisu | Nie odczytywano ani nie tworzono; konfiguracja poza kodem. |
-| GitHub Releases | Kanał zatwierdzony; brak wydania w tym zadaniu. |
+| GitHub Releases | Kanał i ścisły format artefaktu są skonfigurowane; brak opublikowanego wydania. |
 | Homebrew | Opcjonalna przyszła instalacja; brak Caska w tym zadaniu. |
 
-To dane wdrożeniowe, które nie blokują zatwierdzonego projektu. Nie wymyślać owner/repo, identyfikatora zespołu ani komendy instalacyjnej w README.
+Lokalny skrypt `scripts/build-release-dmg.sh` archiwizuje aplikację arm64, sprawdza Developer ID i Hardened Runtime, umieszcza tekst licencji w obrazie, buduje DMG, wysyła go do notaryzacji, dołącza ticket oraz generuje SHA-256. Nie publikuje wydania i wymaga jawnie przekazanej tożsamości podpisu, Team ID oraz profilu `notarytool` z pęku kluczy.
 
 ## Licencja i zależności
 
-Kod projektu: [MIT](../LICENSE), z [adaptacjami Apache-2.0](../THIRD_PARTY_NOTICES.md). Pełne informacje licencyjne ThirdPartyNotices.txt muszą pozostać w pakiecie aplikacji i DMG. Oficjalna bezpłatność jest zobowiązaniem projektu; MIT dopuszcza również komercyjne wykorzystanie przez innych i wymaga zachowania informacji licencyjnych. [Tekst MIT](https://opensource.org/license/mit).
+Kod projektu: [GNU AGPL v3.0 only](../LICENSE), z [adaptacjami Apache-2.0](../THIRD_PARTY_NOTICES.md). Pełne informacje licencyjne `ThirdPartyNotices.txt` muszą pozostać w pakiecie aplikacji i DMG. Dystrybucja zmodyfikowanej wersji wymaga udostępnienia odpowiadającego jej kodu na warunkach AGPL. Jeżeli zmodyfikowana wersja umożliwia zdalną interakcję przez sieć, jej użytkownicy muszą otrzymać możliwość pobrania odpowiadającego kodu źródłowego zgodnie z sekcją 13. [Tekst GNU AGPL v3](https://www.gnu.org/licenses/agpl-3.0.html).
 
 Preferujemy frameworki systemowe. Każda przyszła zależność ma przypiętą wersję, cel i informację licencyjną. Nie kopiować kodu czujników, grafiki ani elementów cudzej aplikacji wyłącznie dlatego, że repozytorium jest publiczne. Zachować wymagane notices po dodaniu rzeczywistej zależności. Biblioteki referencyjne z analizy nie są automatycznie zależnościami projektu.
 
-CI może budować i testować na macOS, a publikację wykonywać z zaufanego tagu. Sekrety podpisywania nie są dostępne dla niezaufanych pull requestów. Konkretnego workflow jeszcze nie utworzono.
+CI może budować i testować na macOS, a publikację wykonywać z zaufanego tagu. Sekrety podpisywania nie są dostępne dla niezaufanych pull requestów. Automatyczny workflow publikacji nie został jeszcze utworzony; obecny proces korzysta z lokalnego skryptu wydaniowego.
 
+## Tożsamość aplikacji i zgody przewijania
+
+Lokalne buildy Debug i Release używają `dev.macmanager.MacManager.Development` oraz nazwy Mac Manager Dev. Mają osobne UserDefaults i zgody TCC. Skrypt publicznego DMG ustawia `dev.macmanager.MacManager` i nazwę Mac Manager. Zachować publiczny identyfikator i zgodną tożsamość podpisu Developer ID pomiędzy wydaniami. Nie przenosić automatycznie zgód ani ustawień z buildów developerskich.
+
+Użytkownik instaluje aplikację w `/Applications`, włącza przewijanie i nadaje wskazane zgody: Dostępność (w nowszym systemie Sterowanie urządzeniami i dostęp do danych) oraz Monitorowanie wprowadzania. Aplikacja pokazuje oba stany niezależnie i sprawdza je ponownie po powrocie. Przy nieaktualnym wpisie pomoc wskazuje rzeczywistą kopię w Finderze i opisuje ponowne dodanie tylko tej aplikacji oraz restart. Aplikacja nie kasuje samodzielnie zgód systemowych.
+
+Przed publicznym wydaniem sprawdzić nadanie zgód na czystym profilu i zachowanie zgód po aktualizacji między dwoma podpisanymi wydaniami. Testy z atrapą sterownika nie zastępują tej próby.

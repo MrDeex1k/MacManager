@@ -7,12 +7,12 @@ https://github.com/pilotmoon/Scroll-Reverser
 Modifications: Swift classifier with an unknown initial state, separate gesture
 and momentum ownership during device switching, runtime resolution
 of private HID symbols, validation, a dedicated event thread and bounded recovery.
-The rest of Mac Manager remains MIT-licensed.
+The rest of Mac Manager is licensed under GNU AGPL v3.0 only.
 
 Scroll Reverser
 Copyright 2011 Nicholas Moore
 
-This software is released under the the Apache 2.0 License (see LICENSE).
+This software is released under the Apache 2.0 License (see LICENSE).
 
 The name "Scroll Reverser" and the application icon are
 trademarks and may not be used by derivatve works (except as required to

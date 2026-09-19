@@ -44,7 +44,7 @@ Były to próby pasywne: potwierdzają rozróżnianie, a nie faktyczne odwracani
 
 ## Licencja i źródła
 
-Adaptacja dotyczy [Scroll Reversera, rewizja 187bf3945](https://github.com/pilotmoon/Scroll-Reverser/tree/187bf3945b6107cd8486327c6165f32e523535a4), w szczególności MouseTap.m i deklaracji SPI. Copyright 2011 Nicholas Moore; Apache-2.0. Pełne NOTICE/LICENSE są w zasobach aplikacji, z opisem zmian w [THIRD_PARTY_NOTICES](../../THIRD_PARTY_NOTICES.md). Główny kod projektu pozostaje MIT.
+Adaptacja dotyczy [Scroll Reversera, rewizja 187bf3945](https://github.com/pilotmoon/Scroll-Reverser/tree/187bf3945b6107cd8486327c6165f32e523535a4), w szczególności MouseTap.m i deklaracji SPI. Copyright 2011 Nicholas Moore; Apache-2.0. Pełne NOTICE/LICENSE są w zasobach aplikacji, z opisem zmian w [THIRD_PARTY_NOTICES](../../THIRD_PARTY_NOTICES.md). Główny kod projektu jest obecnie objęty GNU AGPL v3.0 only.
 
 API: [CGEvent tap](https://developer.apple.com/documentation/coregraphics/cgevent/tapcreate(tap:place:options:eventsofinterest:callback:userinfo:)), [dotyk NSEvent](https://developer.apple.com/documentation/appkit/nsevent/touches(matching:in:)), lokalne nagłówki SDK macOS 26.5; wymagania zgód porównano z PermissionsManager.m projektu referencyjnego.
 

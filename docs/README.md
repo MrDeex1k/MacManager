@@ -15,11 +15,12 @@ Aktualny punkt prac i kolejność kolejnych zadań: [Stan projektu](10-stan-proj
 | [Wykonalność](04-wykonalnosc.md) | API, źródła, ryzyka i prototypy techniczne. |
 | [Dane i prywatność](05-dane-i-prywatnosc.md) | Schowek, retencja, uprawnienia i połączenia sieciowe. |
 | [Plan i testy](06-plan-i-testy.md) | Trzy fazy, zadania, kryteria odbioru i macierz testów. |
-| [Wydania](07-wydania.md) | DMG, GitHub Releases, aktualizacje, MIT i opcjonalny Homebrew. |
+| [Wydania](07-wydania.md) | DMG, GitHub Releases, aktualizacje, GNU AGPL v3.0 only i opcjonalny Homebrew. |
 | [Rejestr decyzji](08-decyzje.md) | Zatwierdzone decyzje i drzewo zależności. |
 | [Praca z repozytorium](09-praca-z-repozytorium.md) | Lokalne hooki, Conventional Commits, instalacja i testy. |
 | [Plan kroku 8](11-plan-kroku-8.md) | Aktualizacje przez GitHub Releases, lokalna diagnostyka, prywatność i testy. |
 | [Raport kroku 8](reports/etap-1-krok-8.md) | Wyniki testów aktualizacji, interfejsu, diagnostyki i audytu prywatności. |
+| [Raport kroku 9](reports/etap-1-krok-9a.md) | Testy automatyczne, audyt dostępności, wydajność w tle i próba na urządzeniu referencyjnym. |
 | [Raport prototypów](reports/etap-1-krok-1.md) | Wyniki pierwszych uruchomień etapu 1 i brakujące dowody. |
 | [Raport szkieletu](reports/etap-1-krok-2.md) | Projekt Xcode, lokalny Core, interfejs i wyniki testów kroku 2. |
 

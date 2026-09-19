@@ -60,6 +60,8 @@ Before opening a pull request:
 
 Describe the concrete problem, resulting behavior, validation performed, and any remaining hardware or macOS limitations. Screenshots are useful for visible UI changes but do not replace behavior tests.
 
+Contributions are accepted under the project's [GNU Affero General Public License v3.0 only](LICENSE).
+
 ## Reporting bugs and requesting features
 
 Use the repository issue forms. Include macOS version, Mac model class, reproduction steps and expected behavior when relevant. Redact IP addresses and other personal data. Do not place security vulnerabilities or sensitive user content in a public issue; follow [SECURITY.md](SECURITY.md).

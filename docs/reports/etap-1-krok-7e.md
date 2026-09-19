@@ -5,7 +5,7 @@ Data: 2026-09-08. Stan: zaimplementowany na branchu feat/stage-1. Zmiana domyka 
 ## Zakres
 
 - Główna nawigacja zawiera kolejno Przegląd, Sieć, Przewijanie, Dock i Ustawienia.
-- Przełącznik widoczności ikony Docka, komunikat błędu macOS oraz opcje CPU, RAM i W wyświetlane obok ikony paska menu znajdują się wyłącznie w sekcji Dock.
+- Przełącznik widoczności ikony Docka, komunikat błędu macOS oraz opcje CPU, GPU, RAM i W wyświetlane obok ikony paska menu znajdują się wyłącznie w sekcji Dock.
 - Odwracanie przewijania, stan usługi i obsługa zgód znajdują się wyłącznie w sekcji Przewijanie.
 - Ustawienia zachowują język, wygląd, próbkowanie, autostart i opis prywatności.
 - Obie nowe sekcje korzystają z istniejącej nawigacji SwiftUI i natywnego Liquid Glass oraz działają po polsku i angielsku.

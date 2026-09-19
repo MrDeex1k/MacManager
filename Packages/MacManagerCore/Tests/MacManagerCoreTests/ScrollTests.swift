@@ -203,3 +203,30 @@ private final class FakeScrollDriver: ScrollDriving {
     #expect([start, mouse, end, glide, smoothMouse, glideContinues, glideEnds]
         == [.trackpad, .mouse, .trackpad, .trackpad, .mouse, .trackpad, .trackpad])
 }
+
+@MainActor @Test func permissionStatusRefreshesIndependentlyAndRetryStartsWhenGranted() {
+    final class PermissionDriver: ScrollDriving {
+        var accessibilityGranted = false
+        var inputMonitoringGranted = true
+        var permission: ScrollPermission {
+            !accessibilityGranted ? .accessibility : (inputMonitoringGranted ? .granted : .inputMonitoring)
+        }
+        var state: ScrollDriverState = .stopped
+        func start() { state = .active }
+        func stop() { state = .stopped }
+        func requestPermission() {}
+        func openPermissionSettings() {}
+    }
+    let driver = PermissionDriver()
+    let service = ScrollService(enabled: true, driver: driver)
+    service.refresh()
+    #expect(!service.accessibilityGranted && service.inputMonitoringGranted)
+    #expect(service.status == .permissionRequired)
+    driver.accessibilityGranted = true
+    service.retry()
+    #expect(service.status == .active)
+    driver.inputMonitoringGranted = false
+    service.refresh()
+    #expect(service.accessibilityGranted && !service.inputMonitoringGranted)
+    #expect(service.status == .inputMonitoringRequired && driver.state == .stopped)
+}

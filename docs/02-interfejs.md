@@ -17,16 +17,16 @@ Kompozycja: ciemna powierzchnia robocza, typografia systemowa i jeden akcent. Se
 | Miejsce | Sposób użycia | Etap |
 | --- | --- | --- |
 | Nawigacja boczna i pasek narzędzi | Standardowe NavigationSplitView, SidebarCommands i ToolbarItem, z wyglądem dostarczanym przez macOS 26. Bez dodatkowej szklanej nakładki. | 1, szkielet |
-| Akcja otwarcia szczegółów sieci | Natywny styl przycisku .glass; system obsługuje stany interakcji i dostępność. | 1, szkielet |
+| Akcje panelu paska menu | Dwie równe kontrolki .glass do otwarcia okna i zakończenia aplikacji. | 1, integracja systemowa |
 | Metryki, adresy, wykresy i opisy | Czytelna powierzchnia treści; szkło w kontrolkach, bez rozmywania samych danych. | 1 |
 | Panel paska menu | Systemowe materiały panelu i szklane akcje; bez nakładania kilku warstw szkła. | 1, integracja systemowa |
 | Rozwinięta wyspa | Materiał panelu i grupy akcji; dobór kontrastu na rzeczywistym tle. Zwinięty stan nadal pusty. | 3 |
 
 ## Pasek menu i Dock
 
-Ikona zawsze pozwala otworzyć panel. Kolejność opcjonalnych wskaźników: CPU, RAM, W, temperatura CPU, temperatura GPU, wentylatory. Temperatury i RPM dostępne od fazy 2. Szerokości wartości powinny być stabilne, aby pasek nie przesuwał się przy każdym pomiarze.
+Ikona zawsze pozwala otworzyć panel. Kolejność opcjonalnych wskaźników: CPU, GPU, RAM, W, temperatura CPU, temperatura GPU, wentylatory. Temperatury i RPM dostępne od fazy 2. Szerokości wartości powinny być stabilne, aby pasek nie przesuwał się przy każdym pomiarze.
 
-Panel: bieżące wartości, lokalny/publiczny IPv4, stan scrolla, informacja o dostępnej aktualizacji oraz „Otwórz okno”, „Ustawienia”, „Zakończ”. Kliknięcie adresu lub przycisku kopiowania kopiuje dokładny IPv4. Pełne szczegóły VPN znajdują się w sekcji Sieć.
+Panel: bieżące CPU, GPU, procent RAM i moc, lokalny/publiczny IPv4, informacja o dostępnej aktualizacji oraz dwie równe akcje „Otwórz okno” i „Zakończ”. Otwarcie okna zamyka panel. Przycisk kopiowania kopiuje dokładny IPv4. Stan scrolla i osobny przycisk Ustawień nie są pokazywane w panelu. Pełne szczegóły znajdują się w odpowiednich sekcjach głównego okna.
 
 Zamknięcie ostatniego okna nie kończy procesu i automatycznie ukrywa ikonę Docka. Aplikacja pozostaje dostępna z paska menu, a ponowne otwarcie okna przywraca Dock zgodnie z preferencją użytkownika. ⌘Q i „Zakończ” zamykają proces i zatrzymują obserwacje. Nie dopuszczać do ustawienia, które pozbawia użytkownika drogi powrotu do interfejsu.
 

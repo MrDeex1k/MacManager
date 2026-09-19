@@ -22,7 +22,7 @@ Odbiór wykrył, że pierwsze wywołanie `setOnline(false)` nie zmieniało stanu
 
 ## Wyniki techniczne
 
-- `swift test --package-path Packages/MacManagerCore`: 51 testów zakończonych powodzeniem.
+- `swift test --package-path Packages/MacManagerCore`: obecny zestaw 52 testów zakończony powodzeniem.
 - `xcodebuild ... build-for-testing`: aplikacja i 13 scenariuszy UI kompilują się poprawnie dla macOS arm64.
 - `xcodebuild ... -configuration Release build`: build zakończony powodzeniem; plik wykonywalny zawiera wyłącznie architekturę arm64.
 - Lokalny odbiór przez interfejs Dostępności potwierdził pięć stanów aktualizacji oraz polskie i angielskie teksty.

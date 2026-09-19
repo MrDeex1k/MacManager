@@ -6,7 +6,7 @@ Wszystkie nowe commity muszą stosować projektową konwencję opartą na [Conve
 
 Stosujemy prefiksy opisujące rodzaj pracy: feat/, fix/, docs/, chore/ lub refactor/. Nie stosujemy prefiksu codex/.
 
-Cały etap rozwijamy na jednym docelowym branchu: dla etapu 1 jest to feat/stage-1. Kolejne kroki trafiają bezpośrednio na ten branch jako osobne logiczne commity. Nie tworzymy branchy poszczególnych kroków i nie scalamy automatycznie do main.
+Funkcje jednego etapu rozwijamy na wspólnym docelowym branchu, na przykład `feat/stage-2`. Kolejne kroki trafiają na niego jako osobne logiczne commity. Skoncentrowane zmiany przekrojowe, takie jak licencja lub dokumentacja repozytorium, mogą używać osobnego `feat/...`, `fix/...`, `docs/...` lub `chore/...`. Branch jest scalany do `main` dopiero po odbiorze; agent nie tworzy ani nie scala PR bez jawnego polecenia właściciela.
 
 Historia prototypów kroku 1 została zachowana przez fast-forward do feat/stage-1. Pomocnicze branche kroków 1 i 2 usunięto po zmianie sposobu pracy zatwierdzonej przez właściciela projektu.
 

@@ -8,14 +8,23 @@ public enum ScrollStatus: String, Sendable { case off, permissionRequired, input
 public protocol ScrollDriving: AnyObject {
     var permission: ScrollPermission { get }
     var state: ScrollDriverState { get }
+    var accessibilityGranted: Bool { get }
+    var inputMonitoringGranted: Bool { get }
     func start()
     func stop()
     func requestPermission()
     func openPermissionSettings()
 }
 
+public extension ScrollDriving {
+    var accessibilityGranted: Bool { permission != .accessibility }
+    var inputMonitoringGranted: Bool { permission == .granted }
+}
+
 @MainActor @Observable
 public final class ScrollService {
+    public private(set) var accessibilityGranted = false
+    public private(set) var inputMonitoringGranted = false
     public private(set) var enabled: Bool
     public private(set) var status: ScrollStatus = .off
     @ObservationIgnored private let driver: any ScrollDriving
@@ -35,6 +44,8 @@ public final class ScrollService {
 
     public func refresh() {
         guard !terminated else { return }
+        accessibilityGranted = driver.accessibilityGranted
+        inputMonitoringGranted = driver.inputMonitoringGranted
         guard enabled else { driver.stop(); status = .off; return }
         guard !suspended else { driver.stop(); status = .suspended; return }
         guard driver.permission == .granted else {

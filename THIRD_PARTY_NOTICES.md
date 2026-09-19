@@ -1,6 +1,6 @@
 # Informacje o komponentach zewnętrznych
 
-Główny kod Mac Manager jest objęty [MIT](LICENSE). Poniższe adaptacje zachowują Apache-2.0; nie wymagają instalowania ani uruchamiania Scroll Reversera.
+Główny kod Mac Manager jest objęty [GNU AGPL v3.0 only](LICENSE). Poniższe adaptacje zachowują Apache-2.0; nie wymagają instalowania ani uruchamiania Scroll Reversera.
 
 ## Scroll Reverser
 
