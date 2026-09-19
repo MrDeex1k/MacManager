@@ -23,7 +23,7 @@ struct MenuBarPanelView: View {
                 }
                 Spacer()
                 Circle()
-                    .fill(hasCurrentMetrics ? AppTheme.accent : Color.secondary)
+                    .fill(metricsStatusColor)
                     .frame(width: 7, height: 7)
                     .accessibilityHidden(true)
             }
@@ -98,8 +98,13 @@ struct MenuBarPanelView: View {
         .accessibilityIdentifier("menuBar.panel")
     }
 
-    private var hasCurrentMetrics: Bool {
-        state.metrics.snapshot.readings.values.contains { $0.status == .available }
+    private var metricsStatusColor: Color {
+        let availableCount = MetricKind.allCases.filter {
+            state.metrics.snapshot[$0].status == .available
+        }.count
+        if availableCount == MetricKind.allCases.count { return .green }
+        if availableCount == 0 { return .red }
+        return .orange
     }
 
     private func metric(kind: MetricKind, label: String) -> some View {
