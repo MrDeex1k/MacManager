@@ -2,7 +2,7 @@
 
 Data weryfikacji: 2026-09-18.
 
-Ten raport zamyka punkty 1, 2, 4 i 5 uzgodnionej części testowej kroku 9. W punkcie 2 potwierdzono metryki, historię, sieć, cykl życia okna, sleep/wake i rozróżnianie myszy od gładzika na urządzeniu referencyjnym. Punkt 3, czyli autostart z zainstalowanej aplikacji, zostaje do osobnej sesji. Podpis Developer ID, notarization i publiczny DMG nadal należą do końcowego odbioru wydania.
+Ten raport zamyka punkty 1, 2, 4 i 5 uzgodnionej części testowej kroku 9. W punkcie 2 potwierdzono metryki, historię, sieć, cykl życia okna, sleep/wake i rozróżnianie myszy od gładzika na urządzeniu referencyjnym. Aktualizacja 2026-09-20: punkt 3, czyli autostart z zainstalowanej aplikacji, został potwierdzony przez właściciela po poprawce `ea043eb`. Podpis Developer ID, notarization i publiczny DMG nadal należą do końcowego odbioru wydania.
 
 ## Środowisko
 
@@ -64,4 +64,4 @@ Próba scrolla ujawniła, że pasywna obserwacja gestów uruchomiona na wątku r
 
 ## Stan odbioru
 
-Punkty 1, 2, 4 i 5 tej części kroku 9 są wykonane. Punkt 2 został odebrany na urządzeniu referencyjnym. Szersza macierz modeli Apple Silicon pozostaje udokumentowanym ograniczeniem walidacji przed stabilnym wydaniem publicznym i wymaga dostępu do dodatkowych Maców. Punkt 3 pozostaje otwarty. Cały krok 9 zostanie zamknięty dopiero po próbie autostartu z instalacji i przygotowaniu podpisanego, notarized DMG.
+Punkty 1, 2, 4 i 5 tej części kroku 9 są wykonane. Punkt 2 został odebrany na urządzeniu referencyjnym. Szersza macierz modeli Apple Silicon pozostaje udokumentowanym ograniczeniem walidacji przed stabilnym wydaniem publicznym i wymaga dostępu do dodatkowych Maców. Punkt 3 został następnie odebrany po poprawce `ea043eb` (Apple Development). Cały krok 9 zostanie zamknięty dopiero po przygotowaniu i odbiorze publicznego DMG z podpisem Developer ID i notaryzacją.

@@ -39,3 +39,5 @@ Krok 8 - aktualizacje, prywatność i diagnostyka.
 Użytkownik potwierdził automatyczny start i dostępność danych, ale aplikacja pozostawała w Docku. Detektor błędnie traktował `keyAELaunchedAsLogInItem` jako klucz parametru. macOS przekazuje tę wartość w `keyAEPropData` zdarzenia `kAEOpenApplication`. Poprawiono odczyt oraz dodano ponowne rozpoznanie w `didFinishLaunching`, ponieważ podczas tworzenia AppState zdarzenie może nie być jeszcze dostępne. Start po zalogowaniu ukrywa główne okno i ustawia politykę Docka na accessory; ręczne otwarcie okna nadal respektuje ustawienie Docka.
 
 Regresję odczytu Apple Event sprawdza `scripts/test-login-launch.swift`: brak zdarzenia, ręczny start, login item, service item oraz ponowne otwarcie. Faktyczny restart z nową wersją w `/Applications` pozostaje do potwierdzenia. Poprzednia próba nie zamyka odbioru autostartu.
+
+Odbiór właściciela po restarcie z poprawką `ea043eb`: „Teraz wszystko super działa”. Potwierdzono start z `/Applications` w tle, bez pozostającej ikony Docka. Próba dotyczy builda Apple Development; odbiór Developer ID i notaryzacji pozostaje osobną bramką wydania.

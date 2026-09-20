@@ -1,6 +1,6 @@
 # Aktualny stan projektu i dalsza kolejność
 
-Aktualizacja: 2026-09-20. Projekt jest w trakcie końcowego odbioru etapu 1; nie ma jeszcze publicznego wydania DMG. Kroki 1-8 są zaimplementowane i odebrane. W kroku 9 wykonano pełne testy automatyczne, audyt dostępności, 10-minutowy pomiar pracy w tle oraz ręczną próbę na urządzeniu referencyjnym, w tym offline i sleep/wake. Gotowy jest lokalny skrypt budowania, podpisywania i notaryzacji DMG. Pozostają autostart z zainstalowanej aplikacji oraz wykonanie i odbiór procesu dystrybucji.
+Aktualizacja: 2026-09-20. Projekt jest w trakcie końcowego odbioru etapu 1; nie ma jeszcze publicznego wydania DMG. Kroki 1-8 są zaimplementowane i odebrane. W kroku 9 wykonano pełne testy automatyczne, audyt dostępności, 10-minutowy pomiar pracy w tle oraz ręczną próbę na urządzeniu referencyjnym, w tym offline i sleep/wake. Gotowy jest lokalny skrypt budowania, podpisywania i notaryzacji DMG. Autostart z `/Applications` po poprawce rozpoznawania login item został potwierdzony przez właściciela. Pozostają wykonanie i odbiór procesu dystrybucji.
 
 ## Co działa
 
@@ -29,11 +29,11 @@ Aktualizacja: 2026-09-20. Projekt jest w trakcie końcowego odbioru etapu 1; nie
 | 6 | Scroll F1-05 | Zaimplementowany z adaptacją mechanizmu Scroll Reversera; rzeczywiste próby gładzika, myszy i zmiany urządzenia rozpoznane poprawnie, bez list modeli. |
 | 7 | Okno/menu/Dock/autostart F1-06 | Zaimplementowane. Pasek menu, Dock, `SMAppService.mainApp`, cykl życia procesu i start przy logowaniu bez okna mają testy automatyczne. Próba podpisanego wydania pozostaje w kroku 9. |
 | 8 | Aktualizacje i prywatność F1-07/F1-08 | Gotowy. Harmonogram, kwalifikacja wydania, cache, ETag, UI PL/EN, diagnostyka i prywatność zostały odebrane; szczegóły w [raporcie](reports/etap-1-krok-8.md). |
-| 9 | Testy końcowe i wydanie F1-09 | W toku. Punkty 1, 2, 4 i 5 są wykonane; w punkcie 2 potwierdzono metryki, historię, sieć z offline i powrotem połączenia, sleep/wake, cykl życia okna oraz scroll myszy i gładzika; [raport](reports/etap-1-krok-9a.md). Pozostają punkt 3 i podpisane wydanie. |
+| 9 | Testy końcowe i wydanie F1-09 | W toku. Punkty 1, 2, 4 i 5 są wykonane; w punkcie 2 potwierdzono metryki, historię, sieć z offline i powrotem połączenia, sleep/wake, cykl życia okna oraz scroll myszy i gładzika; [raport](reports/etap-1-krok-9a.md). Punkt 3 (autostart z instalacji, bez okna i ikony Docka) potwierdził właściciel po poprawce `ea043eb`. Pozostaje podpisane wydanie. |
 
 ## Co dalej
 
-1. **Krok 9:** punkt 3 z autostartem aplikacji w `/Applications`, a później podpis Developer ID, Hardened Runtime, notarization i DMG.
+1. **Krok 9:** podpis Developer ID, Hardened Runtime, notarization, odbiór DMG i publikacja GitHub Release 0.8.0. Na 2026-09-20 dostępny jest tylko certyfikat Apple Development; brakuje Developer ID Application oraz wskazanego profilu notarytool.
 
 Etap 2 (temperatury/RPM) i rozszerzony etap 3 pozostają planowane. Nie są aktywne w obecnym buildzie. Przyjęta kolejność etapu 3 to: prywatny schowek, pełny launcher, wyspa i muzyka. Wspólna architektura ma obsłużyć oba scenariusze integracji TinyCast, a scenariusz 1 jest pierwszym celem wdrożenia.
 
@@ -43,6 +43,8 @@ Etap 2 (temperatury/RPM) i rozszerzony etap 3 pozostają planowane. Nie są akty
 
 Raporty szczegółowe: [prototypy](reports/etap-1-krok-1.md), [szkielet](reports/etap-1-krok-2.md), [sieć](reports/etap-1-krok-5.md), [pomiary](reports/etap-1-krok-3.md), [historia i wykresy](reports/etap-1-krok-4.md), [scroll](reports/etap-1-krok-6.md), [model ustawień i cykl życia](reports/etap-1-krok-7a.md), [ikona i panel paska menu](reports/etap-1-krok-7b.md), [Dock i okno](reports/etap-1-krok-7c.md), [autostart i tryb uruchomienia](reports/etap-1-krok-7d.md), [osobne sekcje Docka i scrolla](reports/etap-1-krok-7e.md), [aktualizacje, prywatność i diagnostyka](reports/etap-1-krok-8.md), [testy automatyczne, dostępność i praca w tle](reports/etap-1-krok-9a.md). Projekt ikony i odtwarzanie zasobów: [Design/AppIcon](../Design/AppIcon/README.md).
 
-To nie jest zamknięty odbiór etapu 1. Nie deklarujemy przetestowania wszystkich Maców Apple Silicon, każdej konfiguracji VPN ani kosztu całej aplikacji na podstawie czasu pojedynczego odczytu. Lokalne buildy są podpisane ad-hoc; nie są wydaniami notarized.
+To nie jest zamknięty odbiór etapu 1. Nie deklarujemy przetestowania wszystkich Maców Apple Silicon, każdej konfiguracji VPN ani kosztu całej aplikacji na podstawie czasu pojedynczego odczytu. Domyślne buildy developerskie są podpisane ad-hoc. Kopia w `/Applications` użyta do odbioru autostartu ma podpis Apple Development; nie jest publicznym wydaniem Developer ID ani wydaniem notarized.
 
 Buildy developerskie mają osobną tożsamość `.Development`, ustawienia i zgody przewijania. Ekran przewijania pokazuje osobno obie zgody, umożliwia ponowną kontrolę i pomaga wskazać uruchomioną kopię w Finderze. Publiczny DMG zachowuje dotychczasowy identyfikator. Nadanie zgód na czystym profilu i ich zachowanie przy aktualizacji podpisanego wydania wymagają jeszcze walidacji.
+
+Weryfikacja 2026-09-20: ponownie przeszły 53 testy Core, 9 testów prototypów, 5 kontroli zdarzeń autostartu i kompilacja Release arm64 bez podpisu. Nie powtarzano pełnego zestawu UI ani pomiaru obciążenia. Najnowsze poprawki: panel 300 pkt, trzy kolory dostępności pomiarów, brak godziny pobrania IP i ukryta sekcja Wygląd.

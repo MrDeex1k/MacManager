@@ -43,7 +43,7 @@ Instalacja nowej wersji: zakończyć aplikację, zastąpić ją w Applications, 
 | Nazwa produktu | Mac Manager. |
 | Publiczne owner/repo | `MrDeex1k/MacManager`, skonfigurowane w kliencie aktualizacji. |
 | Bundle ID | `dev.macmanager.MacManager`; zmiana przed wydaniem wymaga ponownej walidacji zgód i autostartu. |
-| Apple Developer Team / Developer ID | Dostępność niezweryfikowana; wymagane przed publicznym DMG. |
+| Apple Developer Team / Developer ID | 2026-09-20: dostępny Apple Development; brak Developer ID Application wymaganego do publicznego DMG. |
 | Sekrety notaryzacji i podpisu | Nie odczytywano ani nie tworzono; konfiguracja poza kodem. |
 | GitHub Releases | Kanał i ścisły format artefaktu są skonfigurowane; brak opublikowanego wydania. |
 | Homebrew | Opcjonalna przyszła instalacja; brak Caska w tym zadaniu. |
