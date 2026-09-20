@@ -22,9 +22,10 @@ Nie dodawać Sparkle, chmurowej bazy, SDK telemetrii ani Spotify Web API do pocz
 | LoginItemService | Integracja z SMAppService.mainApp. |
 | ReleaseService | Tygodniowy harmonogram, GitHub Releases, wersje, link do wydania. |
 | SensorService | Faza 2: temperatura i wentylatory, wspólne adaptery sprzętu. |
-| IslandCoordinator | Faza 3: ekran, geometria, hover, fokus, skrót, pełny ekran. |
-| ClipboardService / Repository | Faza 3: obserwacja, filtrowanie, zapis, retencja i przywracanie. |
-| MusicService / PlayerAdapters | Faza 3: osobne adaptery Apple Music i Spotify. |
+| ClipboardService / Repository | Rozszerzony etap 3: jeden prywatny magazyn tekstów i obrazów, obserwacja, filtrowanie, szyfrowanie, retencja, wyszukiwanie w RAM i przywracanie. |
+| LauncherService / PaletteCoordinator | Rozszerzony etap 3: wspólna paleta aplikacji, plików i komend, dopasowanie przybliżone, aliasy, ulubione, skróty i wykonanie przez istniejące usługi. |
+| IslandCoordinator | Rozszerzony etap 3: ekran, geometria, hover, fokus, skrót, pełny ekran; konsumuje wspólny ClipboardService. |
+| MusicService / PlayerAdapters | Rozszerzony etap 3: osobne adaptery Apple Music i Spotify, używane przez wyspę i pełne okno. |
 | Diagnostics | Lokalne, zredagowane błędy techniczne i świadomy eksport. |
 
 ~~~mermaid
@@ -36,6 +37,9 @@ flowchart TD
     Metrics --> History["Bufor historii 300 s w RAM"]
     Services --> Clipboard["ClipboardService"]
     Clipboard --> Storage["Lokalny zapis szyfrowany"]
+    Services --> Launcher["LauncherService + PaletteCoordinator"]
+    Launcher --> Commands["Aplikacje / pliki / komendy"]
+    Launcher --> Clipboard
     Services --> Music["Adaptery lokalnych odtwarzaczy"]
     Services --> Network["IPv4 / GitHub Releases"]
     Network --> HTTPS["Jawnie określone usługi HTTPS"]

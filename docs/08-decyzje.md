@@ -51,6 +51,8 @@ flowchart TD
 | D21 | Brak kont, reklam, telemetrii, automatycznych raportów i synchronizacji; dane lokalne. | Q28 |
 | D22 | Połączenia zewnętrzne potrzebne dla publicznego IP i GitHub są jawne; lokalność dotyczy danych aplikacji. | Końcowe podsumowanie |
 | D23 | Główny kod projektu jest objęty GNU AGPL v3.0 only, aby umożliwić integrację kodu na zgodnej licencji i zachować copyleft dla modyfikacji. | Zmiana właściciela z 2026-09-19 |
+| D24 | Docelowo jedna aplikacja obejmuje prywatny schowek i pełny moduł wyszukiwania aplikacji/komend na bazie TinyCast, z paletą zgodną z przesłaną referencją. Wspólna architektura obsługuje oba scenariusze integracji; najpierw wdrażamy scenariusz 1, a następnie rozwijamy go w kierunku scenariusza 2 bez wymiany wyszukiwarki ani magazynu schowka. | Doprecyzowanie właściciela z 2026-09-20; [scenariusze](12-scenariusze-integracji-tinycast.md) |
+| D25 | Etap 2 nadal obejmuje czujniki temperatury i RPM. Rozszerzony etap 3 realizujemy w kolejności: prywatny schowek, pełny launcher, wyspa i muzyka. | Doprecyzowanie właściciela z 2026-09-20; [plan etapów](06-plan-i-testy.md) |
 
 ## Decyzje inżynierskie
 

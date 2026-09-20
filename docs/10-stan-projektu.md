@@ -1,6 +1,6 @@
 # Aktualny stan projektu i dalsza kolejność
 
-Aktualizacja: 2026-09-19. Projekt jest w trakcie końcowego odbioru etapu 1; nie ma jeszcze publicznego wydania DMG. Kroki 1-8 są zaimplementowane i odebrane. W kroku 9 wykonano pełne testy automatyczne, audyt dostępności, 10-minutowy pomiar pracy w tle oraz ręczną próbę na urządzeniu referencyjnym, w tym offline i sleep/wake. Gotowy jest lokalny skrypt budowania, podpisywania i notaryzacji DMG. Pozostają autostart z zainstalowanej aplikacji oraz wykonanie i odbiór procesu dystrybucji.
+Aktualizacja: 2026-09-20. Projekt jest w trakcie końcowego odbioru etapu 1; nie ma jeszcze publicznego wydania DMG. Kroki 1-8 są zaimplementowane i odebrane. W kroku 9 wykonano pełne testy automatyczne, audyt dostępności, 10-minutowy pomiar pracy w tle oraz ręczną próbę na urządzeniu referencyjnym, w tym offline i sleep/wake. Gotowy jest lokalny skrypt budowania, podpisywania i notaryzacji DMG. Pozostają autostart z zainstalowanej aplikacji oraz wykonanie i odbiór procesu dystrybucji.
 
 ## Co działa
 
@@ -35,7 +35,7 @@ Aktualizacja: 2026-09-19. Projekt jest w trakcie końcowego odbioru etapu 1; nie
 
 1. **Krok 9:** punkt 3 z autostartem aplikacji w `/Applications`, a później podpis Developer ID, Hardened Runtime, notarization i DMG.
 
-Etap 2 (temperatury/RPM) i etap 3 (wyspa, schowek, muzyka) pozostają planowane. Nie są aktywne w obecnym buildzie.
+Etap 2 (temperatury/RPM) i rozszerzony etap 3 pozostają planowane. Nie są aktywne w obecnym buildzie. Przyjęta kolejność etapu 3 to: prywatny schowek, pełny launcher, wyspa i muzyka. Wspólna architektura ma obsłużyć oba scenariusze integracji TinyCast, a scenariusz 1 jest pierwszym celem wdrożenia.
 
 ## Dowody i granice
 

@@ -21,6 +21,8 @@ Aktualny punkt prac i kolejność kolejnych zadań: [Stan projektu](10-stan-proj
 | [Plan kroku 8](11-plan-kroku-8.md) | Aktualizacje przez GitHub Releases, lokalna diagnostyka, prywatność i testy. |
 | [Raport kroku 8](reports/etap-1-krok-8.md) | Wyniki testów aktualizacji, interfejsu, diagnostyki i audytu prywatności. |
 | [Raport kroku 9](reports/etap-1-krok-9a.md) | Testy automatyczne, audyt dostępności, wydajność w tle i próba na urządzeniu referencyjnym. |
+| [Analiza integracji TinyCast](reports/analiza-integracji-tinycast.md) | Stan kodu, etapy 2/3, kandydaci do adaptacji i proponowany zakres integracji. |
+| [Dwa scenariusze integracji TinyCast](12-scenariusze-integracji-tinycast.md) | Prywatny schowek i pełny launcher; porównanie zakresu lokalnego z dalszymi integracjami. |
 | [Raport prototypów](reports/etap-1-krok-1.md) | Wyniki pierwszych uruchomień etapu 1 i brakujące dowody. |
 | [Raport szkieletu](reports/etap-1-krok-2.md) | Projekt Xcode, lokalny Core, interfejs i wyniki testów kroku 2. |
 

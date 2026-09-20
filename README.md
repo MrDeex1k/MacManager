@@ -37,7 +37,7 @@ A native macOS utility for live system monitoring, independent mouse scrolling a
 | --- | --- | --- |
 | **1 · Mac essentials** | Metrics and five-minute history, network, mouse scroll, menu bar, Dock, launch at login and GitHub release checks. | Steps 1-8 of 9 complete |
 | **2 · Hardware sensors** | CPU/GPU temperature in °C or °F and fan RPM monitoring. Fans are never controlled. | Planned |
-| **3 · Notch area** | Hover-operated panel, persistent local text/image clipboard history and local Apple Music/Spotify controls. | Planned |
+| **3 · Private tools and notch area** | Private clipboard, full local launcher for apps/files/commands, then hover-operated panel and local Apple Music/Spotify controls. One shared architecture supports both TinyCast integration scenarios. | Planned |
 
 The collapsed notch-area panel will show nothing. It will use the active built-in MacBook display when available, otherwise the main display.
 
