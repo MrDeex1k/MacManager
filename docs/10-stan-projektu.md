@@ -1,6 +1,6 @@
 # Aktualny stan projektu i dalsza kolejność
 
-Aktualizacja: 2026-09-20. Projekt jest w trakcie końcowego odbioru etapu 1; nie ma jeszcze publicznego wydania DMG. Kroki 1-8 są zaimplementowane i odebrane. W kroku 9 wykonano pełne testy automatyczne, audyt dostępności, 10-minutowy pomiar pracy w tle oraz ręczną próbę na urządzeniu referencyjnym, w tym offline i sleep/wake. Gotowy jest lokalny skrypt budowania, podpisywania i notaryzacji DMG. Autostart z `/Applications` po poprawce rozpoznawania login item został potwierdzony przez właściciela. Pozostają wykonanie i odbiór procesu dystrybucji.
+Aktualizacja: 2026-09-22. Projekt jest w trakcie końcowego odbioru etapu 1; nie ma jeszcze publicznego wydania DMG. Kroki 1-8 są zaimplementowane i odebrane. W kroku 9 wykonano pełne testy automatyczne, audyt dostępności, 10-minutowy pomiar pracy w tle oraz ręczną próbę na urządzeniu referencyjnym, w tym offline i sleep/wake. Gotowy jest lokalny skrypt budowania, podpisywania i notaryzacji DMG. Autostart z `/Applications` po poprawce rozpoznawania login item został potwierdzony przez właściciela. Pozostają wykonanie i odbiór procesu dystrybucji.
 
 ## Co działa
 
@@ -35,7 +35,7 @@ Aktualizacja: 2026-09-20. Projekt jest w trakcie końcowego odbioru etapu 1; nie
 
 1. **Krok 9:** podpis Developer ID, Hardened Runtime, notarization, odbiór DMG i publikacja GitHub Release 0.8.0. Na 2026-09-20 dostępny jest tylko certyfikat Apple Development; brakuje Developer ID Application oraz wskazanego profilu notarytool.
 
-Etap 2 (temperatury/RPM) i rozszerzony etap 3 pozostają planowane. Nie są aktywne w obecnym buildzie. Przyjęta kolejność etapu 3 to: prywatny schowek, pełny launcher, wyspa i muzyka. Wspólna architektura ma obsłużyć oba scenariusze integracji TinyCast, a scenariusz 1 jest pierwszym celem wdrożenia.
+Etap 2 rozpoczęty na `feat/stage-2`: adapter tylko do odczytu, sampler i modele temperatur/RPM oraz sprzętowy inwentarz M4 Pro. Czujniki nie są jeszcze podłączone do GUI ani harmonogramu aplikacji. [Zakres i wynik pierwszej próby](../Prototypes/Stage2/README.md). Rozszerzony etap 3 pozostaje planowany. Przyjęta kolejność etapu 3 to: prywatny schowek, pełny launcher, wyspa i muzyka. Wspólna architektura ma obsłużyć oba scenariusze integracji TinyCast, a scenariusz 1 jest pierwszym celem wdrożenia.
 
 ## Dowody i granice
 
@@ -48,3 +48,5 @@ To nie jest zamknięty odbiór etapu 1. Nie deklarujemy przetestowania wszystkic
 Buildy developerskie mają osobną tożsamość `.Development`, ustawienia i zgody przewijania. Ekran przewijania pokazuje osobno obie zgody, umożliwia ponowną kontrolę i pomaga wskazać uruchomioną kopię w Finderze. Publiczny DMG zachowuje dotychczasowy identyfikator. Nadanie zgód na czystym profilu i ich zachowanie przy aktualizacji podpisanego wydania wymagają jeszcze walidacji.
 
 Weryfikacja 2026-09-20: ponownie przeszły 53 testy Core, 9 testów prototypów, 5 kontroli zdarzeń autostartu i kompilacja Release arm64 bez podpisu. Nie powtarzano pełnego zestawu UI ani pomiaru obciążenia. Najnowsze poprawki: panel 300 pkt, trzy kolory dostępności pomiarów, brak godziny pobrania IP i ukryta sekcja Wygląd.
+
+Publikacja 0.8.0 została odłożona na prośbę właściciela z powodu konfiguracji hasła notaryzacji. Certyfikat Developer ID Application jest dostępny; historyczny brak certyfikatu z 20 września nie jest już aktualną przeszkodą. Prace etapu 2 są niezależne od publikacji.
