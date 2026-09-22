@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 import MMHardware
 @testable import MacManagerCore
@@ -45,4 +46,59 @@ import MMHardware
     #expect(decode(0x75693332, [0xff, 0xff, 0xff, 0xff]) == 4294967295)
     #expect(decode(0x73703738, [1]) == nil)
     #expect(decode(0xdeadbeef, [0, 0]) == nil)
+}
+
+@Test func sensorCatalogUsesOnlyKnownChipAndDoesNotInventMissingReadings() {
+    let catalog = SensorCatalog(processor: "Apple M4 Pro")
+    #expect(catalog.supported)
+    #expect(!SensorCatalog(processor: "Apple M4").supported)
+    #expect(!SensorCatalog(processor: "Apple M5 Pro").supported)
+    let snapshot = HardwareSensorSnapshot(uptime: 1, fans: .fans(1), readings: [
+        HardwareSensorReading(sensor: .init(key: "TCMb", kind: .temperature), rawValue: 60),
+        HardwareSensorReading(sensor: .init(key: "Tg1U", kind: .temperature), rawValue: 40),
+        HardwareSensorReading(sensor: .init(key: "Tg1k", kind: .temperature), rawValue: 50),
+        HardwareSensorReading(sensor: .init(key: "Tg0K", kind: .temperature), rawValue: nil),
+        HardwareSensorReading(sensor: .init(key: "F0Ac", kind: .fan), rawValue: 0)
+    ], catalog: catalog)
+    #expect(snapshot.cpuTemperature == 60)
+    #expect(snapshot.gpuTemperature == 45)
+    #expect(snapshot.availableGPUCount == 2)
+    #expect(snapshot.stale().cpuTemperature == nil)
+    #expect(snapshot.stale().gpuTemperature == nil)
+    #expect(snapshot.stale().readings.allSatisfy { $0.value == nil })
+}
+
+@MainActor @Test func temperatureUnitPersistsAndConvertsOnlyForDisplay() throws {
+    let suite = "SensorUnitTests.\(UUID().uuidString)"
+    let defaults = try #require(UserDefaults(suiteName: suite))
+    defer { defaults.removePersistentDomain(forName: suite) }
+    let store = PreferencesStore(defaults: defaults)
+    #expect(store.temperatureUnit == .celsius)
+    store.temperatureUnit = .fahrenheit
+    #expect(PreferencesStore(defaults: defaults).temperatureUnit == .fahrenheit)
+    #expect(TemperatureUnit.fahrenheit.convert(0) == 32)
+    #expect(TemperatureUnit.fahrenheit.convert(100) == 212)
+    #expect(TemperatureUnit.celsius.convert(60) == 60)
+}
+
+@MainActor @Test func sensorOnlySnapshotExpiresAndSleepClearsValues() async {
+    struct Sampler: MetricsSampling {
+        func reset() async {}
+        func sample() async -> MetricsSnapshot {
+            MetricsSnapshot(uptime: 10, readings: [:], sensors: HardwareSensorSnapshot(
+                uptime: 10, fans: .fans(1), readings: [
+                    HardwareSensorReading(sensor: .init(key: "TCMb", kind: .temperature), rawValue: 60),
+                    HardwareSensorReading(sensor: .init(key: "F0Ac", kind: .fan), rawValue: 1000)
+                ], catalog: SensorCatalog(processor: "Apple M4 Pro")))
+        }
+    }
+    let service = MetricsService(sampler: Sampler(), now: { 10 })
+    await service.collect()
+    #expect(service.snapshot.sensors.cpuTemperature == 60)
+    service.checkFreshness(now: 16)
+    #expect(service.snapshot.sensors.isStale)
+    #expect(service.snapshot.sensors.cpuTemperature == nil)
+    await service.collect()
+    service.setSuspended(true)
+    #expect(service.snapshot.sensors.readings.allSatisfy { $0.value == nil })
 }

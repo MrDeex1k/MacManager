@@ -15,7 +15,7 @@ final class AppShellTests: XCTestCase {
         ]
 
         try performAccessibilityAudit(in: app, for: auditTypes)
-        for section in ["network", "scroll", "dock", "settings"] {
+        for section in ["sensors", "network", "scroll", "dock", "settings"] {
             element("navigation.\(section)", in: app).click()
             try performAccessibilityAudit(in: app, for: auditTypes)
         }
@@ -52,8 +52,8 @@ final class AppShellTests: XCTestCase {
                 && element.elementType == .touchBar
                 && !element.isEnabled
             let sidebarLabels = [
-                "Overview", "Network", "Scroll", "Dock", "Settings",
-                "Przegląd", "Sieć", "Przewijanie", "Ustawienia"
+                "Overview", "Sensors", "Network", "Scroll", "Dock", "Settings",
+                "Przegląd", "Czujniki", "Sieć", "Przewijanie", "Ustawienia"
             ]
             let isNativeSidebarSelectionContrast = issue.auditType == .contrast
                 && element.elementType == .staticText
@@ -329,6 +329,40 @@ final class AppShellTests: XCTestCase {
         let result = XCTWaiter.wait(for: [currentExpectation], timeout: 12)
         XCTAssertEqual(result, .completed, "CPU status after login launch: \(String(describing: status.value))")
         app.terminate()
+    }
+
+    @MainActor
+    func testSensorsUnitsAndLiveReadings() throws {
+        var length = 0
+        guard sysctlbyname("machdep.cpu.brand_string", nil, &length, nil, 0) == 0, length > 0 else {
+            throw XCTSkip("Cannot identify reference hardware")
+        }
+        var bytes = [CChar](repeating: 0, count: length)
+        guard sysctlbyname("machdep.cpu.brand_string", &bytes, &length, nil, 0) == 0,
+              String(decoding: bytes.prefix(while: { $0 != 0 }).map { UInt8(bitPattern: $0) }, as: UTF8.self) == "Apple M4 Pro" else {
+            throw XCTSkip("Temperature catalog currently covers Apple M4 Pro")
+        }
+        let app = launch(reset: true, liveMetrics: true)
+        element("navigation.sensors", in: app).click()
+        let cpu = element("sensors.temperature.cpu", in: app)
+        XCTAssertTrue(cpu.waitForExistence(timeout: 5))
+        let celsius = NSPredicate(format: "value CONTAINS %@ OR label CONTAINS %@", "°C", "°C")
+        let ready = XCTNSPredicateExpectation(predicate: celsius, object: cpu)
+        XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 12), .completed)
+        let gpu = element("sensors.temperature.gpu", in: app)
+        XCTAssertTrue((gpu.value as? String ?? gpu.label).contains("°C"))
+        let fan = element("sensors.fan.0", in: app)
+        XCTAssertTrue((fan.value as? String ?? fan.label).contains("RPM"))
+        app.radioButtons["°F"].click()
+        XCTAssertTrue((cpu.value as? String ?? cpu.label).contains("°F"))
+        app.terminate()
+        let restored = launch(reset: false, liveMetrics: true)
+        element("navigation.sensors", in: restored).click()
+        let fahrenheit = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "value CONTAINS %@ OR label CONTAINS %@", "°F", "°F"),
+            object: element("sensors.temperature.cpu", in: restored))
+        XCTAssertEqual(XCTWaiter.wait(for: [fahrenheit], timeout: 12), .completed)
+        restored.terminate()
     }
 
     @MainActor

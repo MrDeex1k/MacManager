@@ -29,3 +29,18 @@ Występują też `Tp00` = -4, `Tp01` = 2,20 i klucze z zerem. Dowodzi to, że un
 - 56 testów Core przeszło, w tym dekodowanie, nieprawidłowe dane i rozróżnienie stanów wentylatorów.
 
 Następnie: katalog CPU/GPU dla zidentyfikowanych rodzin chipów, niezależna walidacja pomiarów, integracja z istniejącym harmonogramem i sleep/wake, widok Czujniki, prezentacja °C/°F oraz ustawienia paska menu.
+
+
+## Krok 2: integracja odczytów i widok Czujniki
+
+Dodano jawny katalog dla `Apple M4 Pro`: CPU to `TCMb` (średnia temperatury die według [katalogu iSMC](https://github.com/dkorunic/iSMC/blob/master/smc/sensors.go)), GPU to średnia dostępnych odczytów ośmiu kluczy z przypiętego katalogu Stats (zachowano MIT w notices aplikacji). Nie używamy listy kluczy rdzeni M4 ze Stats: część z nich na urządzeniu referencyjnym zwracała wartości bliskie zera. Nie podstawiamy temperatury maksymalnej za średnią.
+
+Pozostałe chipy otrzymują jawny brak mapowania temperatur. Odczyt fizycznych wentylatorów nadal działa niezależnie od katalogu temperatur. Wartości temperatur zweryfikowano pod względem dostępności i zakresu, ale nie zakończono porównania ich znaczenia i dokładności z niezależnym narzędziem. Mapowanie pozostaje w fazie walidacji.
+
+HardwareMetricsSampler dołącza wynik czujników do MetricsSnapshot w istniejącym cyklu 1/2/5 s. Nie ma drugiego timera. Anulowanie generacji podczas sleep/wake i zmiany interwału obejmuje także czujniki, a wygaszenie usuwa wartości temperatur i RPM. W obecnym kroku nie zapisujemy historii temperatur ani RPM.
+
+Nowa sekcja Czujniki zawiera CPU, GPU, osobne wentylatory i trwały wybór °C/°F; konwersja następuje tylko w prezentacji. Braki GPU nie są zerami i są oznaczone jako niepełny zestaw. UI jest dostępne w PL/EN. Dotychczasowa kropka w panelu nadal opisuje cztery metryki etapu 1.
+
+Następne kroki: niezależne porównanie sprzętowe i rozszerzenie katalogów, historia czujników, opcje temperatur/RPM w pasku menu oraz pomiar kosztu w tle. Nie podmieniano aplikacji w `/Applications`.
+
+Weryfikacja kroku 2: 59 testów Core przeszło, build Debug i celowany XCTest UI na M4 Pro przeszły. Test GUI odczytał temperatury CPU/GPU i RPM oraz potwierdził zmianę °C/°F i odtworzenie jednostki po restarcie aplikacji. Test sprzętowy jest pomijany na innych chipach.

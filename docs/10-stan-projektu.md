@@ -35,7 +35,7 @@ Aktualizacja: 2026-09-22. Projekt jest w trakcie końcowego odbioru etapu 1; nie
 
 1. **Krok 9:** podpis Developer ID, Hardened Runtime, notarization, odbiór DMG i publikacja GitHub Release 0.8.0. Na 2026-09-20 dostępny jest tylko certyfikat Apple Development; brakuje Developer ID Application oraz wskazanego profilu notarytool.
 
-Etap 2 rozpoczęty na `feat/stage-2`: adapter tylko do odczytu, sampler i modele temperatur/RPM oraz sprzętowy inwentarz M4 Pro. Czujniki nie są jeszcze podłączone do GUI ani harmonogramu aplikacji. [Zakres i wynik pierwszej próby](../Prototypes/Stage2/README.md). Rozszerzony etap 3 pozostaje planowany. Przyjęta kolejność etapu 3 to: prywatny schowek, pełny launcher, wyspa i muzyka. Wspólna architektura ma obsłużyć oba scenariusze integracji TinyCast, a scenariusz 1 jest pierwszym celem wdrożenia.
+Etap 2 rozpoczęty na `feat/stage-2`: adapter tylko do odczytu, sampler i modele temperatur/RPM oraz sprzętowy inwentarz M4 Pro. Czujniki są podłączone do wspólnego harmonogramu, mają sekcję Czujniki i trwały wybór °C/°F. Katalog temperatur obejmuje na razie tylko M4 Pro i wymaga niezależnej walidacji; historia oraz wskaźniki temperatur/RPM w pasku menu pozostają do wykonania. [Zakres i wynik pierwszej próby](../Prototypes/Stage2/README.md). Rozszerzony etap 3 pozostaje planowany. Przyjęta kolejność etapu 3 to: prywatny schowek, pełny launcher, wyspa i muzyka. Wspólna architektura ma obsłużyć oba scenariusze integracji TinyCast, a scenariusz 1 jest pierwszym celem wdrożenia.
 
 ## Dowody i granice
 

@@ -47,7 +47,7 @@ public final class MetricsService {
 
     public func checkFreshness(now: TimeInterval) {
         history.advance(to: now)
-        if snapshot.readings.values.contains(where: { $0.status == .available }), now - snapshot.uptime >= Double(interval.rawValue * 3) { snapshot = snapshot.stale() }
+        if snapshot.readings.values.contains(where: { $0.status == .available }) || snapshot.sensors.hasValues, now - snapshot.uptime >= Double(interval.rawValue * 3) { snapshot = snapshot.stale() }
     }
 
     public func setSuspended(_ suspended: Bool) {

@@ -39,11 +39,13 @@ public struct MetricsSnapshot: Sendable {
     public let uptime: TimeInterval
     public let readings: [MetricKind: MetricReading]
     public let physicalMemory: UInt64
+    public let sensors: HardwareSensorSnapshot
     public let collectionMilliseconds: Double
 
     public init(timestamp: Date = Date(), uptime: TimeInterval, readings: [MetricKind: MetricReading],
-                physicalMemory: UInt64 = 0, collectionMilliseconds: Double = 0) {
+                physicalMemory: UInt64 = 0, collectionMilliseconds: Double = 0, sensors: HardwareSensorSnapshot = .empty) {
         self.timestamp = timestamp; self.uptime = uptime; self.readings = readings
+        self.sensors = sensors
         self.physicalMemory = physicalMemory; self.collectionMilliseconds = collectionMilliseconds
     }
 
@@ -53,7 +55,7 @@ public struct MetricsSnapshot: Sendable {
 
     public func stale() -> Self {
         Self(timestamp: timestamp, uptime: uptime, readings: readings.mapValues { $0.stale() },
-             physicalMemory: physicalMemory, collectionMilliseconds: collectionMilliseconds)
+             physicalMemory: physicalMemory, collectionMilliseconds: collectionMilliseconds, sensors: sensors.stale())
     }
 }
 

@@ -23,6 +23,10 @@ public final class PreferencesStore {
 
     @ObservationIgnored private let defaults: UserDefaults
 
+    public var temperatureUnit: TemperatureUnit {
+        didSet { defaults.set(temperatureUnit.rawValue, forKey: "preferences.temperatureUnit") }
+    }
+
     public var samplingInterval: SamplingInterval {
         didSet { defaults.set(samplingInterval.rawValue, forKey: Key.samplingInterval) }
     }
@@ -74,6 +78,7 @@ public final class PreferencesStore {
 
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        temperatureUnit = defaults.string(forKey: "preferences.temperatureUnit").flatMap(TemperatureUnit.init(rawValue:)) ?? .celsius
         reverseMouseScroll = Self.bool(defaults, forKey: Key.reverseMouseScroll, default: false)
         samplingInterval = SamplingInterval(rawValue: defaults.integer(forKey: Key.samplingInterval)) ?? .two
         publicIPEnabled = Self.bool(defaults, forKey: Key.publicIPEnabled, default: true)

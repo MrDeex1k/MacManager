@@ -36,7 +36,7 @@ A native macOS utility for live system monitoring, independent mouse scrolling a
 | Stage | Scope | Status |
 | --- | --- | --- |
 | **1 · Mac essentials** | Metrics and five-minute history, network, mouse scroll, menu bar, Dock, launch at login and GitHub release checks. | Steps 1-8 of 9 complete |
-| **2 · Hardware sensors** | CPU/GPU temperature in °C or °F and fan RPM monitoring. Fans are never controlled. | Planned |
+| **2 · Hardware sensors** | Live sensor view with °C/°F and fan RPM. Initial temperature mapping covers M4 Pro; other chips and independent validation remain pending. Fans are never controlled. | In progress |
 | **3 · Private tools and notch area** | Private clipboard, full local launcher for apps/files/commands, then hover-operated panel and local Apple Music/Spotify controls. One shared architecture supports both TinyCast integration scenarios. | Planned |
 
 The collapsed notch-area panel will show nothing. It will use the active built-in MacBook display when available, otherwise the main display.
@@ -141,4 +141,4 @@ Report security issues according to [SECURITY.md](SECURITY.md).
 
 ## License
 
-Mac Manager is available under the [GNU Affero General Public License v3.0 only](LICENSE). Adapted Scroll Reverser components retain their [Apache-2.0 attribution](THIRD_PARTY_NOTICES.md). Official releases will always remain free.
+Mac Manager is available under the [GNU Affero General Public License v3.0 only](LICENSE). Scroll Reverser adaptations retain Apache-2.0 and the Stats GPU key mapping retains MIT; see [third-party attributions](THIRD_PARTY_NOTICES.md). Official releases will always remain free.
