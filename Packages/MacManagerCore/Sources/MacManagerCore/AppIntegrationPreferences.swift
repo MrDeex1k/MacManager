@@ -5,17 +5,26 @@ public struct MenuBarDisplayPreferences: Equatable, Sendable {
     public var showsGPU: Bool
     public var showsRAM: Bool
     public var showsPower: Bool
+    public var showsCPUTemperature: Bool
+    public var showsGPUTemperature: Bool
+    public var showsFans: Bool
 
     public init(
         showsCPU: Bool = false,
         showsGPU: Bool = false,
         showsRAM: Bool = false,
-        showsPower: Bool = false
+        showsPower: Bool = false,
+        showsCPUTemperature: Bool = false,
+        showsGPUTemperature: Bool = false,
+        showsFans: Bool = false
     ) {
         self.showsCPU = showsCPU
         self.showsGPU = showsGPU
         self.showsRAM = showsRAM
         self.showsPower = showsPower
+        self.showsCPUTemperature = showsCPUTemperature
+        self.showsGPUTemperature = showsGPUTemperature
+        self.showsFans = showsFans
     }
 }
 

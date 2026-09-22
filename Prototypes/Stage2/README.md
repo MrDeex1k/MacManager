@@ -50,3 +50,16 @@ Weryfikacja kroku 2: 59 testów Core przeszło, build Debug i celowany XCTest UI
 Na prośbę właściciela uruchomiono 10 procesów obciążających CPU przez maksymalnie 90 s, z odczytem SMC co 5 s i przerwaniem po osiągnięciu 95°C średniej CPU. Początek: 58,50°C, oba wentylatory 0 RPM. Po 50 s: 94,36°C, 2017 i 1937 RPM. W zainstalowanej aplikacji `/Applications/MacManager.app` bezpośrednio potwierdzono następnie 2324 i 2503 RPM. Wcześniejsze zera oznaczały zatrzymane wentylatory, nie brak odczytu.
 
 Test zakończył się automatycznie po około 75 s przy odczycie 95,43°C. Potwierdzono brak pozostałych procesów testowych; kolejny odczyt CPU wynosił 72,50°C. Nie sterowano wentylatorami ani nie zmieniano ustawień chłodzenia. Próba potwierdza reakcję odczytów RPM i ich prezentację w GUI; nie stanowi niezależnej kalibracji temperatur.
+
+## Pasek menu (2026-09-22)
+
+W sekcji Dock można niezależnie włączyć temperaturę CPU, temperaturę GPU i odczyty
+wszystkich wentylatorów razem. Nowe opcje domyślnie są wyłączone i zapisują się lokalnie.
+Każdy wskaźnik ma etykietę nad wartością. Temperatury respektują wybór °C/°F.
+RPM zachowują kolejność wentylatorów i pokazują zero przy zatrzymaniu; brak odczytu
+to „-”, również dla niedostępnego lub pasywnego chłodzenia. Nie sumujemy RPM.
+
+Mapowanie temperatur pozostaje ograniczone do M4 Pro, dla którego wykonano odczyty
+sprzętowe. Inwentarz wentylatorów nie zależy od katalogu temperatur.
+61 testów Core obejmuje także formatowanie, nieaktualne próbki, brak części RPM,
+wybór jednostki oraz trwałość nowych opcji. Test GUI sprawdza przełączniki i restart.

@@ -233,6 +233,17 @@ final class AppShellTests: XCTestCase {
         XCTAssertEqual(switchValue(gpu), 1)
         XCTAssertEqual(switchValue(ram), 1)
         XCTAssertEqual(switchValue(power), 1)
+        for id in ["CPUTemperature", "GPUTemperature", "Fans"] {
+            let toggle = element("menuBar.show" + id, in: app)
+            XCTAssertEqual(switchValue(toggle), 0)
+            toggle.click()
+            XCTAssertEqual(switchValue(toggle), 1)
+        }
+        let status = app.menuBars.statusItems.matching(
+            NSPredicate(format: "title CONTAINS %@ OR label CONTAINS %@", "CPU temperature", "CPU temperature")
+        ).firstMatch
+        XCTAssertTrue(status.waitForExistence(timeout: 5))
+        XCTAssertGreaterThan(status.frame.width, 150)
         app.terminate()
 
         app = launch(reset: false)
@@ -241,6 +252,9 @@ final class AppShellTests: XCTestCase {
         XCTAssertEqual(switchValue(element("menuBar.showGPU", in: app)), 1)
         XCTAssertEqual(switchValue(element("menuBar.showRAM", in: app)), 1)
         XCTAssertEqual(switchValue(element("menuBar.showPower", in: app)), 1)
+        for id in ["CPUTemperature", "GPUTemperature", "Fans"] {
+            XCTAssertEqual(switchValue(element("menuBar.show" + id, in: app)), 1)
+        }
         app.terminate()
     }
 

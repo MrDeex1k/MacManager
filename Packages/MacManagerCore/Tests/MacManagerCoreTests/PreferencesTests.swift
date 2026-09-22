@@ -71,6 +71,9 @@ import Testing
         menuBar: MenuBarDisplayPreferences(showsCPU: false, showsGPU: true, showsRAM: true, showsPower: true)
     )
     first.appIntegration.menuBar.showsCPU = true
+    first.appIntegration.menuBar.showsCPUTemperature = true
+    first.appIntegration.menuBar.showsGPUTemperature = true
+    first.appIntegration.menuBar.showsFans = true
 
     #expect(PreferencesStore(defaults: defaults).appIntegration == first.appIntegration)
 }

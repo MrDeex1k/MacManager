@@ -392,6 +392,57 @@
         }
       }
     },
+    "menuBar.cpuTemperature": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CPU temperature"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Temperatura CPU"
+          }
+        }
+      }
+    },
+    "menuBar.gpuTemperature": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "GPU temperature"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Temperatura GPU"
+          }
+        }
+      }
+    },
+    "menuBar.fans": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fans (together)"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wentylatory (razem)"
+          }
+        }
+      }
+    },
     "menuBar.settings.note": {
       "extractionState": "manual",
       "localizations": {
