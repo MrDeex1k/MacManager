@@ -123,6 +123,30 @@ private func sensorSample(_ time: Double, cpu: Double? = 50, gpu: Double? = 40,
     #expect(history.points(for: .fan(2)).isEmpty)
 }
 
+@Test func gpuTemperatureHistorySplitsWhenContributingSensorsChange() {
+    func snapshot(_ time: Double, secondGPU: Double?) -> MetricsSnapshot {
+        let readings: [HardwareSensorReading] = [
+            .init(sensor: .init(key: "TCMb", kind: .temperature), rawValue: 50),
+            .init(sensor: .init(key: "Tg1U", kind: .temperature), rawValue: 40),
+            .init(sensor: .init(key: "Tg1k", kind: .temperature), rawValue: secondGPU),
+            .init(sensor: .init(key: "F0Ac", kind: .fan), rawValue: 0)
+        ]
+        return MetricsSnapshot(uptime: time, readings: [:], sensors:
+            HardwareSensorSnapshot(uptime: time, fans: .fans(1), readings: readings,
+                                   catalog: SensorCatalog(processor: "Apple M4 Pro")))
+    }
+
+    var history = MetricsHistory()
+    history.append(snapshot(1, secondGPU: 60), interval: .one, now: 1)
+    history.append(snapshot(2, secondGPU: nil), interval: .one, now: 2)
+    history.append(snapshot(3, secondGPU: 60), interval: .one, now: 3)
+
+    #expect(history.points(for: .gpuTemperature).map(\.value) == [50, 40, 50])
+    #expect(history.points(for: .gpuTemperature).map(\.segment) == [1, 2, 3])
+    #expect(history.points(for: .cpuTemperature).map(\.segment) == [1, 1, 1])
+    #expect(history.points(for: .fan(0)).map(\.segment) == [1, 1, 1])
+}
+
 @Test func sensorHistoryUsesSameFiveMinuteWindowAndInterruptions() {
     var history = MetricsHistory()
     history.append(sensorSample(1), interval: .two, now: 1)

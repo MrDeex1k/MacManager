@@ -79,7 +79,10 @@ public struct MetricsHistory: Sendable {
                 return (value, sensors.catalog.cpuKeys.joined(separator: ","))
             case .gpuTemperature:
                 guard let value = sensors.gpuTemperature else { return nil }
-                return (value, sensors.catalog.gpuKeys.joined(separator: ","))
+                let contributingKeys = sensors.catalog.gpuKeys.filter { key in
+                    sensors.readings.contains { $0.sensor.key == key && $0.value != nil }
+                }
+                return (value, contributingKeys.joined(separator: ","))
             case .fan(let index):
                 guard (0..<16).contains(index), case .fans(let count) = sensors.fans,
                       index < count else { return nil }

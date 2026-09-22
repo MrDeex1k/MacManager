@@ -432,13 +432,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Fans (CPU / GPU)"
+            "value": "Fans"
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Wentylatory (CPU / GPU)"
+            "value": "Wentylatory"
           }
         }
       }
