@@ -26,7 +26,6 @@ struct MenuBarLabelView: View {
     private var statusImage: NSImage {
         let renderer = ImageRenderer(content:
             HStack(spacing: 8) {
-                Image(systemName: "macbook").font(.system(size: 15))
                 ForEach(segments) { segment in
                     VStack(spacing: 0) {
                         Text(title(for: segment.kind))
