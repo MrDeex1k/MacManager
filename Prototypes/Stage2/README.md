@@ -41,7 +41,7 @@ HardwareMetricsSampler dołącza wynik czujników do MetricsSnapshot w istnieją
 
 Nowa sekcja Czujniki zawiera CPU, GPU, osobne wentylatory i trwały wybór °C/°F; konwersja następuje tylko w prezentacji. Braki GPU nie są zerami i są oznaczone jako niepełny zestaw. UI jest dostępne w PL/EN. Dotychczasowa kropka w panelu nadal opisuje cztery metryki etapu 1.
 
-Następne kroki: niezależne porównanie sprzętowe, rozszerzenie katalogów Apple Silicon oraz pomiar kosztu w tle. Nie podmieniano aplikacji w `/Applications`.
+Następne kroki: niezależne porównanie sprzętowe i rozszerzenie katalogów Apple Silicon. Późniejszy pomiar kosztu w tle opisuje [raport etapu 2](../../docs/reports/etap-2-koszt-tla.md).
 
 Weryfikacja kroku 2: 59 testów Core przeszło, build Debug i celowany XCTest UI na M4 Pro przeszły. Test GUI odczytał temperatury CPU/GPU i RPM oraz potwierdził zmianę °C/°F i odtworzenie jednostki po restarcie aplikacji. Test sprzętowy jest pomijany na innych chipach.
 
@@ -70,3 +70,11 @@ Widok Czujniki zawiera wykres temperatury z wyborem CPU/GPU oraz osobny wykres R
 wszystkich wykrytych wentylatorów. Wybór °C/°F przelicza wykres przy wyświetlaniu;
 próbki pozostają zapisane w °C. Oba wykresy korzystają z istniejącej historii
 MetricsService i z tego samego monotonicznego czasu. Nie zapisują danych na dysku.
+
+## Koszt pracy w tle (2026-09-22)
+
+Zainstalowana aplikacja po zamknięciu okna zużyła średnio 2,338% jednego rdzenia
+według przyrostu czasu CPU w 10-minutowej próbie. RSS spadł z 141,47 do 104,00 MiB.
+Szczegóły, warunki i granice porównania z etapem 1 zawiera
+[raport pomiaru](../../docs/reports/etap-2-koszt-tla.md). Wynik przekracza przyjęty
+wcześniej cel CPU poniżej 1%, więc profilowanie pozostaje częścią odbioru etapu 2.
