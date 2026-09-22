@@ -93,3 +93,47 @@ private actor HistorySampler: MetricsSampling {
     #expect(service.history.count == 0)
     #expect(await sampler.calls == 1)
 }
+
+private func sensorSample(_ time: Double, cpu: Double? = 50, gpu: Double? = 40,
+                          fans: FanInventory = .fans(2), firstFan: Double? = 0,
+                          secondFan: Double? = 2_000) -> MetricsSnapshot {
+    let readings: [HardwareSensorReading] = [
+        .init(sensor: .init(key: "TCMb", kind: .temperature), rawValue: cpu),
+        .init(sensor: .init(key: "Tg1U", kind: .temperature), rawValue: gpu),
+        .init(sensor: .init(key: "F0Ac", kind: .fan), rawValue: firstFan),
+        .init(sensor: .init(key: "F1Ac", kind: .fan), rawValue: secondFan)
+    ]
+    return MetricsSnapshot(uptime: time, readings: [:], sensors:
+        HardwareSensorSnapshot(uptime: time, fans: fans, readings: readings,
+                               catalog: SensorCatalog(processor: "Apple M4 Pro")))
+}
+
+@Test func sensorHistoryPreservesZeroAndBreaksOnlyMissingSeries() {
+    var history = MetricsHistory()
+    history.append(sensorSample(1), interval: .one, now: 1)
+    history.append(sensorSample(2, gpu: nil, secondFan: nil), interval: .one, now: 2)
+    history.append(sensorSample(3, firstFan: 1_000), interval: .one, now: 3)
+
+    #expect(history.points(for: .cpuTemperature).map(\.value) == [50, 50, 50])
+    #expect(Set(history.points(for: .cpuTemperature).map(\.segment)).count == 1)
+    #expect(history.points(for: .gpuTemperature).map(\.segment) == [1, 2])
+    #expect(history.points(for: .fan(0)).map(\.value) == [0, 0, 1_000])
+    #expect(history.points(for: .fan(1)).map(\.segment) == [1, 2])
+    #expect(history.fanCount == 2)
+    #expect(history.points(for: .fan(2)).isEmpty)
+}
+
+@Test func sensorHistoryUsesSameFiveMinuteWindowAndInterruptions() {
+    var history = MetricsHistory()
+    history.append(sensorSample(1), interval: .two, now: 1)
+    history.interrupt(at: 2)
+    history.append(sensorSample(3, fans: .passive), interval: .two, now: 3)
+    history.append(sensorSample(5), interval: .two, now: 5)
+    #expect(history.points(for: .cpuTemperature).map(\.segment) == [1, 2, 2])
+    #expect(history.points(for: .fan(0)).map(\.segment) == [1, 2])
+    #expect(history.points(for: .fan(0)).map(\.value) == [0, 0])
+    history.advance(to: 305)
+    #expect(history.points(for: .cpuTemperature).isEmpty)
+    #expect(history.points(for: .fan(0)).isEmpty)
+    #expect(history.fanCount == 0)
+}

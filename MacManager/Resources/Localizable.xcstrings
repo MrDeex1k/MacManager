@@ -2550,6 +2550,40 @@
           }
         }
       }
+    },
+    "sensors.history.temperatures": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Temperature · last 5 minutes"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Temperatura · ostatnie 5 minut"
+          }
+        }
+      }
+    },
+    "sensors.history.fans": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fan speed · last 5 minutes"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Obroty wentylatorów · ostatnie 5 minut"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

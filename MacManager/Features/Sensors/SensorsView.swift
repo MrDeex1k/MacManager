@@ -57,6 +57,7 @@ struct SensorsView: View {
                     }
                 }
             }
+            SensorsHistoryView()
         }
     }
 

@@ -37,11 +37,11 @@ Dodano jawny katalog dla `Apple M4 Pro`: CPU to `TCMb` (średnia temperatury die
 
 Pozostałe chipy otrzymują jawny brak mapowania temperatur. Odczyt fizycznych wentylatorów nadal działa niezależnie od katalogu temperatur. Wartości temperatur zweryfikowano pod względem dostępności i zakresu, ale nie zakończono porównania ich znaczenia i dokładności z niezależnym narzędziem. Mapowanie pozostaje w fazie walidacji.
 
-HardwareMetricsSampler dołącza wynik czujników do MetricsSnapshot w istniejącym cyklu 1/2/5 s. Nie ma drugiego timera. Anulowanie generacji podczas sleep/wake i zmiany interwału obejmuje także czujniki, a wygaszenie usuwa wartości temperatur i RPM. W obecnym kroku nie zapisujemy historii temperatur ani RPM.
+HardwareMetricsSampler dołącza wynik czujników do MetricsSnapshot w istniejącym cyklu 1/2/5 s. Nie ma drugiego timera. Anulowanie generacji podczas sleep/wake i zmiany interwału obejmuje także czujniki, a wygaszenie usuwa wartości temperatur i RPM. Temperatury CPU/GPU i RPM każdego wentylatora mają wspólną historię pięciu minut w pamięci. Brak odczytu, sleep/wake, zmiana interwału i długie luki przerywają odpowiednią linię, a zatrzymany wentylator zachowuje wartość 0 RPM.
 
 Nowa sekcja Czujniki zawiera CPU, GPU, osobne wentylatory i trwały wybór °C/°F; konwersja następuje tylko w prezentacji. Braki GPU nie są zerami i są oznaczone jako niepełny zestaw. UI jest dostępne w PL/EN. Dotychczasowa kropka w panelu nadal opisuje cztery metryki etapu 1.
 
-Następne kroki: niezależne porównanie sprzętowe i rozszerzenie katalogów, historia czujników, opcje temperatur/RPM w pasku menu oraz pomiar kosztu w tle. Nie podmieniano aplikacji w `/Applications`.
+Następne kroki: niezależne porównanie sprzętowe, rozszerzenie katalogów Apple Silicon oraz pomiar kosztu w tle. Nie podmieniano aplikacji w `/Applications`.
 
 Weryfikacja kroku 2: 59 testów Core przeszło, build Debug i celowany XCTest UI na M4 Pro przeszły. Test GUI odczytał temperatury CPU/GPU i RPM oraz potwierdził zmianę °C/°F i odtworzenie jednostki po restarcie aplikacji. Test sprzętowy jest pomijany na innych chipach.
 
@@ -61,5 +61,12 @@ to „-”, również dla niedostępnego lub pasywnego chłodzenia. Nie sumujemy
 
 Mapowanie temperatur pozostaje ograniczone do M4 Pro, dla którego wykonano odczyty
 sprzętowe. Inwentarz wentylatorów nie zależy od katalogu temperatur.
-61 testów Core obejmuje także formatowanie, nieaktualne próbki, brak części RPM,
+63 testy Core obejmują także formatowanie, nieaktualne próbki, brak części RPM,
 wybór jednostki oraz trwałość nowych opcji. Test GUI sprawdza przełączniki i restart.
+
+## Historia czujników (2026-09-22)
+
+Widok Czujniki zawiera wykres temperatury z wyborem CPU/GPU oraz osobny wykres RPM
+wszystkich wykrytych wentylatorów. Wybór °C/°F przelicza wykres przy wyświetlaniu;
+próbki pozostają zapisane w °C. Oba wykresy korzystają z istniejącej historii
+MetricsService i z tego samego monotonicznego czasu. Nie zapisują danych na dysku.
