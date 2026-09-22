@@ -44,3 +44,9 @@ Nowa sekcja Czujniki zawiera CPU, GPU, osobne wentylatory i trwały wybór °C/�
 Następne kroki: niezależne porównanie sprzętowe i rozszerzenie katalogów, historia czujników, opcje temperatur/RPM w pasku menu oraz pomiar kosztu w tle. Nie podmieniano aplikacji w `/Applications`.
 
 Weryfikacja kroku 2: 59 testów Core przeszło, build Debug i celowany XCTest UI na M4 Pro przeszły. Test GUI odczytał temperatury CPU/GPU i RPM oraz potwierdził zmianę °C/°F i odtworzenie jednostki po restarcie aplikacji. Test sprzętowy jest pomijany na innych chipach.
+
+## Próba wentylatorów pod obciążeniem 2026-09-22
+
+Na prośbę właściciela uruchomiono 10 procesów obciążających CPU przez maksymalnie 90 s, z odczytem SMC co 5 s i przerwaniem po osiągnięciu 95°C średniej CPU. Początek: 58,50°C, oba wentylatory 0 RPM. Po 50 s: 94,36°C, 2017 i 1937 RPM. W zainstalowanej aplikacji `/Applications/MacManager.app` bezpośrednio potwierdzono następnie 2324 i 2503 RPM. Wcześniejsze zera oznaczały zatrzymane wentylatory, nie brak odczytu.
+
+Test zakończył się automatycznie po około 75 s przy odczycie 95,43°C. Potwierdzono brak pozostałych procesów testowych; kolejny odczyt CPU wynosił 72,50°C. Nie sterowano wentylatorami ani nie zmieniano ustawień chłodzenia. Próba potwierdza reakcję odczytów RPM i ich prezentację w GUI; nie stanowi niezależnej kalibracji temperatur.
