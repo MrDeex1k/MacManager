@@ -19,7 +19,7 @@ Wymaganie: lokalne ustawienia i historia, bez kont, reklam, telemetrii, automaty
 | Diagnostyka | Systemowy OSLog oraz ostatni zredagowany typ błędu każdej usługi w RAM. Raport powstaje na żądanie i nie jest automatycznie zapisywany. |
 | Stan muzyki / okładka | Bieżący snapshot i ograniczony cache w RAM. |
 
-Decyzja inżynierska: systemowy SQLite dla metadanych i osobne pliki zaszyfrowanych payloadów oraz miniatur. Treść chroniona AES-GCM przez CryptoKit, klucz w Keychain, unikalny nonce dla każdego szyfrowania. SQLite przechowuje jedynie identyfikatory, typ, czasy, rozmiary i ścieżki względne; źródłowy bundle ID i treść pozostają w zaszyfrowanym payloadzie. [API AES.GCM](https://developer.apple.com/documentation/cryptokit/aes/gcm).
+Decyzja inżynierska: systemowy SQLite dla metadanych i osobne pliki zaszyfrowanych payloadów oraz miniatur. Treść chroniona AES-GCM przez CryptoKit, klucz AES-256 wyprowadzany przez ECDH P-256 i HKDF-SHA256 z klucza Secure Enclave oraz publicznego klucza jednorazowego partnera, unikalny nonce dla każdego szyfrowania. Keychain przechowuje wyłącznie sprzętowo chronioną reprezentację klucza Enclave i publiczny klucz partnera; prywatny klucz partnera jest odrzucany. Klucz Enclave wymaga odblokowanego urządzenia, nie wymaga biometrii i nie przenosi się na innego Maca. Używany jest niesynchronizowany Keychain plikowy macOS: samo `kSecAttrAccessible` w tym magazynie nie zapewnia ochrony urządzenia, dlatego tę ochronę egzekwuje Secure Enclave. SQLite przechowuje jedynie UUID, typ, czas i rozmiar; nazwy plików wynikają z UUID; źródłowy bundle ID i treść pozostają w zaszyfrowanym payloadzie. [API AES.GCM](https://developer.apple.com/documentation/cryptokit/aes/gcm).
 
 Nie jest to ochrona przed procesem już działającym z uprawnieniami użytkownika ani przed odczytem odblokowanej aplikacji. Brak klucza oznacza brak dostępu do historii, nie przejście na plaintext. Reset niedostępnej historii następuje dopiero po świadomym działaniu użytkownika.
 
@@ -30,7 +30,7 @@ Katalog historii i cache oznaczyć jako wyłączony z systemowych backupów, z o
 | Pole | Znaczenie |
 | --- | --- |
 | id | UUID, niezależne od treści. |
-| capturedAt / expiresAt | Pierwszy zapis i termin wygaśnięcia; przywracanie nie odmładza wpisu. |
+| capturedAt / wyliczane expiresAt | Pierwszy zapis i termin wygaśnięcia z aktualnego limitu dni; przywracanie nie odmładza wpisu. |
 | kind | plainText albo image. |
 | payloadVersion | Wersja formatu/migracji. |
 | storedBytes | Payload + miniatura + narzut szyfrowania objęty limitem historii. |
@@ -44,7 +44,7 @@ Obrazy normalizować do PNG z miniaturą, bez OCR i automatycznego otwierania ze
 
 ## Przechwycenie i przywracanie
 
-1. Przy aktywnej funkcji sprawdzać licznik zmian; propozycja interwału 500 ms, niezależna od metryk.
+1. Przy aktywnej funkcji sprawdzać licznik zmian; interwał 500 ms, niezależna od metryk.
 2. Sprawdzić dostęp i oznaczenia przed pobraniem payloadu. Ponownie sprawdzić changeCount po odczycie; przy zmianie odrzucić niespójny snapshot.
 3. Pominąć wpisy poufne, tymczasowe, automatycznie generowane i pochodzące z wykluczonych aplikacji.
 4. Zwalidować typ/rozmiar, przygotować miniaturę, zaszyfrować i zapisać atomowo.

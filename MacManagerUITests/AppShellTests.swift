@@ -73,7 +73,7 @@ final class AppShellTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["System overview"].waitForExistence(timeout: 10))
         XCTAssertTrue(element("history.empty", in: app).exists)
         capture("Overview EN", app: app)
-        XCTAssertFalse(app.staticTexts["Clipboard"].exists)
+        XCTAssertTrue(element("navigation.clipboard", in: app).exists)
         XCTAssertFalse(app.staticTexts["Sensors"].exists)
         element("navigation.network", in: app).click()
         XCTAssertTrue(app.staticTexts["Network"].waitForExistence(timeout: 5))
@@ -476,9 +476,52 @@ final class AppShellTests: XCTestCase {
     }
 
     @MainActor
+    func testClipboardSearchRestoreRetentionAndClear() throws {
+        let app = launch(reset: true, clipboardFixture: true)
+        element("navigation.clipboard", in: app).click()
+        let search = app.textFields["clipboard.search"]
+        XCTAssertTrue(search.waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "clipboard.restore.")).firstMatch.waitForExistence(timeout: 5))
+        search.click()
+        search.typeText("project")
+        let restore = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "clipboard.restore.")).firstMatch
+        restore.click()
+        XCTAssertTrue(app.buttons["Ready to paste"].waitForExistence(timeout: 5))
+        app.buttons["clipboard.options"].click()
+        let limit = app.textFields["clipboard.limit.count"]
+        XCTAssertTrue(limit.waitForExistence(timeout: 5))
+        limit.click(); limit.typeKey("a", modifierFlags: .command); limit.typeText("1")
+        app.buttons["clipboard.settings.save"].click()
+        XCTAssertTrue(app.sheets.buttons["action-button-1"].waitForExistence(timeout: 5))
+        app.sheets.buttons["action-button-1"].click()
+        XCTAssertTrue(app.staticTexts["No matching text"].waitForExistence(timeout: 5))
+        search.click(); search.typeKey("a", modifierFlags: .command); search.typeKey(.delete, modifierFlags: [])
+        app.buttons["clipboard.clear"].click()
+        app.sheets.buttons["action-button-1"].click()
+        XCTAssertTrue(app.staticTexts["No saved copies yet"].waitForExistence(timeout: 5))
+        app.terminate()
+    }
+
+    @MainActor
+    func testClipboardDefaultsOffAndLocalizes() throws {
+        let app = launch(reset: true)
+        element("navigation.clipboard", in: app).click()
+        XCTAssertTrue(app.buttons["clipboard.enable"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["History is off"].exists)
+        element("navigation.settings", in: app).click()
+        app.popUpButtons["settings.language"].click()
+        app.menuItems["Polski"].click()
+        element("navigation.clipboard", in: app).click()
+        XCTAssertEqual(app.buttons["clipboard.enable"].label, "Włącz historię")
+        XCTAssertTrue(app.staticTexts["Historia jest wyłączona"].exists)
+        app.terminate()
+    }
+
+    @MainActor
     private func launch(
         reset: Bool,
         liveMetrics: Bool = false,
+        clipboardFixture: Bool = false,
         scrollPermission: Bool = false,
         inputMonitoringRequired: Bool = false,
         loginItemRequiresApproval: Bool = false,
@@ -491,6 +534,7 @@ final class AppShellTests: XCTestCase {
         app.launchArguments = ["--ui-testing", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
         if reset { app.launchArguments.append("--reset-preferences") }
         if liveMetrics { app.launchArguments.append("--live-metrics") }
+        if clipboardFixture { app.launchArguments.append("--clipboard-fixture") }
         if scrollPermission { app.launchArguments.append("--scroll-permission-granted") }
         if inputMonitoringRequired { app.launchArguments.append("--scroll-input-monitoring-required") }
         if loginItemRequiresApproval { app.launchArguments.append("--login-item-requires-approval") }
