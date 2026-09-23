@@ -54,3 +54,41 @@ import Testing
         locale: Locale(identifier: "en_US_POSIX")
     ).isEmpty)
 }
+
+@Test func menuBarSensorsKeepFanOrderMissingValuesAndTemperatureUnits() {
+    let sensors = HardwareSensorSnapshot(uptime: 1, fans: .fans(3), readings: [
+        .init(sensor: .init(key: "TCMb", kind: .temperature), rawValue: 50),
+        .init(sensor: .init(key: "Tg1U", kind: .temperature), rawValue: 40),
+        .init(sensor: .init(key: "F2Ac", kind: .fan), rawValue: 2400),
+        .init(sensor: .init(key: "F0Ac", kind: .fan), rawValue: 0)
+    ], catalog: SensorCatalog(processor: "Apple M4 Pro"))
+    let preferences = MenuBarDisplayPreferences(
+        showsCPUTemperature: true, showsGPUTemperature: true, showsFans: true
+    )
+    let snapshot = MetricsSnapshot(uptime: 1, readings: [:], sensors: sensors)
+    let locale = Locale(identifier: "pl_PL")
+    #expect(MenuBarStatusFormatter.segments(
+        preferences: preferences, snapshot: snapshot, locale: locale
+    ).map(\.text) == ["50°C", "40°C", "0/-/2400"])
+    #expect(MenuBarStatusFormatter.segments(
+        preferences: preferences, snapshot: snapshot, locale: locale, temperatureUnit: .fahrenheit
+    ).map(\.text) == ["122°F", "104°F", "0/-/2400"])
+    #expect(MenuBarStatusFormatter.segments(
+        preferences: preferences,
+        snapshot: MetricsSnapshot(uptime: 1, readings: [:], sensors: sensors.stale()),
+        locale: locale
+    ).map(\.text) == ["-", "-", "-"])
+    #expect(MenuBarStatusFormatter.segments(
+        preferences: .init(showsGPUTemperature: true), snapshot: snapshot, locale: locale
+    ).map(\.kind) == [.gpuTemperature])
+}
+
+@Test func menuBarDoesNotPresentPassiveCoolingAsStoppedFan() {
+    for fans in [FanInventory.passive, .unavailable] {
+        let snapshot = MetricsSnapshot(uptime: 1, readings: [:], sensors:
+            HardwareSensorSnapshot(uptime: 1, fans: fans, readings: []))
+        #expect(MenuBarStatusFormatter.segments(
+            preferences: .init(showsFans: true), snapshot: snapshot, locale: .current
+        ).map(\.text) == ["-"])
+    }
+}

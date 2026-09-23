@@ -20,4 +20,11 @@ int32_t mm_gpu_read(double *percent);
 // Reads the AppleSMC PSTR power estimate. No SMC write operation is exposed.
 int32_t mm_power_read(double *watts);
 
+// Read-only SMC sessions. Close every successfully opened session.
+int32_t mm_smc_open(uint32_t *connection);
+void mm_smc_close(uint32_t connection);
+int32_t mm_smc_key_at(uint32_t connection, uint32_t index, uint32_t *key);
+int32_t mm_smc_read_number(uint32_t connection, uint32_t key, double *value);
+int32_t mm_smc_decode_number(uint32_t type, const uint8_t *bytes, uint32_t length, double *value);
+
 #endif

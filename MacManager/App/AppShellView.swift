@@ -46,6 +46,7 @@ struct AppShellView: View {
                 Group {
                     switch state.section ?? .overview {
                     case .overview: OverviewView()
+                    case .sensors: SensorsView()
                     case .network: NetworkView()
                     case .scroll: ScrollSettingsView()
                     case .dock: DockSettingsView()

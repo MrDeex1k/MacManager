@@ -16,12 +16,19 @@ public final class PreferencesStore {
         static let showsCPUInMenuBar = "preferences.integration.menuBar.showsCPU"
         static let showsGPUInMenuBar = "preferences.integration.menuBar.showsGPU"
         static let showsRAMInMenuBar = "preferences.integration.menuBar.showsRAM"
+        static let showsCPUTemperatureInMenuBar = "preferences.integration.menuBar.showsCPUTemperature"
+        static let showsGPUTemperatureInMenuBar = "preferences.integration.menuBar.showsGPUTemperature"
+        static let showsFansInMenuBar = "preferences.integration.menuBar.showsFans"
         static let showsPowerInMenuBar = "preferences.integration.menuBar.showsPower"
         static let automaticUpdateChecksEnabled = "preferences.updates.automaticChecksEnabled"
         static let updateCache = "preferences.updates.cache"
     }
 
     @ObservationIgnored private let defaults: UserDefaults
+
+    public var temperatureUnit: TemperatureUnit {
+        didSet { defaults.set(temperatureUnit.rawValue, forKey: "preferences.temperatureUnit") }
+    }
 
     public var samplingInterval: SamplingInterval {
         didSet { defaults.set(samplingInterval.rawValue, forKey: Key.samplingInterval) }
@@ -43,6 +50,9 @@ public final class PreferencesStore {
             defaults.set(appIntegration.menuBar.showsCPU, forKey: Key.showsCPUInMenuBar)
             defaults.set(appIntegration.menuBar.showsGPU, forKey: Key.showsGPUInMenuBar)
             defaults.set(appIntegration.menuBar.showsRAM, forKey: Key.showsRAMInMenuBar)
+            defaults.set(appIntegration.menuBar.showsCPUTemperature, forKey: Key.showsCPUTemperatureInMenuBar)
+            defaults.set(appIntegration.menuBar.showsGPUTemperature, forKey: Key.showsGPUTemperatureInMenuBar)
+            defaults.set(appIntegration.menuBar.showsFans, forKey: Key.showsFansInMenuBar)
             defaults.set(appIntegration.menuBar.showsPower, forKey: Key.showsPowerInMenuBar)
         }
     }
@@ -74,6 +84,7 @@ public final class PreferencesStore {
 
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        temperatureUnit = defaults.string(forKey: "preferences.temperatureUnit").flatMap(TemperatureUnit.init(rawValue:)) ?? .celsius
         reverseMouseScroll = Self.bool(defaults, forKey: Key.reverseMouseScroll, default: false)
         samplingInterval = SamplingInterval(rawValue: defaults.integer(forKey: Key.samplingInterval)) ?? .two
         publicIPEnabled = Self.bool(defaults, forKey: Key.publicIPEnabled, default: true)
@@ -84,7 +95,10 @@ public final class PreferencesStore {
                 showsCPU: Self.bool(defaults, forKey: Key.showsCPUInMenuBar, default: false),
                 showsGPU: Self.bool(defaults, forKey: Key.showsGPUInMenuBar, default: false),
                 showsRAM: Self.bool(defaults, forKey: Key.showsRAMInMenuBar, default: false),
-                showsPower: Self.bool(defaults, forKey: Key.showsPowerInMenuBar, default: false)
+                showsPower: Self.bool(defaults, forKey: Key.showsPowerInMenuBar, default: false),
+                showsCPUTemperature: Self.bool(defaults, forKey: Key.showsCPUTemperatureInMenuBar, default: false),
+                showsGPUTemperature: Self.bool(defaults, forKey: Key.showsGPUTemperatureInMenuBar, default: false),
+                showsFans: Self.bool(defaults, forKey: Key.showsFansInMenuBar, default: false)
             )
         )
         attemptedLaunchAtLoginDefault = defaults.bool(forKey: Key.attemptedLaunchAtLoginDefault)

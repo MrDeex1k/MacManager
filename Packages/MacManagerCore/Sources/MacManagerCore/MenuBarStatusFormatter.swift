@@ -1,11 +1,15 @@
 import Foundation
 
-public struct MenuBarStatusSegment: Equatable, Identifiable, Sendable {
-    public let kind: MetricKind
-    public let text: String
-    public var id: MetricKind { kind }
+public enum MenuBarSegmentKind: Sendable {
+    case cpu, gpu, memory, power, cpuTemperature, gpuTemperature, fans
+}
 
-    public init(kind: MetricKind, text: String) {
+public struct MenuBarStatusSegment: Equatable, Identifiable, Sendable {
+    public let kind: MenuBarSegmentKind
+    public let text: String
+    public var id: MenuBarSegmentKind { kind }
+
+    public init(kind: MenuBarSegmentKind, text: String) {
         self.kind = kind
         self.text = text
     }
@@ -15,7 +19,8 @@ public enum MenuBarStatusFormatter {
     public static func segments(
         preferences: MenuBarDisplayPreferences,
         snapshot: MetricsSnapshot,
-        locale: Locale
+        locale: Locale,
+        temperatureUnit: TemperatureUnit = .celsius
     ) -> [MenuBarStatusSegment] {
         var result: [MenuBarStatusSegment] = []
         if preferences.showsCPU {
@@ -37,7 +42,30 @@ public enum MenuBarStatusFormatter {
             } ?? "-"
             result.append(.init(kind: .power, text: value))
         }
+        if preferences.showsCPUTemperature {
+            result.append(.init(kind: .cpuTemperature, text: temperature(snapshot.sensors.cpuTemperature, unit: temperatureUnit)))
+        }
+        if preferences.showsGPUTemperature {
+            result.append(.init(kind: .gpuTemperature, text: temperature(snapshot.sensors.gpuTemperature, unit: temperatureUnit)))
+        }
+        if preferences.showsFans {
+            let sensors = snapshot.sensors
+            var text = "-"
+            if !sensors.isStale, case .fans(let count) = sensors.fans, (1...16).contains(count) {
+                text = (0..<count).map { index in
+                    let key = "F\(String(index, radix: 16, uppercase: true))Ac"
+                    let value = sensors.readings.first { $0.sensor.kind == .fan && $0.sensor.key == key }?.value
+                    return value.map { String(Int($0.rounded())) } ?? "-"
+                }.joined(separator: "/")
+            }
+            result.append(.init(kind: .fans, text: text))
+        }
         return result
+    }
+
+    private static func temperature(_ value: Double?, unit: TemperatureUnit) -> String {
+        guard let value else { return "-" }
+        return String(Int(unit.convert(value).rounded())) + unit.symbol
     }
 
     private static func percentage(_ value: Double?, locale: Locale) -> String {

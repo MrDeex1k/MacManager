@@ -20,6 +20,12 @@ public struct MetricHistoryPoint: Identifiable, Sendable {
     public let segment: Int
 }
 
+public enum SensorHistoryKind: Hashable, Sendable {
+    case cpuTemperature
+    case gpuTemperature
+    case fan(Int)
+}
+
 /// A time-based, in-memory window. Missing samples break lines instead of becoming zeroes.
 public struct MetricsHistory: Sendable {
     public static let duration: TimeInterval = 300
@@ -56,19 +62,63 @@ public struct MetricsHistory: Sendable {
     }
 
     public func points(for kind: MetricKind) -> [MetricHistoryPoint] {
+        points { snapshot in
+            let reading = snapshot[kind]
+            guard reading.status == .available, let value = reading.value else { return nil }
+            return (value, reading.source)
+        }
+    }
+
+    public func points(for sensor: SensorHistoryKind) -> [MetricHistoryPoint] {
+        points { snapshot in
+            let sensors = snapshot.sensors
+            guard !sensors.isStale else { return nil }
+            switch sensor {
+            case .cpuTemperature:
+                guard let value = sensors.cpuTemperature else { return nil }
+                return (value, sensors.catalog.cpuKeys.joined(separator: ","))
+            case .gpuTemperature:
+                guard let value = sensors.gpuTemperature else { return nil }
+                let contributingKeys = sensors.catalog.gpuKeys.filter { key in
+                    sensors.readings.contains { $0.sensor.key == key && $0.value != nil }
+                }
+                return (value, contributingKeys.joined(separator: ","))
+            case .fan(let index):
+                guard (0..<16).contains(index), case .fans(let count) = sensors.fans,
+                      index < count else { return nil }
+                let key = "F\(String(index, radix: 16, uppercase: true))Ac"
+                guard let value = sensors.readings.first(where: {
+                    $0.sensor.kind == .fan && $0.sensor.key == key
+                })?.value else { return nil }
+                return (value, key)
+            }
+        }
+    }
+
+    public var fanCount: Int {
+        records.reduce(0) { count, record in
+            if case .fans(let current) = record.snapshot.sensors.fans {
+                return max(count, current)
+            }
+            return count
+        }
+    }
+
+    private func points(reading: (MetricsSnapshot) -> (Double, String)?) -> [MetricHistoryPoint] {
         var points: [MetricHistoryPoint] = []
         var previous: Record?
+        var previousSource: String?
         var segment = 0
         for record in records {
-            let reading = record.snapshot[kind]
-            guard reading.status == .available, let value = reading.value else {
+            guard let (value, source) = reading(record.snapshot) else {
                 previous = nil
+                previousSource = nil
                 continue
             }
             if let previous {
                 let gap = record.snapshot.uptime - previous.snapshot.uptime
                 if previous.epoch != record.epoch || previous.interval != record.interval
-                    || previous.snapshot[kind].source != reading.source
+                    || previousSource != source
                     || gap > Double(previous.interval.rawValue) * 1.5 {
                     segment += 1
                 }
@@ -77,6 +127,7 @@ public struct MetricsHistory: Sendable {
             }
             points.append(MetricHistoryPoint(time: record.snapshot.uptime, value: value, segment: segment))
             previous = record
+            previousSource = source
         }
         return points
     }

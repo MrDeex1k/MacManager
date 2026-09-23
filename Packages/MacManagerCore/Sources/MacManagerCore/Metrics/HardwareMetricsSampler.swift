@@ -3,13 +3,15 @@ import MMHardware
 
 // Actor isolation serializes Mach/IOKit and keeps synchronous driver reads off MainActor.
 public actor HardwareMetricsSampler: MetricsSampling {
+    private let sensorSampler = HardwareSensorSampler()
+    private let sensorCatalog = SensorCatalog.current()
     private var previous: CPUTicks?
     private var previousTime: TimeInterval?
 
     public init() {}
     public func reset() { previous = nil; previousTime = nil }
 
-    public func sample() -> MetricsSnapshot {
+    public func sample() async -> MetricsSnapshot {
         let start = MetricsTime.now()
         var readings: [MetricKind: MetricReading] = [:]
         var raw = MMCPUTicks()
@@ -41,7 +43,8 @@ public actor HardwareMetricsSampler: MetricsSampling {
         readings[.power] = MetricReading(kind: .power, value: powerStatus == 0 ? watts : nil,
                                         status: powerStatus == 0 ? .available : .unavailable,
                                         source: "AppleSMC PSTR")
+        let sensors = await sensorSampler.sample(catalog: sensorCatalog)
         return MetricsSnapshot(uptime: start, readings: readings, physicalMemory: memoryStatus == 0 ? memory.physical_bytes : 0,
-                               collectionMilliseconds: (MetricsTime.now() - start) * 1000)
+                               collectionMilliseconds: (MetricsTime.now() - start) * 1000, sensors: sensors)
     }
 }

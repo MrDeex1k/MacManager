@@ -1,6 +1,6 @@
 # Aktualny stan projektu i dalsza kolejność
 
-Aktualizacja: 2026-09-20. Projekt jest w trakcie końcowego odbioru etapu 1; nie ma jeszcze publicznego wydania DMG. Kroki 1-8 są zaimplementowane i odebrane. W kroku 9 wykonano pełne testy automatyczne, audyt dostępności, 10-minutowy pomiar pracy w tle oraz ręczną próbę na urządzeniu referencyjnym, w tym offline i sleep/wake. Gotowy jest lokalny skrypt budowania, podpisywania i notaryzacji DMG. Autostart z `/Applications` po poprawce rozpoznawania login item został potwierdzony przez właściciela. Pozostają wykonanie i odbiór procesu dystrybucji.
+Aktualizacja: 2026-09-22. Projekt jest w trakcie końcowego odbioru etapu 1; nie ma jeszcze publicznego wydania DMG. Kroki 1-8 są zaimplementowane i odebrane. W kroku 9 wykonano pełne testy automatyczne, audyt dostępności, 10-minutowy pomiar pracy w tle oraz ręczną próbę na urządzeniu referencyjnym, w tym offline i sleep/wake. Gotowy jest lokalny skrypt budowania, podpisywania i notaryzacji DMG. Autostart z `/Applications` po poprawce rozpoznawania login item został potwierdzony przez właściciela. Pozostają wykonanie i odbiór procesu dystrybucji.
 
 ## Co działa
 
@@ -10,7 +10,7 @@ Aktualizacja: 2026-09-20. Projekt jest w trakcie końcowego odbioru etapu 1; nie
 - Historia ostatnich 300 s w RAM i wykresy Swift Charts CPU/GPU/RAM/mocy z przełącznikiem metryki, skalą czasu, minimum/maksimum i liczbą próbek. Luki powstają po brakach odczytu, uśpieniu i zmianie interwału.
 - Odwracanie scrolla myszy w obu osiach, automatyczna klasyfikacja z gestów dotykowych bez list modeli, zachowanie gładzika i bezwładności, jawne stany Dostępności/Monitorowania wprowadzania, sleep/wake i wyłączenia tapu.
 - Ikona aplikacji: miętowy szklany monitor ze wskaźnikami na grafitowym tle. AppIcon podłączony do obu konfiguracji Xcode; źródło i komplet rozmiarów są w repozytorium.
-- Ikona w pasku menu otwierająca natywny panel Liquid Glass z CPU, GPU, procentem RAM, mocą i adresami IPv4. Panel ma dwie równe akcje: otwarcie okna i zakończenie aplikacji. CPU, GPU, RAM i W można włączać niezależnie obok ikony; domyślnie widoczna jest sama ikona.
+- Ikona w pasku menu otwierająca natywny panel Liquid Glass z CPU, GPU, procentem RAM, mocą i adresami IPv4. Panel ma dwie równe akcje: otwarcie okna i zakończenie aplikacji. CPU, GPU, RAM i W można włączać niezależnie obok ikony; domyślnie widoczna jest sama ikona, a po włączeniu dowolnej wartości pasek pokazuje tylko wartości z etykietami.
 - Sterowanie ikoną Docka przez politykę aktywacji AppKit, z domyślnie widoczną ikoną podczas pracy z oknem i trwałym przełącznikiem w osobnej sekcji głównej. Zamknięcie głównego okna ukrywa ikonę Docka, pozostawia proces aktywny i zachowuje dostęp przez pasek menu. Scroll ma własną sekcję pomiędzy Siecią i Ustawieniami.
 - Autostart przez `SMAppService.mainApp`, rzeczywisty status macOS, obsługa wymaganej zgody i jednorazowa próba domyślnej rejestracji. Start przy logowaniu pozostaje w tle bez głównego okna, a wszystkie usługi uruchamiają się na poziomie procesu.
 - Kontrola stabilnych GitHub Releases przy pierwszym starcie i najwyżej raz na 7 dni, ETag, ścisła kwalifikacja tagu i DMG arm64, ręczne sprawdzanie oraz zachowanie potwierdzonego wydania w lokalnym cache.
@@ -35,7 +35,7 @@ Aktualizacja: 2026-09-20. Projekt jest w trakcie końcowego odbioru etapu 1; nie
 
 1. **Krok 9:** podpis Developer ID, Hardened Runtime, notarization, odbiór DMG i publikacja GitHub Release 0.8.0. Na 2026-09-20 dostępny jest tylko certyfikat Apple Development; brakuje Developer ID Application oraz wskazanego profilu notarytool.
 
-Etap 2 (temperatury/RPM) i rozszerzony etap 3 pozostają planowane. Nie są aktywne w obecnym buildzie. Przyjęta kolejność etapu 3 to: prywatny schowek, pełny launcher, wyspa i muzyka. Wspólna architektura ma obsłużyć oba scenariusze integracji TinyCast, a scenariusz 1 jest pierwszym celem wdrożenia.
+Etap 2 na `feat/stage-2`: adapter tylko do odczytu, sampler i modele temperatur/RPM oraz sprzętowy inwentarz M4 Pro. Czujniki są podłączone do wspólnego harmonogramu, mają sekcję Czujniki i trwały wybór °C/°F. Katalog temperatur obejmuje na razie tylko M4 Pro; właściciel potwierdził poprawność temperatur i RPM po niezależnym sprawdzeniu na urządzeniu referencyjnym. Pasek menu ma osobne przełączniki temperatur CPU/GPU i wspólny przełącznik wszystkich wentylatorów, z etykietami nad wartościami. Historia temperatur CPU/GPU oraz osobnych wentylatorów RPM działa przez pięć minut w RAM i pokazuje luki przy braku odczytu lub uśpieniu. [Zakres i wynik prób](../Prototypes/Stage2/README.md). [Pomiar kosztu w tle](reports/etap-2-koszt-tla.md) wykazał średnio 2,338% jednego rdzenia CPU w 10-minutowej próbie i brak narastania RSS. Optymalizację odłożono na później. Rozszerzenie mapowania i próby na pozostałych Macach Apple Silicon nadal są do wykonania. Rozszerzony etap 3 pozostaje planowany. Przyjęta kolejność etapu 3 to: prywatny schowek, pełny launcher, wyspa i muzyka. Wspólna architektura ma obsłużyć oba scenariusze integracji TinyCast, a scenariusz 1 jest pierwszym celem wdrożenia.
 
 ## Dowody i granice
 
@@ -48,3 +48,5 @@ To nie jest zamknięty odbiór etapu 1. Nie deklarujemy przetestowania wszystkic
 Buildy developerskie mają osobną tożsamość `.Development`, ustawienia i zgody przewijania. Ekran przewijania pokazuje osobno obie zgody, umożliwia ponowną kontrolę i pomaga wskazać uruchomioną kopię w Finderze. Publiczny DMG zachowuje dotychczasowy identyfikator. Nadanie zgód na czystym profilu i ich zachowanie przy aktualizacji podpisanego wydania wymagają jeszcze walidacji.
 
 Weryfikacja 2026-09-20: ponownie przeszły 53 testy Core, 9 testów prototypów, 5 kontroli zdarzeń autostartu i kompilacja Release arm64 bez podpisu. Nie powtarzano pełnego zestawu UI ani pomiaru obciążenia. Najnowsze poprawki: panel 300 pkt, trzy kolory dostępności pomiarów, brak godziny pobrania IP i ukryta sekcja Wygląd.
+
+Publikacja 0.8.0 została odłożona na prośbę właściciela z powodu konfiguracji hasła notaryzacji. Certyfikat Developer ID Application jest dostępny; historyczny brak certyfikatu z 20 września nie jest już aktualną przeszkodą. Prace etapu 2 są niezależne od publikacji.

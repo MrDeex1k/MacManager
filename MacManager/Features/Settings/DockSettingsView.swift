@@ -60,6 +60,15 @@ struct DockSettingsView: View {
                             .accessibilityIdentifier("menuBar.showPower")
                     }
                     .toggleStyle(.switch)
+                    HStack(spacing: 22) {
+                        Toggle(state.strings("menuBar.cpuTemperature"), isOn: $preferences.appIntegration.menuBar.showsCPUTemperature)
+                            .accessibilityIdentifier("menuBar.showCPUTemperature")
+                        Toggle(state.strings("menuBar.gpuTemperature"), isOn: $preferences.appIntegration.menuBar.showsGPUTemperature)
+                            .accessibilityIdentifier("menuBar.showGPUTemperature")
+                        Toggle(state.strings("menuBar.fans"), isOn: $preferences.appIntegration.menuBar.showsFans)
+                            .accessibilityIdentifier("menuBar.showFans")
+                    }
+                    .toggleStyle(.switch)
                 }
                 .accessibilityElement(children: .contain)
                 .accessibilityIdentifier("settings.dock.menuBarValues")
