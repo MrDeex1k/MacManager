@@ -105,16 +105,17 @@ public final class SystemClipboardPasteboard: ClipboardPasteboard {
         let source = declared?.isEmpty == false ? declared : foreground
         let kind: ClipboardKind
         let data: Data
-        if item.types.contains(.png) || item.types.contains(.tiff) {
+        if let text = item.data(forType: .string), !text.isEmpty {
+            kind = .text
+            guard text.count <= ClipboardContent.maximumTextBytes else { return .rejected(.tooLarge) }
+            data = text
+        } else if item.types.contains(.png) || item.types.contains(.tiff) {
             kind = .image
             guard let image = item.data(forType: item.types.contains(.png) ? .png : .tiff) else { return .skipped }
             guard image.count <= 40_000_000 else { return .rejected(.tooLarge) }
             data = image
         } else {
-            kind = .text
-            guard let text = item.data(forType: .string), !text.isEmpty else { return .skipped }
-            guard text.count <= ClipboardContent.maximumTextBytes else { return .rejected(.tooLarge) }
-            data = text
+            return .skipped
         }
         guard count == pasteboard.changeCount else { return .changedDuringRead }
         return .content(ClipboardRawContent(kind: kind, data: data, sourceBundleID: source))
