@@ -16,7 +16,7 @@ A native macOS utility for live system monitoring, independent mouse scrolling a
 </div>
 
 > [!IMPORTANT]
-> **Hardware monitoring and Stage 3A clipboard history are implemented.** The clipboard is undergoing hands-on permission validation. Final distribution checks and the first signed, notarized DMG are still pending; there is no public release yet.
+> **Hardware monitoring and Stage 3A clipboard history are implemented.** Clipboard operation has been confirmed on the installed app. The local launcher now supports app and command search; files, calculator and personalization are still planned. Final distribution checks and the first signed, notarized DMG are still pending; there is no public release yet.
 
 ## Built for daily use
 
@@ -25,6 +25,7 @@ A native macOS utility for live system monitoring, independent mouse scrolling a
 | **System** | Live CPU, GPU and RAM readings with a persistent 1, 2 or 5 second interval. Five-minute Swift Charts history stays in memory and preserves gaps in unavailable data. |
 | **Sensors** | CPU/GPU temperatures in °C or °F, individual fan RPM and five-minute history. Temperature mapping is currently validated on M4 Pro. Read-only sensors, no fan control. |
 | **Clipboard** | Opt-in local history of text and images, search, preview and restore. Encrypted storage, app exclusions and configurable count, age and size limits. |
+| **Launcher** | Local app and command search in a floating Liquid Glass palette. Configurable global shortcut, fuzzy ranking adapted from Tinycast and keyboard navigation. |
 | **Network** | Primary local and public IPv4 addresses, connection status, manual refresh and copy actions. |
 | **Scroll** | Independent vertical and horizontal mouse reversal with automatic mouse/trackpad classification. Trackpad direction and momentum remain intact. No device model lists. |
 | **macOS** | Native menu bar panel, configurable Dock icon, persistent background process, one reusable window and launch at login through `SMAppService.mainApp`. |
@@ -39,11 +40,11 @@ A native macOS utility for live system monitoring, independent mouse scrolling a
 | --- | --- | --- |
 | **1 · Mac essentials** | Metrics and five-minute history, network, mouse scroll, menu bar, Dock, launch at login and GitHub release checks. | Steps 1-8 of 9 complete |
 | **2 · Hardware sensors** | Live temperatures and fan RPM, menu bar values and five-minute history. Validated on M4 Pro; broader chip mapping and optimization remain future work. Fans are never controlled. | Complete on reference hardware |
-| **3 · Private tools and notch area** | Private clipboard, full local launcher for apps/files/commands, then hover-operated panel and local Apple Music/Spotify controls. One shared architecture supports both TinyCast integration scenarios. | Clipboard implemented; launcher and island next |
+| **3 · Private tools and notch area** | Private clipboard, full local launcher for apps/files/commands, then hover-operated panel and local Apple Music/Spotify controls. One shared architecture supports both TinyCast integration scenarios. | Clipboard and launcher steps 1-3 implemented |
 
 The collapsed notch-area panel will show nothing. It will use the active built-in MacBook display when available, otherwise the main display.
 
-**Next:** Validate clipboard permissions and lock/unlock on the installed app, then implement the local launcher. Public distribution remains pending notarization and DMG acceptance. Installed-app launch at login has been confirmed.
+**Next:** Launcher personalization, file search, calculator and a shared clipboard mode, followed by full launcher acceptance. Public distribution remains pending notarization and DMG acceptance. Installed-app launch at login has been confirmed.
 
 ## Requirements
 
@@ -51,7 +52,7 @@ The collapsed notch-area panel will show nothing. It will use the active built-i
 - macOS 26 or later
 - Xcode 26 or later selected with `xcode-select`
 
-Mac Manager uses Swift, SwiftUI, Swift Charts and focused AppKit integrations. The repository has no third-party package dependencies and does not require a project generator.
+Mac Manager uses Swift, SwiftUI, Swift Charts and focused AppKit integrations. Selected launcher mechanisms are adapted from Tinycast under AGPL v3; see [attributions](THIRD_PARTY_NOTICES.md). The repository has no third-party package dependencies and does not require a project generator.
 
 ## Build and run
 
@@ -77,10 +78,17 @@ Defaults are **50 items, 7 days and 200 MB**. History settings provide pause/res
 
 [Implementation and validation](docs/reports/etap-3a-schowek.md) · [Privacy design](docs/05-dane-i-prywatnosc.md)
 
+### Local launcher
+
+Open the launcher with `Control-Option-Space`, from the menu bar panel or through Settings. Search installed applications and Mac Manager sections, select with arrow keys and press Enter to open. Escape clears the query first, then closes the palette. The launcher works with the main window closed and does not change Dock visibility.
+
+Queries stay in memory. Application discovery is limited to standard application folders and known embedded tools. No Accessibility permission is required for the global shortcut. Configure or disable it in Settings; a failed replacement keeps the previous active binding. [Implementation and remaining steps](docs/reports/etap-3b-launcher-1-3.md).
+
 ### Keyboard shortcuts
 
 | Shortcut | Destination |
 | --- | --- |
+| `Control-Option-Space` | Launcher (configurable in Settings) |
 | `Command-1` | Overview |
 | `Command-2` | Network |
 | `Command-,` | Settings |

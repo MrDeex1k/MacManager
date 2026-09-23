@@ -48,6 +48,8 @@ struct SettingsView: View {
             }
             .padding(.trailing, 20)
             Divider()
+            LauncherSettingsView()
+            Divider()
             LaunchAtLoginSettingsView()
             Divider()
             UpdateSettingsView()

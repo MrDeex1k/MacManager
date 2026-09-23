@@ -26,6 +26,14 @@ public final class PreferencesStore {
 
     @ObservationIgnored private let defaults: UserDefaults
 
+    public var launcherShortcut: LauncherShortcut {
+        didSet {
+            if let data = try? JSONEncoder().encode(launcherShortcut) {
+                defaults.set(data, forKey: "preferences.launcherShortcut")
+            }
+        }
+    }
+
     public var clipboard: ClipboardPreferences {
         didSet {
             if let data = try? JSONEncoder().encode(clipboard) {
@@ -92,6 +100,9 @@ public final class PreferencesStore {
 
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        let shortcut = defaults.data(forKey: "preferences.launcherShortcut")
+            .flatMap { try? JSONDecoder().decode(LauncherShortcut.self, from: $0) }
+        launcherShortcut = shortcut.flatMap { $0.isValid ? $0 : nil } ?? LauncherShortcut()
         let savedClipboard = defaults.data(forKey: "preferences.clipboard")
             .flatMap { try? JSONDecoder().decode(ClipboardPreferences.self, from: $0) }
         clipboard = savedClipboard.flatMap { $0.isValid ? $0 : nil } ?? ClipboardPreferences()

@@ -31,6 +31,7 @@ final class AppState {
     let loginItem: LoginItemController
     let updates: UpdateService
     let updateController: UpdateController
+    let launcher: LauncherController
     let clipboardController: ClipboardController
     var clipboard: ClipboardService { clipboardController.service }
     let diagnostics: DiagnosticsStore
@@ -55,6 +56,7 @@ final class AppState {
                 defaults.removePersistentDomain(forName: "dev.macmanager.MacManager.UITests")
             }
             preferences = PreferencesStore(defaults: defaults)
+            launcher = LauncherController(preferences: preferences, testing: true)
             clipboardController = ClipboardController(preferences: preferences, testing: true)
             scroll = ScrollService(enabled: preferences.reverseMouseScroll, driver: TestScrollDriver())
             network = NetworkService(enabled: false)
@@ -81,6 +83,7 @@ final class AppState {
                 dock,
                 loginItem,
                 clipboardController,
+                launcher,
                 ScrollController(service: scroll, diagnostics: diagnostics)
             ]
             if !updateOffline { participants.append(updateController) }
@@ -90,11 +93,13 @@ final class AppState {
             lifecycle = ApplicationLifecycleCoordinator(participants: participants)
             observeLaunch()
             observeTermination()
+            connectLauncher()
             lifecycle.start()
             return
         }
         #endif
         preferences = PreferencesStore()
+        launcher = LauncherController(preferences: preferences)
         clipboardController = ClipboardController(preferences: preferences)
         scroll = ScrollService(enabled: preferences.reverseMouseScroll, driver: ScrollDriver())
         network = NetworkService(enabled: preferences.publicIPEnabled)
@@ -114,6 +119,7 @@ final class AppState {
             dock,
             loginItem,
             clipboardController,
+            launcher,
             ScrollController(service: scroll, diagnostics: diagnostics),
             NetworkController(service: network, diagnostics: diagnostics),
             MetricsController(service: metrics, diagnostics: diagnostics),
@@ -121,7 +127,16 @@ final class AppState {
         ])
         observeLaunch()
         observeTermination()
+        connectLauncher()
         lifecycle.start()
+    }
+
+    private func connectLauncher() {
+        launcher.navigate = { [weak self] section in
+            guard let self, let section = AppSection(rawValue: section) else { return }
+            self.section = section
+            self.setMainWindowVisible(true)
+        }
     }
 
     func setDockIconVisible(_ isVisible: Bool) {

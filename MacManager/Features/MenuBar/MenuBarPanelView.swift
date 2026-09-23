@@ -72,6 +72,16 @@ struct MenuBarPanelView: View {
 
             Divider()
 
+            Button {
+                NSApp.keyWindow?.orderOut(nil)
+                state.launcher.show()
+            } label: {
+                Label(strings("launcher.open"), systemImage: "magnifyingglass")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.glass)
+            .accessibilityIdentifier("menuBar.launcher")
+
             HStack(spacing: 8) {
                 Button {
                     open(.overview)

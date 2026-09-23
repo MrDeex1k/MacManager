@@ -67,6 +67,8 @@ struct AppCommands: Commands {
                 .keyboardShortcut(",", modifiers: .command)
         }
         CommandGroup(after: .sidebar) {
+            Button(state.strings("launcher.open")) { state.launcher.show() }
+                .accessibilityIdentifier("launcher.menu")
             Button(state.strings("nav.overview")) { navigate(.overview) }
                 .keyboardShortcut("1", modifiers: .command)
             Button(state.strings("nav.network")) { navigate(.network) }

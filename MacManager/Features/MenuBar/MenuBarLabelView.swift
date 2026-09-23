@@ -2,6 +2,7 @@ import MacManagerCore
 import SwiftUI
 
 struct MenuBarLabelView: View {
+    @Environment(\.openWindow) private var openWindow
     let state: AppState
     @Environment(\.displayScale) private var displayScale
 
@@ -19,6 +20,7 @@ struct MenuBarLabelView: View {
               ? (NSImage(systemSymbolName: "macbook", accessibilityDescription: "Mac Manager") ?? NSImage())
               : statusImage)
             .accessibilityLabel(accessibilityLabel)
+            .onAppear { state.launcher.openMainWindow = { openWindow(id: "main") } }
     }
 
     // MenuBarExtra flattens text labels; a template image preserves both rows

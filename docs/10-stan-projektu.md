@@ -43,9 +43,15 @@ Zaimplementowany na `feat/stage-3a-clipboard`, opartym na aktualnym `main`. Nowa
 
 SQLite przechowuje tylko metadane. Treści i miniatury są zaszyfrowane AES-GCM. Klucz odtwarzany jest z materiału Secure Enclave zapisanego w niesynchronizowanym Keychain. Usługa działa niezależnie od okna, zatrzymuje odczyty po pauzie/odmowie/blokadzie i nie przejmuje skrótów kopiowania ani wklejania.
 
-Weryfikacja: 74 testy Core i dwa nowe testy GUI przechodzą. Rzeczywisty test Secure Enclave/Keychain używa własnego tymczasowego wpisu. Testy interfejsu korzystają z osobnego schowka i danych syntetycznych. Ręczny odbiór zgód na schowek, blokady/odblokowania i zachowania podpisanej aktualizacji pozostaje do wykonania. Nie podmieniano instalacji w `/Applications`. [Raport 3A](reports/etap-3a-schowek.md).
+Weryfikacja: 74 testy Core i dwa nowe testy GUI przechodzą. Rzeczywisty test Secure Enclave/Keychain używa własnego tymczasowego wpisu. Testy interfejsu korzystają z osobnego schowka i danych syntetycznych. Właściciel potwierdził działanie zainstalowanego schowka 3A. Oddzielny odbiór aktualizacji podpisanego wydania pozostaje do wykonania. Nie podmieniano instalacji w `/Applications`. [Raport 3A](reports/etap-3a-schowek.md).
 
-Dalej: odbiór 3A, pełny launcher lokalny (3B), panel wyspy (3C), integracje Music/Spotify (3D). Publikacja DMG i rozszerzanie mapowania Apple Silicon pozostają niezależnymi zadaniami.
+Dalej: pełny launcher lokalny (3B), panel wyspy (3C), integracje Music/Spotify (3D). Publikacja DMG i rozszerzanie mapowania Apple Silicon pozostają niezależnymi zadaniami.
+
+## Etap 3B: launcher, kroki 1-3
+
+Na `feat/stage-3b-launcher`, opartym na branchu 3A, wdrożono rdzeń wyszukiwarki, paletę ze skrótem globalnym oraz katalog aplikacji i poleceń. Ranking i mechanizmy katalogu/panelu/skrótu adaptowano z przypiętej rewizji Tinycast. Paleta działa niezależnie od głównego okna i ustawienia Docka; domyślny skrót to Control + Option + Spacja. Zapytania nie są zapisywane ani wysyłane. [Raport kroków 1-3](reports/etap-3b-launcher-1-3.md).
+
+Do 3B pozostają kroki 4-8: personalizacja, pliki, kalkulator, tryb schowka i pełny odbiór.
 
 ## Dowody i granice
 

@@ -518,10 +518,76 @@ final class AppShellTests: XCTestCase {
     }
 
     @MainActor
+    func testLauncherSearchEscapeAndNavigation() throws {
+        let app = launch(reset: true)
+        element("navigation.settings", in: app).click()
+        app.buttons["launcher.open"].click()
+        let field = app.textFields["launcher.search"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.click(); field.typeText("netw")
+        XCTAssertTrue(app.buttons["launcher.result.command:network"].waitForExistence(timeout: 5))
+        field.typeKey(.escape, modifierFlags: [])
+        XCTAssertEqual(field.value as? String, "")
+        field.typeText("siec")
+        XCTAssertTrue(app.buttons["launcher.result.command:network"].waitForExistence(timeout: 5))
+        field.typeKey(.return, modifierFlags: [])
+        XCTAssertTrue(element("network.unavailable", in: app).waitForExistence(timeout: 5))
+        XCTAssertFalse(field.exists)
+        element("navigation.settings", in: app).click()
+        app.buttons["launcher.open"].click()
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.typeKey(.escape, modifierFlags: [])
+        XCTAssertFalse(field.exists)
+        app.terminate()
+    }
+
+    @MainActor
+    func testLauncherGlobalShortcutHiddenWindowAndApplicationLaunch() throws {
+        let app = launch(reset: true, launcherLiveTesting: true)
+        app.windows["main"].buttons["_XCUI:CloseWindow"].click()
+        let finder = XCUIApplication(bundleIdentifier: "com.apple.finder")
+        finder.activate()
+        finder.typeKey(" ", modifierFlags: [.control, .option])
+        let field = app.textFields["launcher.search"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.windows["main"].exists)
+        field.typeText("calculator")
+        let result = app.buttons["launcher.result.app:com.apple.calculator"]
+        XCTAssertTrue(result.waitForExistence(timeout: 10))
+        let calculator = XCUIApplication(bundleIdentifier: "com.apple.calculator")
+        let wasRunning = calculator.state != .notRunning
+        result.click()
+        XCTAssertTrue(calculator.wait(for: .runningForeground, timeout: 10))
+        XCTAssertFalse(field.exists)
+        if !wasRunning { calculator.terminate() }
+        finder.activate()
+        finder.typeKey(" ", modifierFlags: [.control, .option])
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.typeText("settings")
+        let settings = app.buttons["launcher.result.command:settings"]
+        XCTAssertTrue(settings.waitForExistence(timeout: 5))
+        settings.click()
+        XCTAssertTrue(app.buttons["launcher.open"].waitForExistence(timeout: 5))
+        app.popUpButtons["launcher.key"].click()
+        app.menuItems["K"].click()
+        XCTAssertEqual(app.popUpButtons["launcher.key"].value as? String, "K")
+        XCTAssertFalse(app.staticTexts["Shortcut unavailable. Previous binding was kept, if active. Choose another combination."].exists)
+        app.windows["main"].buttons["_XCUI:CloseWindow"].click()
+        finder.activate()
+        finder.typeKey("k", modifierFlags: [.control, .option])
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.typeKey(.escape, modifierFlags: [])
+        XCTAssertFalse(field.exists)
+        XCTAssertTrue(finder.wait(for: .runningForeground, timeout: 5))
+        app.terminate()
+    }
+
+    @MainActor
     private func launch(
         reset: Bool,
         liveMetrics: Bool = false,
         clipboardFixture: Bool = false,
+        launcherLiveTesting: Bool = false,
         scrollPermission: Bool = false,
         inputMonitoringRequired: Bool = false,
         loginItemRequiresApproval: Bool = false,
@@ -534,6 +600,7 @@ final class AppShellTests: XCTestCase {
         app.launchArguments = ["--ui-testing", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
         if reset { app.launchArguments.append("--reset-preferences") }
         if liveMetrics { app.launchArguments.append("--live-metrics") }
+        if launcherLiveTesting { app.launchArguments.append("--launcher-live-testing") }
         if clipboardFixture { app.launchArguments.append("--clipboard-fixture") }
         if scrollPermission { app.launchArguments.append("--scroll-permission-granted") }
         if inputMonitoringRequired { app.launchArguments.append("--scroll-input-monitoring-required") }
