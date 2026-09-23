@@ -8,14 +8,18 @@ struct LauncherView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 16) {
-                Image(systemName: "magnifyingglass").font(.title2).foregroundStyle(AppTheme.accent)
-                LauncherSearchField(model: model, placeholder: controller.strings("launcher.placeholder"))
+                Button { controller.toggleMode() } label: {
+                    Image(systemName: controller.clipboardMode ? "clipboard" : "magnifyingglass").font(.title2)
+                }.buttonStyle(.plain).foregroundStyle(AppTheme.accent)
+                    .accessibilityLabel(controller.strings("launcher.switchMode"))
+                    .accessibilityIdentifier("launcher.switchMode")
+                LauncherSearchField(model: model, placeholder: controller.strings(controller.clipboardMode ? "clipboard.search" : "launcher.placeholder"))
                     .frame(height: 32)
                 if model.isLoading { ProgressView().controlSize(.small) }
                 Text("esc").font(.caption).foregroundStyle(.secondary)
             }
             .padding(.horizontal, 24).frame(height: 90)
-            if !model.query.isEmpty {
+            if controller.showsResults {
                 Divider().padding(.horizontal, 18)
                 ScrollViewReader { proxy in
                     ScrollView {
@@ -45,6 +49,16 @@ struct LauncherView: View {
                                 .buttonStyle(.plain)
                                 .accessibilityIdentifier("launcher.result." + entry.id)
                                 .accessibilityAddTraits(model.selectedID == entry.id ? .isSelected : [])
+                                .contextMenu {
+                                    if controller.canCustomize(entry) {
+                                        Button(controller.strings("launcher.customize")) { controller.customizationEntry = entry }
+                                    }
+                                    if case .file(let url) = entry.action {
+                                        Button(controller.strings("launcher.reveal")) {
+                                            NSWorkspace.shared.activateFileViewerSelecting([url]); controller.hide(restoreFocus: false)
+                                        }
+                                    }
+                                }
                                 .id(entry.id)
                             }
                         }
@@ -57,17 +71,43 @@ struct LauncherView: View {
                         model.failed ? "launcher.partial" : "launcher.keyboard"))
                         .foregroundStyle(controller.actionFailed || model.failed ? .orange : .secondary)
                     Spacer()
+                    if controller.clipboardMode {
+                        Text(controller.strings("clipboard.status.\(controller.clipboard?.status.rawValue ?? "disabled")"))
+                    } else if controller.options.filesEnabled {
+                        Picker(controller.strings("launcher.files.filter"), selection: Binding(
+                            get: { controller.fileFilter }, set: { controller.fileFilter = $0; controller.refreshResults() })) {
+                            ForEach(LauncherFileFilter.allCases, id: \.self) {
+                                Text(controller.strings("launcher.files." + $0.rawValue)).tag($0)
+                            }
+                        }.labelsHidden().fixedSize()
+                    }
                 }
                 .font(.caption).padding(.horizontal, 24).frame(height: 30)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 24))
+        .popover(item: Binding(get: { controller.customizationEntry }, set: { controller.customizationEntry = $0 })) { entry in
+            LauncherCustomizationView(controller: controller,
+                draft: controller.options.items[entry.id] ?? LauncherCustomization(entry: entry)) {
+                    controller.customizationEntry = nil
+                }
+        }
+        .onChange(of: controller.clipboard?.entries.map(\.id)) { _, _ in
+            if controller.clipboardMode { controller.refreshResults() }
+        }
+        .onChange(of: controller.clipboard?.suspended) { _, suspended in
+            if suspended == true { controller.hide(restoreFocus: false) }
+        }
         .onChange(of: model.results.count) { _, _ in controller.resize(rowCount: model.results.count) }
         .onChange(of: model.query) { _, _ in controller.resize(rowCount: model.results.count) }
     }
     @ViewBuilder private func icon(_ entry: LauncherEntry) -> some View {
-        if case .application(let url) = entry.action {
+        if case .clipboard(let id) = entry.action,
+           let data = controller.clipboard?.entries.first(where: { $0.id == id })?.thumbnail,
+           let image = NSImage(data: data) {
+            Image(nsImage: image).resizable().scaledToFit()
+        } else if case .application(let url) = entry.action {
             Image(nsImage: NSWorkspace.shared.icon(forFile: url.path)).resizable().scaledToFit()
         } else {
             Image(systemName: entry.symbol).font(.title2).foregroundStyle(AppTheme.accent)

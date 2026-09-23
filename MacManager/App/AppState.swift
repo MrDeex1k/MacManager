@@ -132,6 +132,7 @@ final class AppState {
     }
 
     private func connectLauncher() {
+        launcher.clipboard = clipboard
         launcher.navigate = { [weak self] section in
             guard let self, let section = AppSection(rawValue: section) else { return }
             self.section = section

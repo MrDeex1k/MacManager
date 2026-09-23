@@ -25,3 +25,7 @@ Przeniesiono `SearchRelevance.swift` (FuzzyMatch, role pól, progi i ranking) or
 Modyfikacje z 2026-09-23: wspólny kontrakt wyników Mac Managera, ranking bez zapisu zapytań i bez uczenia, anulowanie zadań, deterministyczne skanowanie i ograniczenie zagnieżdżonych pakietów, PL/EN, ograniczona lista odnośników systemowych, transakcyjna zmiana skrótu z raportowaniem błędu i pełnym wyrejestrowaniem, uproszczona paleta Liquid Glass oraz integracja z istniejącymi oknem/Dockiem/cyklem życia. Nie przeniesiono brandingu, ikon, modeli AI, runtime rozszerzeń, updatera ani magazynu schowka Tinycast.
 
 Informacja o autorze, zmianach i pełny tekst licencji Tinycast są również dołączone do zasobów aplikacji w `ThirdPartyNotices.txt`.
+
+Rozszerzenie z 2026-09-23 (kroki 4-7): zaadaptowano modele silnika Calculator (parser, procenty, jednostki, daty/czas, formatowanie i statyczne tabele) oraz mechanizm zapytań nazw Spotlight z FileSearchService/Query. Nie przeniesiono CurrencyFeed, pobierania kursów ani historii kalkulatora. Własne preferencje personalizacji i integracja schowka wykorzystują istniejące usługi Mac Managera. Wiele skrótów ma odrębne identyfikatory Carbon.
+
+Tabele `CountryZoneData.generated.swift` i `CurrencyData.generated.swift` zawierają dane Unicode CLDR (nazwy krajów i walut) oraz IANA zone.tab (mapowanie stref). Licencja Unicode V3 z https://www.unicode.org/license.txt jest dołączona do zasobów aplikacji. Dane stref IANA pochodzą z domeny publicznej: https://www.iana.org/time-zones.

@@ -3606,18 +3606,17 @@
       }
     },
     "launcher.keyboard": {
-      "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "↑ ↓ Select   ↵ Open   Esc Clear / Close"
+            "value": "↑↓ Select · ↵ Open/copy · Tab Clipboard · esc Clear/close"
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "↑ ↓ Wybierz   ↵ Otwórz   Esc Wyczyść / Zamknij"
+            "value": "↑↓ Wybór · ↵ Otwórz/kopiuj · Tab Schowek · esc Wyczyść/zamknij"
           }
         }
       }
@@ -3788,6 +3787,326 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ponów rejestrację skrótu"
+          }
+        }
+      }
+    },
+    "launcher.alias": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alias"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alias"
+          }
+        }
+      }
+    },
+    "launcher.favorite": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Favorite"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ulubione"
+          }
+        }
+      }
+    },
+    "launcher.hidden": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hide from search"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ukryj w wynikach"
+          }
+        }
+      }
+    },
+    "launcher.save": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zapisz"
+          }
+        }
+      }
+    },
+    "launcher.customize": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Customize"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dostosuj"
+          }
+        }
+      }
+    },
+    "launcher.remove": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usuń"
+          }
+        }
+      }
+    },
+    "launcher.reset": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reset"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resetuj"
+          }
+        }
+      }
+    },
+    "launcher.reveal": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show in Finder"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pokaż w Finderze"
+          }
+        }
+      }
+    },
+    "launcher.switchMode": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search / Clipboard (Tab)"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wyszukiwanie / Schowek (Tab)"
+          }
+        }
+      }
+    },
+    "launcher.files.enabled": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search file names with Spotlight"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Szukaj nazw plików przez Spotlight"
+          }
+        }
+      }
+    },
+    "launcher.files.add": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add folder…"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dodaj folder…"
+          }
+        }
+      }
+    },
+    "launcher.files.note": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only selected folders. Results depend on Spotlight indexing and macOS permissions."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tylko wybrane foldery. Wyniki zależą od indeksowania Spotlight i uprawnień macOS."
+          }
+        }
+      }
+    },
+    "launcher.files.filter": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "File type"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Typ pliku"
+          }
+        }
+      }
+    },
+    "launcher.files.all": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "All files"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wszystkie pliki"
+          }
+        }
+      }
+    },
+    "launcher.files.folders": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Folders"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foldery"
+          }
+        }
+      }
+    },
+    "launcher.files.documents": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Documents"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dokumenty"
+          }
+        }
+      }
+    },
+    "launcher.files.images": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Images"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Obrazy"
+          }
+        }
+      }
+    },
+    "launcher.personalization": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Personalization"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Personalizacja"
+          }
+        }
+      }
+    },
+    "launcher.personalization.note": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Right-click an application or command in search to customize it. Hidden items remain editable here."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kliknij prawym przyciskiem aplikację lub polecenie w wynikach, aby je dostosować. Ukryte pozycje edytujesz tutaj."
+          }
+        }
+      }
+    },
+    "launcher.calculator.note": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Calculator: 2+3*4, 20% of 500, 10 km to mi, tomorrow + 2 days. English syntax; no exchange-rate downloads or calculation history. Enter copies the result."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kalkulator: 2+3*4, 20% of 500, 10 km to mi, tomorrow + 2 days. Składnia angielska; bez pobierania kursów i historii obliczeń. Enter kopiuje wynik."
           }
         }
       }

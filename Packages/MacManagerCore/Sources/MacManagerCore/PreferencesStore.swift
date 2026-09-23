@@ -26,6 +26,12 @@ public final class PreferencesStore {
 
     @ObservationIgnored private let defaults: UserDefaults
 
+    public var launcher: LauncherPreferences {
+        didSet {
+            if let data = try? JSONEncoder().encode(launcher) { defaults.set(data, forKey: "preferences.launcher") }
+        }
+    }
+
     public var launcherShortcut: LauncherShortcut {
         didSet {
             if let data = try? JSONEncoder().encode(launcherShortcut) {
@@ -100,6 +106,8 @@ public final class PreferencesStore {
 
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        launcher = defaults.data(forKey: "preferences.launcher")
+            .flatMap { try? JSONDecoder().decode(LauncherPreferences.self, from: $0) } ?? LauncherPreferences()
         let shortcut = defaults.data(forKey: "preferences.launcherShortcut")
             .flatMap { try? JSONDecoder().decode(LauncherShortcut.self, from: $0) }
         launcherShortcut = shortcut.flatMap { $0.isValid ? $0 : nil } ?? LauncherShortcut()

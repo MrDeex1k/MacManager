@@ -583,6 +583,74 @@ final class AppShellTests: XCTestCase {
     }
 
     @MainActor
+    func testLauncherCalculatorAndSharedClipboardMode() throws {
+        let app = launch(reset: true, clipboardFixture: true)
+        defer { app.terminate() }
+        app.typeKey(",", modifierFlags: .command)
+        app.buttons["launcher.open"].click()
+        let field = app.textFields["launcher.search"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.typeText("2+3*4")
+        let result = app.buttons["launcher.result.calculator:result"]
+        XCTAssertTrue(result.waitForExistence(timeout: 5))
+        XCTAssertTrue(result.label.contains("14"), result.debugDescription)
+        app.typeKey(.return, modifierFlags: [])
+        XCTAssertFalse(field.exists)
+        app.buttons["launcher.open"].click()
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        app.typeKey(.tab, modifierFlags: [])
+        field.typeText("Project notes")
+        let clipboardResult = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "launcher.result.clipboard:")).firstMatch
+        XCTAssertTrue(clipboardResult.waitForExistence(timeout: 5))
+        app.typeKey(.return, modifierFlags: [])
+        XCTAssertFalse(field.exists)
+        app.buttons["launcher.open"].click()
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.typeText("Project notes")
+        XCTAssertFalse(clipboardResult.exists)
+        app.typeKey(.escape, modifierFlags: [])
+        app.typeKey(.tab, modifierFlags: [])
+        XCTAssertTrue(clipboardResult.waitForExistence(timeout: 5))
+        app.typeKey(.escape, modifierFlags: [])
+        XCTAssertFalse(field.exists)
+    }
+
+    @MainActor
+    func testLauncherAliasFavoriteAndShortcutConflict() throws {
+        let app = launch(reset: true, launcherLiveTesting: true)
+        defer { app.terminate() }
+        app.typeKey(",", modifierFlags: .command)
+        app.buttons["launcher.open"].click()
+        let field = app.textFields["launcher.search"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.typeText("network")
+        let result = app.buttons["launcher.result.command:network"]
+        XCTAssertTrue(result.waitForExistence(timeout: 5))
+        result.rightClick()
+        app.menuItems["Customize"].click()
+        let alias = app.textFields["launcher.alias"]
+        XCTAssertTrue(alias.waitForExistence(timeout: 5))
+        alias.click(); alias.typeText("myconnection")
+        app.checkBoxes["Favorite"].click()
+        let popover = app.popovers.firstMatch
+        popover.checkBoxes["Enable global shortcut"].click()
+        app.buttons["Save"].click()
+        XCTAssertTrue(alias.exists, "Conflicting palette shortcut must keep the editor open")
+        app.popUpButtons["launcher.itemKey"].click()
+        app.menuItems["N"].click()
+        app.buttons["Save"].click()
+        field.click(); field.typeKey("a", modifierFlags: .command); field.typeText("myconnection")
+        XCTAssertTrue(result.waitForExistence(timeout: 5))
+        app.typeKey(.return, modifierFlags: [])
+        XCTAssertTrue(element("network.unavailable", in: app).waitForExistence(timeout: 5))
+        app.windows.firstMatch.buttons[XCUIIdentifierCloseWindow].click()
+        let finder = XCUIApplication(bundleIdentifier: "com.apple.finder")
+        finder.activate()
+        finder.typeKey("n", modifierFlags: [.control, .option])
+        XCTAssertTrue(element("network.unavailable", in: app).waitForExistence(timeout: 5))
+    }
+
+    @MainActor
     private func launch(
         reset: Bool,
         liveMetrics: Bool = false,

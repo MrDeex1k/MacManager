@@ -47,11 +47,11 @@ Weryfikacja: 74 testy Core i dwa nowe testy GUI przechodzą. Rzeczywisty test Se
 
 Dalej: pełny launcher lokalny (3B), panel wyspy (3C), integracje Music/Spotify (3D). Publikacja DMG i rozszerzanie mapowania Apple Silicon pozostają niezależnymi zadaniami.
 
-## Etap 3B: launcher, kroki 1-3
+## Etap 3B: launcher, kroki 1-7
 
 Na `feat/stage-3b-launcher`, opartym na branchu 3A, wdrożono rdzeń wyszukiwarki, paletę ze skrótem globalnym oraz katalog aplikacji i poleceń. Ranking i mechanizmy katalogu/panelu/skrótu adaptowano z przypiętej rewizji Tinycast. Paleta działa niezależnie od głównego okna i ustawienia Docka; domyślny skrót to Control + Option + Spacja. Zapytania nie są zapisywane ani wysyłane. [Raport kroków 1-3](reports/etap-3b-launcher-1-3.md).
 
-Do 3B pozostają kroki 4-8: personalizacja, pliki, kalkulator, tryb schowka i pełny odbiór.
+Wdrożono także personalizację i skróty pozycji, pliki przez Spotlight w wybranych folderach, lokalny kalkulator i wspólny tryb Schowek pod Tab. [Raport kroków 4-7](reports/etap-3b-launcher-4-7.md). Do 3B pozostaje krok 8: pełny odbiór dostępności, IME/Spaces, uprawnień folderów i kosztu pracy w tle.
 
 ## Dowody i granice
 

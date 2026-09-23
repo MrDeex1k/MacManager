@@ -19,7 +19,9 @@ private func launcherHotKeyHandler(_: EventHandlerCallRef?, event: EventRef?, co
     private var registration: EventHotKeyRef?
     private var current: LauncherShortcut?
     private var sequence: UInt32 = 0
-    private let signature: OSType = 0x4D4D4C52
+    private static var nextSignature: OSType = 0x4D4D4C52
+    private let signature: OSType
+    init() { signature = Self.nextSignature; Self.nextSignature &+= 1 }
     var onPress: (() -> Void)?
 
     func register(_ shortcut: LauncherShortcut) -> Bool {

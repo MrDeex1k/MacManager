@@ -10,6 +10,7 @@ public struct ClipboardLibrary: Sendable {
 public struct ClipboardRestoredContent: Sendable {
     public let kind: ClipboardKind
     public let data: Data
+    public init(kind: ClipboardKind, data: Data) { self.kind = kind; self.data = data }
 }
 
 public actor ClipboardRepository {

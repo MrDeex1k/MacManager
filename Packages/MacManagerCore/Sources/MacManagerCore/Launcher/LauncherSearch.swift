@@ -1,13 +1,16 @@
 import Foundation
 import Observation
 
-public enum LauncherAction: Hashable, Sendable {
+public enum LauncherAction: Hashable, Sendable, Codable {
+    case clipboard(UUID)
+    case file(URL)
+    case copy(String)
     case application(URL)
     case section(String)
     case systemSettings(URL)
 }
 
-public struct LauncherEntry: Identifiable, Hashable, Sendable {
+public struct LauncherEntry: Identifiable, Hashable, Sendable, Codable {
     public let id: String
     public let title: String
     public let subtitle: String
@@ -33,15 +36,18 @@ public protocol LauncherProvider: Sendable {
 
 public actor LauncherSearchEngine {
     public init() {}
-    public func search(_ query: String, entries: [LauncherEntry], limit: Int = 40) throws -> [LauncherEntry] {
+    public func search(_ query: String, entries: [LauncherEntry], limit: Int = 40, preferences: LauncherPreferences = .init()) throws -> [LauncherEntry] {
         let folded = FuzzyMatch.Query(String(query.prefix(256)).trimmingCharacters(in: .whitespacesAndNewlines))
         var ranked: [(LauncherEntry, Int)] = []
         var seen = Set<String>()
         for entry in entries {
             try Task.checkCancellation()
-            guard seen.insert(entry.id).inserted,
-                  let score = SearchRelevance.quality(folded, fields: entry.fields) else { continue }
-            ranked.append((entry, score))
+            let custom = preferences.items[entry.id]
+            guard custom?.hidden != true, seen.insert(entry.id).inserted else { continue }
+            var fields = entry.fields
+            if let alias = custom?.alias, !alias.isEmpty { fields.append(.name(alias)) }
+            guard let score = SearchRelevance.quality(folded, fields: fields) else { continue }
+            ranked.append((entry, score + (custom?.favorite == true ? 1_000_000 : 0)))
         }
         return ranked.sorted {
             if $0.1 != $1.1 { return $0.1 > $1.1 }
@@ -60,17 +66,21 @@ public final class LauncherSearchModel {
     public var selectedID: String?
     public var selected: LauncherEntry? { results.first { $0.id == selectedID } }
     @ObservationIgnored private let engine = LauncherSearchEngine()
+    @ObservationIgnored private var providerFailed = false
     @ObservationIgnored private var catalog: [LauncherEntry] = []
     @ObservationIgnored private var searchTask: Task<Void, Never>?
     @ObservationIgnored private var loadTask: Task<Void, Never>?
     @ObservationIgnored private var generation = 0
     @ObservationIgnored private var searchGeneration = 0
+    public var preferences = LauncherPreferences()
+    public var onlyAdditionalResults = false
+    @ObservationIgnored public var additionalResults: (@MainActor (String) async throws -> [LauncherEntry])?
     public init() {}
 
     public func load(providers: [any LauncherProvider], language: String, commands: [LauncherEntry]) {
         cancel()
         catalog = commands
-        isLoading = true; failed = false
+        isLoading = true; failed = false; providerFailed = false
         search("")
         let token = generation
         loadTask = Task { [weak self] in
@@ -82,23 +92,33 @@ public final class LauncherSearchModel {
                 catch { hasFailure = true }
             }
             guard let self, token == self.generation, !Task.isCancelled else { return }
-            self.catalog = found; self.isLoading = false; self.failed = hasFailure
+            self.catalog = found; self.isLoading = false; self.providerFailed = hasFailure; self.failed = hasFailure
             self.search(self.query)
         }
     }
     public func search(_ text: String) {
+        failed = providerFailed
         query = String(text.prefix(256))
         searchTask?.cancel(); searchGeneration += 1
         let token = searchGeneration
         // Never execute a result belonging to an earlier query while the next search runs.
         results = []; selectedID = nil
-        let catalog = catalog, query = query
+        let catalog = onlyAdditionalResults ? [] : catalog, query = query, preferences = preferences, additionalResults = additionalResults
         searchTask = Task { [weak self, engine] in
             do {
-                let matches = try await engine.search(query, entries: catalog)
+                let matches = try await engine.search(query, entries: catalog, preferences: preferences)
                 guard let self, token == self.searchGeneration, !Task.isCancelled else { return }
                 self.results = matches; self.selectedID = matches.first?.id
-            } catch {}
+                guard let additionalResults else { return }
+                let extra = try await additionalResults(query)
+                guard token == self.searchGeneration, !Task.isCancelled else { return }
+                let previous = self.selectedID
+                self.results = Array((extra.filter { $0.id == "calculator:result" } + matches + extra.filter { $0.id != "calculator:result" }).prefix(40))
+                self.selectedID = previous.flatMap { id in self.results.contains { $0.id == id } ? id : nil } ?? self.results.first?.id
+                if extra.first?.id == "calculator:result" { self.selectedID = extra.first?.id }
+            } catch {
+                if let self, token == self.searchGeneration, !Task.isCancelled { self.failed = true }
+            }
         }
     }
     public func moveSelection(_ delta: Int) {

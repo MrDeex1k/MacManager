@@ -24,6 +24,8 @@ Test z rzeczywistym skrótem używa osobnych ustawień i tymczasowo rejestruje s
 
 ## Dalej
 
+Aktualizacja: kroki 4-7 wdrożono w [kolejnym raporcie](etap-3b-launcher-4-7.md). Poniższa lista zachowuje kolejność planu; pozostaje odbiór kroku 8.
+
 4. Aliasy, ulubione, ukrywanie wyników i skróty konkretnych pozycji.
 5. Pliki i foldery przez Spotlight w wybranych lokalizacjach.
 6. Kalkulator, jednostki i operacje daty/czasu.

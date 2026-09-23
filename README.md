@@ -40,7 +40,7 @@ A native macOS utility for live system monitoring, independent mouse scrolling a
 | --- | --- | --- |
 | **1 · Mac essentials** | Metrics and five-minute history, network, mouse scroll, menu bar, Dock, launch at login and GitHub release checks. | Steps 1-8 of 9 complete |
 | **2 · Hardware sensors** | Live temperatures and fan RPM, menu bar values and five-minute history. Validated on M4 Pro; broader chip mapping and optimization remain future work. Fans are never controlled. | Complete on reference hardware |
-| **3 · Private tools and notch area** | Private clipboard, full local launcher for apps/files/commands, then hover-operated panel and local Apple Music/Spotify controls. One shared architecture supports both TinyCast integration scenarios. | Clipboard and launcher steps 1-3 implemented |
+| **3 · Private tools and notch area** | Private clipboard, full local launcher for apps/files/commands, then hover-operated panel and local Apple Music/Spotify controls. One shared architecture supports both TinyCast integration scenarios. | Clipboard and launcher steps 1-7 implemented |
 
 The collapsed notch-area panel will show nothing. It will use the active built-in MacBook display when available, otherwise the main display.
 
@@ -82,7 +82,11 @@ Defaults are **50 items, 7 days and 200 MB**. History settings provide pause/res
 
 Open the launcher with `Control-Option-Space`, from the menu bar panel or through Settings. Search installed applications and Mac Manager sections, select with arrow keys and press Enter to open. Escape clears the query first, then closes the palette. The launcher works with the main window closed and does not change Dock visibility.
 
-Queries stay in memory. Application discovery is limited to standard application folders and known embedded tools. No Accessibility permission is required for the global shortcut. Configure or disable it in Settings; a failed replacement keeps the previous active binding. [Implementation and remaining steps](docs/reports/etap-3b-launcher-1-3.md).
+Queries stay in memory. Application discovery is limited to standard application folders and known embedded tools. No Accessibility permission is required for the global shortcut. Configure or disable it in Settings; a failed replacement keeps the previous active binding. Right-click an application or command to set an alias, favorite, visibility or its own shortcut. Edit/reset saved entries in Settings.
+
+Enable file search and choose folders in Settings to search names through Spotlight, with file-type filters. The inline calculator supports arithmetic, percentages, units and date/time expressions such as `20% of 500`, `10 km to mi` and `tomorrow + 2 days`; Enter copies the answer. Calculator keywords use English syntax, with no exchange-rate downloads or calculation history.
+
+Press **Tab** to switch to the shared clipboard history. Enter restores an item for manual `Command-V`; clipboard content stays out of ordinary application searches. [Implementation and remaining acceptance work](docs/reports/etap-3b-launcher-4-7.md).
 
 ### Keyboard shortcuts
 
