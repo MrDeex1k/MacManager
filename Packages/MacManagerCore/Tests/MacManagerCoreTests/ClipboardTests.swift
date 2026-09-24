@@ -153,6 +153,45 @@ private func clipboardDirectory() -> URL {
     guard case .skipped = adapter.capture(exclusions: []) else { Issue.record("Confidential content was captured"); return }
 }
 
+@MainActor @Test func clipboardAdapterPrefersTextOverImageRepresentations() throws {
+    let board = NSPasteboard(name: .init("MacManagerTests-\(UUID().uuidString)"))
+    defer { board.releaseGlobally() }
+    let adapter = SystemClipboardPasteboard(pasteboard: board, foregroundBundleID: { nil })
+    let bitmap = try #require(NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: 2, pixelsHigh: 2,
+        bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0))
+    for (type, format) in [(NSPasteboard.PasteboardType.png, NSBitmapImageRep.FileType.png), (.tiff, .tiff)] {
+        let image = try #require(bitmap.representation(using: format, properties: [:]))
+        func write(_ text: String) {
+            let item = NSPasteboardItem()
+            item.setData(image, forType: type)
+            item.setString(text, forType: .string)
+            board.clearContents()
+            #expect(board.writeObjects([item]))
+        }
+        write("Zażółć\t42")
+        guard case .content(let raw) = adapter.capture(exclusions: []) else {
+            Issue.record("Expected mixed-format text"); return
+        }
+        let content = try raw.normalized()
+        #expect(content.kind == .text)
+        #expect(content.data == Data("Zażółć\t42".utf8))
+        try adapter.restore(ClipboardRestoredContent(kind: content.kind, data: content.data))
+        #expect(board.string(forType: .string) == "Zażółć\t42")
+        #expect(board.data(forType: .png) == nil)
+
+        write("")
+        guard case .content(let imageRaw) = adapter.capture(exclusions: []) else {
+            Issue.record("Expected image with empty text"); return
+        }
+        #expect(try imageRaw.normalized().kind == .image)
+
+        write(String(repeating: "x", count: ClipboardContent.maximumTextBytes + 1))
+        guard case .rejected(.tooLarge) = adapter.capture(exclusions: []) else {
+            Issue.record("Oversized text must not fall back to an image"); return
+        }
+    }
+}
+
 @MainActor private final class ClipboardMock: ClipboardPasteboard {
     var changeCount = 0
     var access = ClipboardAccess.allowed
