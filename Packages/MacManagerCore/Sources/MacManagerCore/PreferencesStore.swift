@@ -26,6 +26,14 @@ public final class PreferencesStore {
 
     @ObservationIgnored private let defaults: UserDefaults
 
+    public var clipboard: ClipboardPreferences {
+        didSet {
+            if let data = try? JSONEncoder().encode(clipboard) {
+                defaults.set(data, forKey: "preferences.clipboard")
+            }
+        }
+    }
+
     public var temperatureUnit: TemperatureUnit {
         didSet { defaults.set(temperatureUnit.rawValue, forKey: "preferences.temperatureUnit") }
     }
@@ -84,6 +92,9 @@ public final class PreferencesStore {
 
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        let savedClipboard = defaults.data(forKey: "preferences.clipboard")
+            .flatMap { try? JSONDecoder().decode(ClipboardPreferences.self, from: $0) }
+        clipboard = savedClipboard.flatMap { $0.isValid ? $0 : nil } ?? ClipboardPreferences()
         temperatureUnit = defaults.string(forKey: "preferences.temperatureUnit").flatMap(TemperatureUnit.init(rawValue:)) ?? .celsius
         reverseMouseScroll = Self.bool(defaults, forKey: Key.reverseMouseScroll, default: false)
         samplingInterval = SamplingInterval(rawValue: defaults.integer(forKey: Key.samplingInterval)) ?? .two

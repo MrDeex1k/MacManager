@@ -1,6 +1,6 @@
 # Dokumentacja Mac Manager
 
-Status: wymagania zatwierdzone przez właściciela projektu po wywiadzie Q1-Q28 i końcowym potwierdzeniu. Kroki 1-8 etapu 1 są zaimplementowane. Aktualizacje przez GitHub Releases, lokalna diagnostyka i audyt prywatności mają zakończony odbiór. Do zamknięcia etapu 1 pozostaje krok 9.
+Status: wymagania zatwierdzone przez właściciela projektu po wywiadzie Q1-Q28 i końcowym potwierdzeniu. Kroki 1-8 etapu 1 są zaimplementowane. Aktualizacje przez GitHub Releases, lokalna diagnostyka i audyt prywatności mają zakończony odbiór. Do zamknięcia etapu 1 pozostaje dystrybucja w kroku 9. Etap 2 jest scalony do main, a schowek etapu 3A jest zaimplementowany na osobnym branchu.
 
 Aktualny punkt prac i kolejność kolejnych zadań: [Stan projektu](10-stan-projektu.md).
 
@@ -23,6 +23,7 @@ Aktualny punkt prac i kolejność kolejnych zadań: [Stan projektu](10-stan-proj
 | [Raport kroku 9](reports/etap-1-krok-9a.md) | Testy automatyczne, audyt dostępności, wydajność w tle i próba na urządzeniu referencyjnym. |
 | [Analiza integracji TinyCast](reports/analiza-integracji-tinycast.md) | Stan kodu, etapy 2/3, kandydaci do adaptacji i proponowany zakres integracji. |
 | [Dwa scenariusze integracji TinyCast](12-scenariusze-integracji-tinycast.md) | Prywatny schowek i pełny launcher; porównanie zakresu lokalnego z dalszymi integracjami. |
+| [Raport schowka 3A](reports/etap-3a-schowek.md) | Implementacja, ochrona danych, wyniki testów i ręczny odbiór zgód. |
 | [Raport prototypów](reports/etap-1-krok-1.md) | Wyniki pierwszych uruchomień etapu 1 i brakujące dowody. |
 | [Raport szkieletu](reports/etap-1-krok-2.md) | Projekt Xcode, lokalny Core, interfejs i wyniki testów kroku 2. |
 

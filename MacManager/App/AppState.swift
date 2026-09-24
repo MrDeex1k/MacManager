@@ -4,7 +4,7 @@ import MacManagerCore
 import Observation
 
 enum AppSection: String, CaseIterable, Identifiable {
-    case overview, sensors, network, scroll, dock, settings
+    case overview, sensors, network, clipboard, scroll, dock, settings
     var id: String { rawValue }
     var titleKey: String { "nav.\(rawValue)" }
     var symbol: String {
@@ -12,6 +12,7 @@ enum AppSection: String, CaseIterable, Identifiable {
         case .overview: "square.grid.2x2"
         case .sensors: "thermometer.medium"
         case .network: "network"
+        case .clipboard: "clipboard"
         case .scroll: "computermouse"
         case .dock: "dock.rectangle"
         case .settings: "slider.horizontal.3"
@@ -30,6 +31,8 @@ final class AppState {
     let loginItem: LoginItemController
     let updates: UpdateService
     let updateController: UpdateController
+    let clipboardController: ClipboardController
+    var clipboard: ClipboardService { clipboardController.service }
     let diagnostics: DiagnosticsStore
     private(set) var launchContext: ApplicationLaunchContext
     let lifecycle: ApplicationLifecycleCoordinator
@@ -52,6 +55,7 @@ final class AppState {
                 defaults.removePersistentDomain(forName: "dev.macmanager.MacManager.UITests")
             }
             preferences = PreferencesStore(defaults: defaults)
+            clipboardController = ClipboardController(preferences: preferences, testing: true)
             scroll = ScrollService(enabled: preferences.reverseMouseScroll, driver: TestScrollDriver())
             network = NetworkService(enabled: false)
             metrics = MetricsService(interval: preferences.samplingInterval)
@@ -76,6 +80,7 @@ final class AppState {
             var participants: [any ApplicationLifecycleParticipant] = [
                 dock,
                 loginItem,
+                clipboardController,
                 ScrollController(service: scroll, diagnostics: diagnostics)
             ]
             if !updateOffline { participants.append(updateController) }
@@ -90,6 +95,7 @@ final class AppState {
         }
         #endif
         preferences = PreferencesStore()
+        clipboardController = ClipboardController(preferences: preferences)
         scroll = ScrollService(enabled: preferences.reverseMouseScroll, driver: ScrollDriver())
         network = NetworkService(enabled: preferences.publicIPEnabled)
         metrics = MetricsService(interval: preferences.samplingInterval)
@@ -107,6 +113,7 @@ final class AppState {
         lifecycle = ApplicationLifecycleCoordinator(participants: [
             dock,
             loginItem,
+            clipboardController,
             ScrollController(service: scroll, diagnostics: diagnostics),
             NetworkController(service: network, diagnostics: diagnostics),
             MetricsController(service: metrics, diagnostics: diagnostics),

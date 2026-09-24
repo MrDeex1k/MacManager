@@ -8,7 +8,7 @@ let package = Package(
     targets: [
         .target(name: "MMHardware", linkerSettings: [.linkedFramework("IOKit"), .linkedFramework("CoreFoundation")]),
         .target(name: "MMInput", linkerSettings: [.linkedFramework("CoreGraphics"), .linkedFramework("IOKit")]),
-        .target(name: "MacManagerCore", dependencies: ["MMHardware", "MMInput"]),
+        .target(name: "MacManagerCore", dependencies: ["MMHardware", "MMInput"], linkerSettings: [.linkedLibrary("sqlite3")]),
         .testTarget(name: "MacManagerCoreTests", dependencies: ["MacManagerCore"])
     ]
 )

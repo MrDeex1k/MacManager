@@ -48,6 +48,7 @@ struct AppShellView: View {
                     case .overview: OverviewView()
                     case .sensors: SensorsView()
                     case .network: NetworkView()
+                    case .clipboard: ClipboardView()
                     case .scroll: ScrollSettingsView()
                     case .dock: DockSettingsView()
                     case .settings: SettingsView()

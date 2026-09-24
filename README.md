@@ -16,17 +16,19 @@ A native macOS utility for live system monitoring, independent mouse scrolling a
 </div>
 
 > [!IMPORTANT]
-> **Stage 1 is in development. Steps 1-8 are complete.** Final release validation and the first signed DMG in step 9 are still pending. There is no public release yet.
+> **Hardware monitoring and Stage 3A clipboard history are implemented.** The clipboard is undergoing hands-on permission validation. Final distribution checks and the first signed, notarized DMG are still pending; there is no public release yet.
 
 ## Built for daily use
 
 | Area | Available now |
 | --- | --- |
 | **System** | Live CPU, GPU and RAM readings with a persistent 1, 2 or 5 second interval. Five-minute Swift Charts history stays in memory and preserves gaps in unavailable data. |
+| **Sensors** | CPU/GPU temperatures in °C or °F, individual fan RPM and five-minute history. Temperature mapping is currently validated on M4 Pro. Read-only sensors, no fan control. |
+| **Clipboard** | Opt-in local history of text and images, search, preview and restore. Encrypted storage, app exclusions and configurable count, age and size limits. |
 | **Network** | Primary local and public IPv4 addresses, connection status, manual refresh and copy actions. |
 | **Scroll** | Independent vertical and horizontal mouse reversal with automatic mouse/trackpad classification. Trackpad direction and momentum remain intact. No device model lists. |
 | **macOS** | Native menu bar panel, configurable Dock icon, persistent background process, one reusable window and launch at login through `SMAppService.mainApp`. |
-| **Interface** | Separate Overview, Network, Scroll, Dock and Settings sections. Polish and English content switches immediately in a dark native Liquid Glass interface. |
+| **Interface** | Separate Overview, Sensors, Network, Clipboard, Scroll, Dock and Settings sections. Polish and English content switches immediately in a dark native Liquid Glass interface. |
 
 > [!NOTE]
 > Mac Manager shows a read-only AppleSMC PSTR power estimate when the sensor is available. The estimate may vary between Mac models. Additional VPN egress addresses remain an open technical limitation.
@@ -36,12 +38,12 @@ A native macOS utility for live system monitoring, independent mouse scrolling a
 | Stage | Scope | Status |
 | --- | --- | --- |
 | **1 · Mac essentials** | Metrics and five-minute history, network, mouse scroll, menu bar, Dock, launch at login and GitHub release checks. | Steps 1-8 of 9 complete |
-| **2 · Hardware sensors** | Live sensor view with °C/°F and fan RPM. Initial temperature mapping covers M4 Pro; other chips and independent validation remain pending. Fans are never controlled. | In progress |
-| **3 · Private tools and notch area** | Private clipboard, full local launcher for apps/files/commands, then hover-operated panel and local Apple Music/Spotify controls. One shared architecture supports both TinyCast integration scenarios. | Planned |
+| **2 · Hardware sensors** | Live temperatures and fan RPM, menu bar values and five-minute history. Validated on M4 Pro; broader chip mapping and optimization remain future work. Fans are never controlled. | Complete on reference hardware |
+| **3 · Private tools and notch area** | Private clipboard, full local launcher for apps/files/commands, then hover-operated panel and local Apple Music/Spotify controls. One shared architecture supports both TinyCast integration scenarios. | Clipboard implemented; launcher and island next |
 
 The collapsed notch-area panel will show nothing. It will use the active built-in MacBook display when available, otherwise the main display.
 
-**Next:** Stage 1, step 9 still needs an installed-app launch-at-login check, broader Apple Silicon coverage, Developer ID signing, notarization and the first arm64 DMG. Automated tests, the reference-hardware pass, accessibility audit and background performance measurement are complete.
+**Next:** Validate clipboard permissions and lock/unlock on the installed app, then implement the local launcher. Public distribution remains pending notarization and DMG acceptance. Installed-app launch at login has been confirmed.
 
 ## Requirements
 
@@ -67,6 +69,14 @@ Local builds use ad-hoc signing and the separate development bundle identifier `
 
 Development builds (Debug and local Release) use the display name **Mac Manager Dev** and separate preferences and macOS permissions. The DMG release script sets the stable public identifier `dev.macmanager.MacManager`. Install the public app in Applications before enabling scroll permissions. The Scroll screen checks both permissions and offers instructions for repairing a stale entry and revealing the running app in Finder.
 
+### Clipboard history
+
+Open **Clipboard** and enable history, then grant permanent clipboard access in macOS when requested. Recording starts with new copies; existing clipboard content is not imported. Restore an item and press `Command-V` in the destination app.
+
+Defaults are **50 items, 7 days and 200 MB**. History settings provide pause/resume, application exclusions and retention controls. Text and normalized PNG images, including thumbnails, are encrypted locally. The encryption key is protected by Secure Enclave with its wrapped representation kept in the nonsynchronizing Keychain. Missing key access never falls back to plaintext. Clearing history leaves the current system clipboard unchanged.
+
+[Implementation and validation](docs/reports/etap-3a-schowek.md) · [Privacy design](docs/05-dane-i-prywatnosc.md)
+
 ### Keyboard shortcuts
 
 | Shortcut | Destination |
@@ -88,7 +98,7 @@ xcodebuild -project MacManager.xcodeproj -scheme MacManager \
   -parallel-testing-enabled NO test
 ```
 
-UI tests use an isolated preferences domain. Network services remain stopped, and scroll tests use permission and driver fixtures without installing global event taps or changing macOS permissions. The live-metrics test reads local hardware. macOS may ask for permission to let the Xcode test runner control the Mac.
+UI tests use an isolated preferences domain. Clipboard tests use synthetic data and a separate named pasteboard, never the general clipboard. Network services remain stopped, and scroll tests use permission and driver fixtures without installing global event taps or changing macOS permissions. The live-metrics test reads local hardware. One Core test creates and removes its own random Keychain item to verify Secure Enclave key persistence. macOS may ask for permission to let the Xcode test runner control the Mac.
 
 Hardware and input feasibility probes are separate from the app:
 
@@ -116,7 +126,7 @@ Detailed implementation reports cover [network](docs/reports/etap-1-krok-5.md), 
 
 Mac Manager has no accounts, ads, telemetry, automatic crash-report uploads or application-managed cloud sync. Settings and metric history stay on the Mac.
 
-Public IPv4 discovery and the planned release check contact external HTTPS services, which can see the request's source IP. The app does not send system metrics or user content. Read the complete [privacy and data design](docs/05-dane-i-prywatnosc.md).
+Public IPv4 discovery and release checks contact external HTTPS services, which can see the request's source IP. The app does not send system metrics or user content. Read the complete [privacy and data design](docs/05-dane-i-prywatnosc.md).
 
 ## Distribution
 

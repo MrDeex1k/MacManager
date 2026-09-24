@@ -64,6 +64,8 @@ Bramka: odczyty porównane z niezależną referencją dostępną na modelu; opis
 
 ## Faza 3 - wyspa, schowek, muzyka
 
+Stan na 2026-09-23: 3A (schowek) jest zaimplementowane na `feat/stage-3a-clipboard`. Testy automatyczne zakończone; ręczny odbiór systemowych zgód i blokady sesji pozostaje otwarty. [Raport i zakres walidacji P05](reports/etap-3a-schowek.md). Kolejne części to 3B launcher, 3C wyspa i 3D muzyka.
+
 Rozszerzenie kierunku (D24-D25): właściciel zatwierdził wspólną architekturę pod oba scenariusze integracji oraz kolejność rozszerzonego etapu 3: prywatny schowek, pełny launcher, wyspa i muzyka. Najpierw wdrażamy scenariusz 1, następnie rozwijamy go w kierunku scenariusza 2 bez wymiany wyszukiwarki ani magazynu schowka. [Scenariusze integracji](12-scenariusze-integracji-tinycast.md) opisują granice obu wariantów i dalsze moduły. Etap 2 pozostaje niezależnym etapem czujników.
 
 Kolejność rozszerzonego etapu 3: P05 → prywatne repozytorium schowka, retencja i ochrona danych → przywracanie i UI → pełny launcher z aplikacjami, plikami, komendami i nawigacją → P07 i panel wyspy → P06 i adaptery muzyki → wspólny panel → testy dostępności, migracji i obciążenia. Wyspa korzysta z tej samej usługi schowka i nie tworzy drugiego pollera ani magazynu.
