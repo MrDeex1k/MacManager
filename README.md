@@ -80,7 +80,7 @@ Defaults are **50 items, 7 days and 200 MB**. History settings provide pause/res
 
 ### Local launcher
 
-Open the launcher with `Control-Option-Space`, from the menu bar panel or through Settings. Search installed applications and Mac Manager sections, select with arrow keys and press Enter to open. Escape clears the query first, then closes the palette. The launcher works with the main window closed and does not change Dock visibility.
+Open the launcher with `Control-Option-Space`, from the View menu or through Settings. Search installed applications and Mac Manager sections, select with arrow keys and press Enter to open. Escape clears the query first, then closes the palette. The launcher works with the main window closed and does not change Dock visibility.
 
 Queries stay in memory. Application discovery is limited to standard application folders and known embedded tools. No Accessibility permission is required for the global shortcut. Configure or disable it in Settings; a failed replacement keeps the previous active binding. Right-click an application or command to set an alias, favorite, visibility or its own shortcut. Edit/reset saved entries in Settings.
 
