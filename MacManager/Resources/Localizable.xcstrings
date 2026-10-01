@@ -4110,6 +4110,54 @@
           }
         }
       }
+    },
+    "network.menuBar.title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Menu bar panel"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Panel paska menu"
+          }
+        }
+      }
+    },
+    "network.menuBar.local": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show local IPv4"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pokazuj lokalny IPv4"
+          }
+        }
+      }
+    },
+    "network.menuBar.public": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show public IPv4"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pokazuj publiczny IPv4"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

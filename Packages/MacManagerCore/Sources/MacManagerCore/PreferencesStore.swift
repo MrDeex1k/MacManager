@@ -60,6 +60,14 @@ public final class PreferencesStore {
         didSet { defaults.set(reverseMouseScroll, forKey: Key.reverseMouseScroll) }
     }
 
+    public var showsLocalIPInMenuBar: Bool {
+        didSet { defaults.set(showsLocalIPInMenuBar, forKey: "preferences.network.menuBar.showsLocalIP") }
+    }
+
+    public var showsPublicIPInMenuBar: Bool {
+        didSet { defaults.set(showsPublicIPInMenuBar, forKey: "preferences.network.menuBar.showsPublicIP") }
+    }
+
     public var publicIPEnabled: Bool {
         didSet { defaults.set(publicIPEnabled, forKey: Key.publicIPEnabled) }
     }
@@ -117,6 +125,8 @@ public final class PreferencesStore {
         temperatureUnit = defaults.string(forKey: "preferences.temperatureUnit").flatMap(TemperatureUnit.init(rawValue:)) ?? .celsius
         reverseMouseScroll = Self.bool(defaults, forKey: Key.reverseMouseScroll, default: false)
         samplingInterval = SamplingInterval(rawValue: defaults.integer(forKey: Key.samplingInterval)) ?? .two
+        showsLocalIPInMenuBar = Self.bool(defaults, forKey: "preferences.network.menuBar.showsLocalIP", default: true)
+        showsPublicIPInMenuBar = Self.bool(defaults, forKey: "preferences.network.menuBar.showsPublicIP", default: true)
         publicIPEnabled = Self.bool(defaults, forKey: Key.publicIPEnabled, default: true)
         appIntegration = AppIntegrationPreferences(
             showsDockIcon: Self.bool(defaults, forKey: Key.showsDockIcon, default: true),

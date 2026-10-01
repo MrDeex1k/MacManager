@@ -38,6 +38,19 @@ struct NetworkView: View {
                     .accessibilityIdentifier("network.unavailable")
             }
             Divider()
+            VStack(alignment: .leading, spacing: 14) {
+                Text(strings("network.menuBar.title")).font(.headline)
+                Toggle(strings("network.menuBar.local"), isOn: Binding(
+                    get: { state.preferences.showsLocalIPInMenuBar },
+                    set: { state.preferences.showsLocalIPInMenuBar = $0 }))
+                    .accessibilityIdentifier("network.menuBar.local")
+                Toggle(strings("network.menuBar.public"), isOn: Binding(
+                    get: { state.preferences.showsPublicIPInMenuBar },
+                    set: { state.preferences.showsPublicIPInMenuBar = $0 }))
+                    .accessibilityIdentifier("network.menuBar.public")
+            }
+            .padding(.trailing, 20)
+            Divider()
             VStack(alignment: .leading, spacing: 10) {
                 Text(strings("network.interfaces")).font(.headline)
                 ForEach(network.environment.addresses) { item in
