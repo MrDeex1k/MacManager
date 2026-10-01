@@ -22,6 +22,7 @@ Aktualny punkt prac i kolejność kolejnych zadań: [Stan projektu](10-stan-proj
 | [Raport kroku 8](reports/etap-1-krok-8.md) | Wyniki testów aktualizacji, interfejsu, diagnostyki i audytu prywatności. |
 | [Raport kroku 9](reports/etap-1-krok-9a.md) | Testy automatyczne, audyt dostępności, wydajność w tle i próba na urządzeniu referencyjnym. |
 | [Analiza integracji TinyCast](reports/analiza-integracji-tinycast.md) | Stan kodu, etapy 2/3, kandydaci do adaptacji i proponowany zakres integracji. |
+| [Przegląd nowych commitów Tinycast](reports/tinycast-aktualizacja-2026-10-01.md) | Zmiany od rewizji bazowej launchera, priorytety adaptacji i skróty Option. |
 | [Dwa scenariusze integracji TinyCast](12-scenariusze-integracji-tinycast.md) | Prywatny schowek i pełny launcher; porównanie zakresu lokalnego z dalszymi integracjami. |
 | [Launcher 3B, kroki 4-7](reports/etap-3b-launcher-4-7.md) | Personalizacja, Spotlight, lokalny kalkulator i wspólny tryb schowka. |
 | [Launcher 3B, kroki 1-3](reports/etap-3b-launcher-1-3.md) | Adaptacja Tinycast, wyszukiwanie, paleta, skrót globalny, aplikacje i polecenia. |

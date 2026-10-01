@@ -5,7 +5,7 @@ public struct LauncherShortcut: Codable, Equatable, Sendable {
     public var keyCode: UInt32 = 49
     public var modifiers: UInt32 = 6144 // Control + Option (Carbon flags).
     public init() {}
-    public static let modifierChoices: [(String, UInt32)] = [("⌃⌥", 6144), ("⌘⇧", 768), ("⌘⌥", 2304), ("⌃⇧", 4608)]
+    public static let modifierChoices: [(String, UInt32)] = [("⌥", 2048), ("⌃⌥", 6144), ("⌘⇧", 768), ("⌘⌥", 2304), ("⌃⇧", 4608)]
     public static let keys: [(String, UInt32)] = [
         ("Space", 49), ("A", 0), ("B", 11), ("C", 8), ("D", 2), ("E", 14), ("F", 3),
         ("G", 5), ("H", 4), ("I", 34), ("J", 38), ("K", 40), ("L", 37), ("M", 46),

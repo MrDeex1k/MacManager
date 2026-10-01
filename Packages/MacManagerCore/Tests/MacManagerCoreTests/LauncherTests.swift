@@ -87,6 +87,11 @@ private func launcherEntry(_ id: String, _ title: String, alternate: [String] = 
     let store = PreferencesStore(defaults: defaults)
     store.launcherShortcut = shortcut
     #expect(PreferencesStore(defaults: defaults).launcherShortcut == shortcut)
+    shortcut.modifiers = 2048
+    #expect(shortcut.isValid)
+    #expect(shortcut.label == "⌥K")
+    store.launcherShortcut = shortcut
+    #expect(PreferencesStore(defaults: defaults).launcherShortcut == shortcut)
     shortcut.keyCode = UInt32.max
     store.launcherShortcut = shortcut
     #expect(!shortcut.isValid)
