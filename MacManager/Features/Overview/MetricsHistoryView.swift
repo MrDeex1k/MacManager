@@ -5,9 +5,10 @@ import SwiftUI
 struct MetricsHistoryView: View {
     @Environment(AppState.self) private var state
     @State private var selected: MetricKind = .cpu
+    @State private var series = MetricsChartSeries()
 
     private var history: MetricsHistory { state.metrics.history }
-    private var points: [MetricHistoryPoint] { history.points(for: selected) }
+    private var points: [MetricHistoryPoint] { series.points(history: history, metric: selected) }
     private var unit: String {
         switch selected {
         case .cpu, .gpu: "%"

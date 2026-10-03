@@ -31,6 +31,7 @@ public struct MetricsHistory: Sendable {
     public static let duration: TimeInterval = 300
     public private(set) var referenceTime: TimeInterval = 0
     public var count: Int { records.count }
+    public private(set) var revision: UInt64 = 0
     private var epoch = 0
     private var records: [Record] = []
 
@@ -45,7 +46,9 @@ public struct MetricsHistory: Sendable {
     public mutating func advance(to now: TimeInterval) {
         guard now.isFinite, now >= referenceTime else { return }
         referenceTime = now
+        let count = records.count
         records.removeAll { $0.snapshot.uptime <= now - Self.duration }
+        if records.count != count { revision &+= 1 }
     }
 
     public mutating func interrupt(at now: TimeInterval) {
@@ -59,6 +62,7 @@ public struct MetricsHistory: Sendable {
         guard time.isFinite, time > referenceTime - Self.duration, time <= referenceTime,
               records.last.map({ time > $0.snapshot.uptime }) ?? true else { return }
         records.append(Record(snapshot: snapshot, interval: interval, epoch: epoch))
+        revision &+= 1
     }
 
     public func points(for kind: MetricKind) -> [MetricHistoryPoint] {

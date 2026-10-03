@@ -348,3 +348,35 @@ private func releaseJSON(version: String, mutation: (String, Any)? = nil) -> Dat
     if let mutation { object[mutation.0] = mutation.1 }
     return try! JSONSerialization.data(withJSONObject: object)
 }
+
+private actor PendingUpdateFetch {
+    private var continuation: CheckedContinuation<UpdateCheckPayload, Never>?
+    var isPending: Bool { continuation != nil }
+    func fetch() async -> UpdateCheckPayload {
+        await withCheckedContinuation { continuation = $0 }
+    }
+    func finish() { continuation?.resume(returning: .noPublicRelease(etag: nil)); continuation = nil }
+}
+
+@MainActor @Test func updatesDoNotScheduleAgainWhileFetchIsPendingAndDiscardCancelledResponse() async throws {
+    let suite = "MacManagerUpdateScheduling.\(UUID())"
+    let defaults = try #require(UserDefaults(suiteName: suite))
+    defer { defaults.removePersistentDomain(forName: suite) }
+    let pending = PendingUpdateFetch()
+    let service = UpdateService(preferences: PreferencesStore(defaults: defaults), installedVersion: "0.8.0",
+        diagnostics: DiagnosticsStore(), fetch: { _ in await pending.fetch() })
+    service.setOnline(true)
+    #expect(service.nextAutomaticDate(now: Date()) != nil)
+    let task = Task { await service.check(trigger: .automatic, now: Date()) }
+    #expect(await waitUntil { await pending.isPending })
+    for _ in 0..<100 {
+        #expect(service.nextAutomaticDate(now: Date()) == nil)
+        #expect(!(await service.check(trigger: .automatic, now: Date())))
+    }
+    service.cancelCheck()
+    await pending.finish()
+    _ = await task.value
+    #expect(service.lastAttempt == nil)
+    #expect(service.status == .neverChecked)
+    #expect(service.nextAutomaticDate(now: Date()) != nil)
+}

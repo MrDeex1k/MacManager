@@ -39,6 +39,7 @@ final class UpdateController: ApplicationLifecycleParticipant {
                 MainActor.assumeIsolated {
                     guard let self else { return }
                     self.isSuspended = suspended
+                    if suspended { self.service.cancelCheck() }
                     self.scheduleNextCheck()
                 }
             }
@@ -63,6 +64,7 @@ final class UpdateController: ApplicationLifecycleParticipant {
         scheduledCheck?.cancel()
         scheduledCheck = nil
         monitor.cancel()
+        service.cancelCheck()
         observers.forEach { center, token in center.removeObserver(token) }
         observers.removeAll()
         MacManagerLog.lifecycle.info("Update lifecycle stopped")
@@ -94,7 +96,7 @@ final class UpdateController: ApplicationLifecycleParticipant {
             } catch {
                 return
             }
-            guard let self, self.isRunning, !self.isSuspended else { return }
+            guard let self, self.isRunning, !self.isSuspended, !Task.isCancelled else { return }
             _ = await self.service.check(trigger: .automatic, now: Date())
             self.scheduleNextCheck()
         }

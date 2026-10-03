@@ -177,3 +177,120 @@ private func launcherEntry(_ id: String, _ title: String, alternate: [String] = 
     #expect(try await search.search("README.md", roots: [root], filter: .images).isEmpty)
     #expect(try await search.search("README.md", roots: [], filter: .all).isEmpty)
 }
+
+@MainActor private final class CountingLauncherProvider: LauncherProvider {
+    var calls = 0
+    func entries(language: String) async throws -> [LauncherEntry] {
+        calls += 1
+        return [launcherEntry("cached", language == "pl" ? "Aplikacja" : "Application")]
+    }
+}
+
+@MainActor @Test func launcherReusesCatalogAcrossPresentationsAndInvalidatesLanguage() async {
+    let provider = CountingLauncherProvider()
+    let model = LauncherSearchModel()
+    model.load(providers: [provider], language: "en", commands: [])
+    #expect(await waitUntil { !model.isLoading && model.resultsAreCurrent })
+    model.cancel()
+    model.load(providers: [provider], language: "en", commands: [])
+    #expect(await waitUntil { model.selected?.id == "cached" })
+    #expect(provider.calls == 1)
+    model.load(providers: [provider], language: "pl", commands: [])
+    #expect(await waitUntil { model.selected?.title == "Aplikacja" })
+    #expect(provider.calls == 2)
+    model.invalidateCatalog()
+    model.load(providers: [provider], language: "pl", commands: [])
+    #expect(await waitUntil { !model.isLoading && provider.calls == 3 })
+    model.cancel()
+}
+
+@MainActor @Test func launcherKeepsRowsButCannotExecuteThemForANewerQuery() async {
+    let model = LauncherSearchModel()
+    let alpha = launcherEntry("a", "Alpha")
+    model.load(providers: [], language: "en", commands: [alpha])
+    #expect(await waitUntil { model.canPerform(alpha) })
+    model.search("missing")
+    #expect(model.results == [alpha])
+    #expect(model.selected == nil && !model.canPerform(alpha))
+    #expect(await waitUntil { model.resultsAreCurrent && model.results.isEmpty })
+    model.cancel()
+}
+
+@MainActor @Test func launcherModeSwitchImmediatelyClearsPrivateRows() async {
+    let model = LauncherSearchModel()
+    model.onlyAdditionalResults = true
+    model.additionalResults = { _ in [launcherEntry("private", "Secret")] }
+    model.search("")
+    #expect(await waitUntil { model.results.count == 1 })
+    model.onlyAdditionalResults = false
+    #expect(model.results.isEmpty && model.selected == nil)
+    model.cancel()
+}
+
+@Test func launcherIndexInvalidatesChangedAliasesAndHiddenItems() async throws {
+    let engine = LauncherSearchEngine()
+    let entry = launcherEntry("a", "Alpha")
+    var preferences = LauncherPreferences()
+    #expect(try await engine.search("beta", entries: [entry]).isEmpty)
+    var item = LauncherCustomization(entry: entry)
+    item.alias = "Beta"
+    preferences.items[entry.id] = item
+    #expect(try await engine.search("beta", entries: [entry], preferences: preferences) == [entry])
+    preferences.items[entry.id]?.hidden = true
+    #expect(try await engine.search("beta", entries: [entry], preferences: preferences).isEmpty)
+}
+
+@Test func removedApplicationOnlyLosesShortcutAndMovedApplicationKeepsIt() {
+    let old = URL(fileURLWithPath: "/Applications/Old.app")
+    let moved = URL(fileURLWithPath: "/Volumes/Apps/Moved.app")
+    let entry = LauncherEntry(id: "app:test", title: "Test", action: .application(old), bundleID: "test")
+    var custom = LauncherCustomization(entry: entry)
+    custom.alias = "work"; custom.favorite = true; custom.shortcut = LauncherShortcut()
+    var preferences = LauncherPreferences()
+    preferences.items[entry.id] = custom
+    preferences.reconcileApplication(id: entry.id, installedURL: moved)
+    #expect(preferences.items[entry.id]?.entry.action == .application(moved))
+    #expect(preferences.items[entry.id]?.shortcut == custom.shortcut)
+    preferences.reconcileApplication(id: entry.id, installedURL: nil)
+    #expect(preferences.items[entry.id]?.shortcut == nil)
+    #expect(preferences.items[entry.id]?.alias == "work")
+    #expect(preferences.items[entry.id]?.favorite == true)
+}
+
+@Test func calculatorTimeUsesInjectedHourCycleAndDoesNotReuseWrongCachedFormat() {
+    var calendar = Calendar(identifier: .gregorian)
+    let zone = TimeZone(secondsFromGMT: 0)!
+    calendar.timeZone = zone
+    let date = calendar.date(from: DateComponents(year: 2026, month: 10, day: 3, hour: 17, minute: 42, second: 9))!
+    calendar.locale = Locale(identifier: "en_US@hours=h23")
+    #expect(CalcDateFormatters.string(from: date, calendar: calendar, zone: zone, pattern: "jmm") == "17:42")
+    #expect(CalcDateFormatters.string(from: date, calendar: calendar, zone: zone, pattern: "jmmss") == "17:42:09")
+    calendar.locale = Locale(identifier: "en_US@hours=h12")
+    let twelve = CalcDateFormatters.string(from: date, calendar: calendar, zone: zone, pattern: "jmm")
+    #expect(twelve.contains("5:42") && twelve.contains("PM"))
+    calendar.locale = Locale(identifier: "pl_PL@hours=h23")
+    #expect(CalcDateFormatters.string(from: date, calendar: calendar, zone: zone, pattern: "jmm") == "17:42")
+}
+
+@Test func launcherSpotlightCancellationFinishesWithoutWaitingForGathering() async {
+    let search = LauncherFileSearch()
+    let task = Task { try await search.search("readme", roots: [URL(fileURLWithPath: "/tmp")], filter: .all) }
+    task.cancel()
+    do { _ = try await task.value; Issue.record("Cancelled search returned results") }
+    catch { #expect(error is CancellationError) }
+}
+
+@MainActor @Test func launcherReconcilesMovedAndRemovedApplicationsInCachedCatalog() async {
+    let model = LauncherSearchModel()
+    let old = LauncherEntry(id: "app:moved", title: "Moved", action: .application(URL(fileURLWithPath: "/Applications/Old.app")))
+    let moved = LauncherEntry(id: old.id, title: old.title, action: .application(URL(fileURLWithPath: "/Applications/New.app")))
+    let removed = LauncherEntry(id: "app:removed", title: "Removed", action: .application(URL(fileURLWithPath: "/Applications/Removed.app")))
+    model.load(providers: [], language: "en", commands: [old, removed])
+    #expect(await waitUntil { !model.isLoading && model.resultsAreCurrent })
+    model.reconcileApplications(replacements: [old.id: moved], removed: [removed.id])
+    model.search("")
+    #expect(await waitUntil { model.resultsAreCurrent })
+    #expect(model.results == [moved])
+    #expect(!model.canPerform(old) && !model.canPerform(removed))
+    model.cancel()
+}

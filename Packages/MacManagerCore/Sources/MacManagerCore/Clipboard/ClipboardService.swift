@@ -15,7 +15,10 @@ private actor ClipboardNormalizer {
 @MainActor @Observable
 public final class ClipboardService {
     public private(set) var preferences: ClipboardPreferences
-    public private(set) var entries: [ClipboardEntry] = []
+    public private(set) var entries: [ClipboardEntry] = [] {
+        didSet { revision += 1 }
+    }
+    public private(set) var revision = 0
     public private(set) var access: ClipboardAccess = .needsPermission
     public private(set) var suspended = false
     public private(set) var failure: ClipboardFailure?
@@ -119,10 +122,23 @@ public final class ClipboardService {
                     let content = try await self.normalizer.normalize(raw)
                     guard token == self.generation, self.running, !self.suspended,
                           self.pasteboard.access == .allowed, !Task.isCancelled else { return }
-                    try await self.repository.insert(content, preferences: self.preferences, now: capturedAt)
+                    let change = try await self.repository.insert(content, preferences: self.preferences, now: capturedAt)
                     guard token == self.generation, !Task.isCancelled else { return }
+                    self.refreshID = UUID() // A load begun before this insertion must not overwrite its delta.
+                    self.storageStarted = true
+                    var entries = self.entries
+                    entries.removeAll { change.removed.contains($0.id) }
+                    if let inserted = change.inserted {
+                        entries.removeAll { $0.id == inserted.id }
+                        entries.append(inserted)
+                        entries.sort {
+                            $0.record.capturedAt == $1.record.capturedAt
+                                ? $0.id.uuidString < $1.id.uuidString : $0.record.capturedAt > $1.record.capturedAt
+                        }
+                    }
+                    if change.inserted != nil || !change.removed.isEmpty { self.entries = entries }
+                    self.databaseBytes = change.databaseBytes
                     self.failure = nil
-                    await self.refresh()
                 } catch {
                     guard token == self.generation, !(error is CancellationError) else { return }
                     self.failure = error as? ClipboardFailure ?? .storage
@@ -133,11 +149,14 @@ public final class ClipboardService {
 
     public func maintain() async {
         guard running, storageStarted else { return }
+        let token = generation
         do {
-            try await repository.maintain(preferences: preferences, now: now())
-            if !suspended { await refresh() }
+            let removed = try await repository.maintain(preferences: preferences, now: now())
+            guard running, !suspended, token == generation, !removed.isEmpty else { return }
+            refreshID = UUID()
+            entries.removeAll { removed.contains($0.id) }
         } catch {
-            if running && !suspended { failure = error as? ClipboardFailure ?? .storage }
+            if running && !suspended && token == generation { failure = error as? ClipboardFailure ?? .storage }
         }
     }
 
@@ -147,7 +166,7 @@ public final class ClipboardService {
         let request = UUID(); refreshID = request
         storageStarted = true
         do {
-            let library = try await repository.load(preferences: preferences, now: now())
+            let library = try await repository.load(preferences: preferences, now: now(), reusing: entries)
             guard running, !suspended, token == generation, request == refreshID else { return }
             entries = library.entries; databaseBytes = library.databaseBytes
             if failure == .keyUnavailable || failure == .storage { failure = nil }
@@ -176,15 +195,25 @@ public final class ClipboardService {
     public func delete(_ id: UUID) async {
         guard running, !suspended else { return }
         invalidateCapture()
-        do { try await repository.delete([id]); await refresh() }
-        catch { failure = error as? ClipboardFailure ?? .storage }
+        let token = generation
+        do {
+            try await repository.delete([id])
+            guard running, !suspended, token == generation else { return }
+            refreshID = UUID()
+            entries.removeAll { $0.id == id }
+            if restoredID == id { restoredID = nil }
+        } catch { if token == generation { failure = error as? ClipboardFailure ?? .storage } }
     }
 
     public func clear() async {
         guard running, !suspended else { return }
         invalidateCapture()
-        do { try await repository.clear(); entries = []; restoredID = nil; failure = nil }
-        catch { failure = error as? ClipboardFailure ?? .storage }
+        let token = generation
+        do {
+            try await repository.clear()
+            guard token == generation else { return }
+            entries = []; restoredID = nil; databaseBytes = 0; failure = nil
+        } catch { if token == generation { failure = error as? ClipboardFailure ?? .storage } }
     }
 
     public func removalCount(for preferences: ClipboardPreferences) async throws -> Int {

@@ -8,10 +8,25 @@ struct ClipboardView: View {
     @State private var showingSettings = false
     @State private var confirmingClear = false
     @State private var selected: ClipboardEntry?
+    @State private var filtered: [ClipboardEntry] = []
+    @State private var completedSearch: SearchRequest?
+    @State private var searcher = ClipboardSearch()
+    @State private var images = ClipboardImageCache()
+
+    private struct SearchRequest: Hashable {
+        let query: String
+        let revision: Int
+        let suspended: Bool
+    }
+    private var searchRequest: SearchRequest {
+        SearchRequest(query: query, revision: service.revision, suspended: service.suspended)
+    }
 
     private var service: ClipboardService { state.clipboard }
     private var visibleEntries: [ClipboardEntry] {
-        service.entries.filter { query.isEmpty || $0.text?.localizedStandardContains(query) == true }
+        guard !service.suspended else { return [] }
+        if query.isEmpty { return service.entries }
+        return completedSearch == searchRequest ? filtered : []
     }
 
     var body: some View {
@@ -96,7 +111,9 @@ struct ClipboardView: View {
                     .disabled(service.entries.isEmpty && service.failure == nil)
                     .accessibilityIdentifier("clipboard.clear")
                 }
-                if visibleEntries.isEmpty {
+                if !query.isEmpty && completedSearch != searchRequest {
+                    ProgressView().frame(maxWidth: .infinity, minHeight: 180)
+                } else if visibleEntries.isEmpty {
                     ContentUnavailableView(state.strings(query.isEmpty ? "clipboard.empty" : "clipboard.noResults"),
                                            systemImage: "clipboard", description: Text(state.strings("clipboard.empty.note")))
                         .frame(minHeight: 180)
@@ -110,6 +127,20 @@ struct ClipboardView: View {
                 }
             }
         }
+        .task(id: searchRequest) {
+            let request = searchRequest
+            guard !request.suspended, !request.query.isEmpty else {
+                filtered = []; completedSearch = nil
+                return
+            }
+            do {
+                let matches = try await searcher.search(request.query, entries: service.entries)
+                try Task.checkCancellation()
+                guard request == searchRequest else { return }
+                filtered = matches; completedSearch = request
+            } catch { }
+        }
+        .onDisappear { filtered = []; completedSearch = nil; images.clear() }
         .sheet(isPresented: $showingSettings) { ClipboardSettingsView().environment(state) }
         .sheet(item: $selected) { entry in
             VStack(alignment: .leading, spacing: 20) {
@@ -120,7 +151,7 @@ struct ClipboardView: View {
                 }
                 ScrollView {
                     if let text = entry.text { Text(text).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading) }
-                    else if let data = entry.thumbnail, let image = NSImage(data: data) {
+                    else if let data = entry.thumbnail, let image = images.image(id: entry.id, data: data) {
                         Image(nsImage: image).resizable().scaledToFit().frame(maxHeight: 350)
                     }
                 }
@@ -131,11 +162,12 @@ struct ClipboardView: View {
             }
             .padding(28).frame(width: 560, height: 430)
         }
-        .onChange(of: service.entries.map(\.id)) { _, ids in
-            if let selected, !ids.contains(selected.id) { self.selected = nil }
+        .onChange(of: service.revision) { _, _ in
+            images.clear()
+            if let selected, !service.entries.contains(where: { $0.id == selected.id }) { self.selected = nil }
         }
         .onChange(of: service.suspended) { _, suspended in
-            if suspended { selected = nil; query = ""; showingSettings = false }
+            if suspended { selected = nil; query = ""; showingSettings = false; filtered = []; images.clear() }
         }
         .alert(state.strings("clipboard.clear.confirm"), isPresented: $confirmingClear) {
             Button(state.strings("clipboard.cancel"), role: .cancel) {}
@@ -156,7 +188,7 @@ struct ClipboardView: View {
     private func row(_ entry: ClipboardEntry) -> some View {
         HStack(spacing: 18) {
             Group {
-                if let data = entry.thumbnail, let image = NSImage(data: data) {
+                if let data = entry.thumbnail, let image = images.image(id: entry.id, data: data) {
                     Image(nsImage: image).resizable().scaledToFit()
                 } else {
                     Image(systemName: entry.record.kind == .text ? "doc.plaintext" : "photo")
@@ -194,4 +226,16 @@ struct ClipboardView: View {
         }
         .padding(.vertical, 16)
     }
+}
+
+@MainActor private final class ClipboardImageCache {
+    private let cache = NSCache<NSUUID, NSImage>()
+    init() { cache.countLimit = 80 }
+    func image(id: UUID, data: Data) -> NSImage? {
+        if let image = cache.object(forKey: id as NSUUID) { return image }
+        guard let image = NSImage(data: data) else { return nil }
+        cache.setObject(image, forKey: id as NSUUID)
+        return image
+    }
+    func clear() { cache.removeAllObjects() }
 }

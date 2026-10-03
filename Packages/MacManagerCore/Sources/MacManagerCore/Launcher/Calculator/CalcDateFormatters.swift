@@ -10,6 +10,7 @@ enum CalcDateFormatters {
         let zone: String
         let locale: String
         let calendar: Calendar.Identifier
+        let hourCycle: Locale.HourCycle
     }
 
     /// Cleared wholesale rather than evicted: the keys are a handful of patterns and one zone.
@@ -20,7 +21,7 @@ enum CalcDateFormatters {
         let locale = calendar.locale ?? Locale(identifier: "en_US")
         let key = Key(
             pattern: pattern, zone: zone.identifier, locale: locale.identifier,
-            calendar: calendar.identifier)
+            calendar: calendar.identifier, hourCycle: locale.hourCycle)
 
         lock.lock()
         defer { lock.unlock() }
@@ -31,7 +32,11 @@ enum CalcDateFormatters {
         formatter.timeZone = zone
         // Follow the injected calendar's locale so weekday/month names match the user's language.
         formatter.locale = locale
-        formatter.dateFormat = pattern
+        if pattern.contains("j") {
+            formatter.setLocalizedDateFormatFromTemplate(pattern)
+        } else {
+            formatter.dateFormat = pattern
+        }
         // A zone table plus a few patterns, so the ceiling is bounded by what the grammars format.
         if cache.count >= 64 { cache.removeAll(keepingCapacity: true) }
         cache[key] = formatter

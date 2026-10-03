@@ -452,7 +452,7 @@ enum CalcTimeZone {
     }
 
     private static func clockString(_ date: Date, zone: TimeZone, calendar: Calendar) -> String {
-        CalcDateFormatters.string(from: date, calendar: calendar, zone: zone, pattern: "h:mm a")
+        CalcDateFormatters.string(from: date, calendar: calendar, zone: zone, pattern: "jmm")
     }
 
     private static func dayOffsetNote(

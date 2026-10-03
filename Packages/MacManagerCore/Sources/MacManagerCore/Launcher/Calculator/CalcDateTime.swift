@@ -785,7 +785,7 @@ enum CalcDateTime {
     }
 
     private static func timeString(_ date: Date, calendar: Calendar) -> String {
-        let pattern = calendar.component(.second, from: date) == 0 ? "h:mm a" : "h:mm:ss a"
+        let pattern = calendar.component(.second, from: date) == 0 ? "jmm" : "jmmss"
         return format(date, calendar: calendar, pattern: pattern)
     }
 

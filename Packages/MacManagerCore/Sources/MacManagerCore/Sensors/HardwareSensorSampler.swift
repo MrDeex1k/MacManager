@@ -6,11 +6,13 @@ public struct HardwareSensorSnapshot: Sendable {
     public let readings: [HardwareSensorReading]
     public let catalog: SensorCatalog
     public let isStale: Bool
+    public let powerWatts: Double?
 
     public init(uptime: Double, fans: FanInventory, readings: [HardwareSensorReading],
-                catalog: SensorCatalog = SensorCatalog(processor: ""), isStale: Bool = false) {
+                catalog: SensorCatalog = SensorCatalog(processor: ""), isStale: Bool = false, powerWatts: Double? = nil) {
         self.uptime = uptime; self.fans = fans; self.readings = readings
         self.catalog = catalog; self.isStale = isStale
+        self.powerWatts = powerWatts
     }
 
     public static let empty = Self(uptime: 0, fans: .unavailable, readings: [])
@@ -55,6 +57,7 @@ public actor HardwareSensorSampler {
             var value = Double.nan
             return mm_smc_read_number(connection, code, &value) == 0 ? value : nil
         }
+        let power = read("PSTR").flatMap { $0 >= 0 ? $0 : nil }
         let fans = FanInventory(rawCount: read("FNum"))
         var readings = keys.map {
             HardwareSensorReading(sensor: .init(key: $0, kind: .temperature), rawValue: read($0))
@@ -65,6 +68,6 @@ public actor HardwareSensorSampler {
                 readings.append(HardwareSensorReading(sensor: .init(key: key, kind: .fan), rawValue: read(key)))
             }
         }
-        return HardwareSensorSnapshot(uptime: uptime, fans: fans, readings: readings, catalog: catalog)
+        return HardwareSensorSnapshot(uptime: uptime, fans: fans, readings: readings, catalog: catalog, powerWatts: power)
     }
 }

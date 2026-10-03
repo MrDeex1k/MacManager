@@ -15,7 +15,7 @@ struct LauncherView: View {
                     .accessibilityIdentifier("launcher.switchMode")
                 LauncherSearchField(model: model, placeholder: controller.strings(controller.clipboardMode ? "clipboard.search" : "launcher.placeholder"))
                     .frame(height: 32)
-                if model.isLoading { ProgressView().controlSize(.small) }
+                if model.isLoading || model.isSearching { ProgressView().controlSize(.small) }
                 Text("esc").font(.caption).foregroundStyle(.secondary)
             }
             .padding(.horizontal, 24).frame(height: 90)
@@ -25,7 +25,7 @@ struct LauncherView: View {
                     ScrollView {
                         LazyVStack(spacing: 3) {
                             if model.results.isEmpty {
-                                Text(controller.strings(model.isLoading ? "launcher.loading" : "launcher.empty"))
+                                Text(controller.strings((model.isLoading || model.isSearching) ? "launcher.loading" : "launcher.empty"))
                                     .foregroundStyle(.secondary).frame(maxWidth: .infinity, minHeight: 53)
                             }
                             ForEach(model.results) { entry in
@@ -47,6 +47,7 @@ struct LauncherView: View {
                                     .contentShape(Rectangle())
                                 }
                                 .buttonStyle(.plain)
+                                .disabled(!model.resultsAreCurrent)
                                 .accessibilityIdentifier("launcher.result." + entry.id)
                                 .accessibilityAddTraits(model.selectedID == entry.id ? .isSelected : [])
                                 .contextMenu {
@@ -93,22 +94,22 @@ struct LauncherView: View {
                     controller.customizationEntry = nil
                 }
         }
-        .onChange(of: controller.clipboard?.entries.map(\.id)) { _, _ in
+        .onChange(of: controller.clipboard?.revision) { _, _ in
+            controller.invalidateThumbnails()
             if controller.clipboardMode { controller.refreshResults() }
         }
         .onChange(of: controller.clipboard?.suspended) { _, suspended in
             if suspended == true { controller.hide(restoreFocus: false) }
         }
-        .onChange(of: model.results.count) { _, _ in controller.resize(rowCount: model.results.count) }
-        .onChange(of: model.query) { _, _ in controller.resize(rowCount: model.results.count) }
+        .onChange(of: controller.showsResults) { _, _ in controller.resize(rowCount: model.results.count) }
     }
     @ViewBuilder private func icon(_ entry: LauncherEntry) -> some View {
         if case .clipboard(let id) = entry.action,
            let data = controller.clipboard?.entries.first(where: { $0.id == id })?.thumbnail,
-           let image = NSImage(data: data) {
+           let image = controller.thumbnail(for: id, data: data) {
             Image(nsImage: image).resizable().scaledToFit()
         } else if case .application(let url) = entry.action {
-            Image(nsImage: NSWorkspace.shared.icon(forFile: url.path)).resizable().scaledToFit()
+            Image(nsImage: controller.applicationIcon(at: url)).resizable().scaledToFit()
         } else {
             Image(systemName: entry.symbol).font(.title2).foregroundStyle(AppTheme.accent)
         }
@@ -127,12 +128,14 @@ private struct LauncherSearchField: NSViewRepresentable {
         field.focusRingType = .none; field.font = .systemFont(ofSize: 23)
         field.textColor = .labelColor; field.isEditable = true; field.isSelectable = true
         field.usesSingleLineMode = true
+        field.identifier = .init("launcher.search")
         field.setAccessibilityIdentifier("launcher.search")
         field.setAccessibilityLabel(placeholder)
         return field
     }
     func updateNSView(_ field: FocusedSearchField, context: Context) {
         field.placeholderString = placeholder
+        field.setAccessibilityLabel(placeholder)
         if (field.currentEditor() as? NSTextView)?.hasMarkedText() != true, field.stringValue != model.query {
             field.stringValue = model.query
         }

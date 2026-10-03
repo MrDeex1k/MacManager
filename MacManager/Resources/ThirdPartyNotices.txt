@@ -236,6 +236,11 @@ system routes, transactional hotkey registration and teardown, IME-safe panel,
 and integration with the existing application lifecycle. No third-party artwork
 or brand assets were copied. See THIRD_PARTY_NOTICES.md in the source repository.
 
+Additional Mac Manager modifications (2026-10-03): cached normalized ranking
+fields, asynchronous cancellable Spotlight queries with a timeout, user-selected
+12/24-hour time formatting, and removed/moved application shortcut reconciliation.
+Implemented in the local adaptation; the upstream source revision is unchanged.
+
 Original Tinycast license follows:
 
 Tinycast

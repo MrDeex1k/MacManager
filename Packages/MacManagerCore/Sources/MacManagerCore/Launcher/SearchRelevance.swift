@@ -1,6 +1,7 @@
 // Adapted from Tinycast, Copyright (C) 2026 Abue Ammar.
 // AGPL-3.0-or-later; used under AGPL-3.0. Source: c5cff8cbb9b7e12ac75c058da9573045c76029b7.
 // Mac Manager modifications: isolated local launcher integration, 2026-09-23.
+// Modified 2026-10-03: reuse normalized candidate fields between queries.
 import Foundation
 
 enum FuzzyMatch {
@@ -48,10 +49,23 @@ enum FuzzyMatch {
         match(Query(query), candidate: candidate)
     }
 
+    struct Candidate: Sendable, Hashable {
+        let text: String
+        let length: Int
+        init(_ raw: String) {
+            text = normalized(raw)
+            length = text.count
+        }
+    }
+
     static func match(_ query: Query, candidate: String) -> Match? {
+        match(query, candidate: Candidate(candidate))
+    }
+
+    static func match(_ query: Query, candidate: Candidate) -> Match? {
         let q = query.text
-        let c = normalized(candidate)
-        let length = c.count
+        let c = candidate.text
+        let length = candidate.length
         guard !q.isEmpty else {
             return Match(
                 tier: .exact, offset: 0, queryLength: 0, candidateLength: length, spread: 0)
@@ -203,11 +217,13 @@ struct SearchAlias: Sendable, Hashable {
     }
 
     let text: String
+    let candidate: FuzzyMatch.Candidate
     let role: Role
     let looseness: Looseness
 
     init(_ text: String, _ role: Role, looseness: Looseness? = nil) {
         self.text = text
+        self.candidate = FuzzyMatch.Candidate(text)
         self.role = role
         self.looseness = looseness ?? role.looseness
     }
@@ -292,7 +308,7 @@ enum SearchRelevance {
         guard !query.isEmpty else { return 0 }
         var best: Int?
         for alias in fields.aliases {
-            guard let match = FuzzyMatch.match(query, candidate: alias.text),
+            guard let match = FuzzyMatch.match(query, candidate: alias.candidate),
                 alias.looseness.accepts(match.tier)
             else { continue }
             // A user alias earns its own cell only from its start; inside, it is a translation.

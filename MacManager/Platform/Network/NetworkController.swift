@@ -60,13 +60,15 @@ final class NetworkController: ApplicationLifecycleParticipant {
                         }
                     }
                     // The request runs separately so local changes can invalidate it while HTTP is pending.
-                    Task { [weak self] in
-                        guard let self else { return }
-                        await self.service.refresh(now: ProcessInfo.processInfo.systemUptime)
-                        self.recordState()
+                    if self.service.refreshIsDue(at: ProcessInfo.processInfo.systemUptime) {
+                        Task { [weak self] in
+                            guard let self else { return }
+                            await self.service.refresh(now: ProcessInfo.processInfo.systemUptime)
+                            self.recordState()
+                        }
                     }
                 }
-                do { try await Task.sleep(for: .seconds(1)) } catch { return }
+                do { try await Task.sleep(for: .seconds(1), tolerance: .milliseconds(200)) } catch { return }
             }
         }
     }

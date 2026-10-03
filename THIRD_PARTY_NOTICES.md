@@ -26,6 +26,8 @@ Modyfikacje z 2026-09-23: wspólny kontrakt wyników Mac Managera, ranking bez z
 
 Informacja o autorze, zmianach i pełny tekst licencji Tinycast są również dołączone do zasobów aplikacji w `ThirdPartyNotices.txt`.
 
+Modyfikacje z 2026-10-03: cache znormalizowanych pól rankingu, asynchroniczne zapytania Spotlight z anulowaniem i limitem czasu, format czasu zgodny z preferencją 12/24h użytkownika oraz uzgadnianie skrótów usuniętych i przeniesionych aplikacji. Zmiany zaimplementowano w lokalnej adaptacji; rewizja źródłowa pozostaje bez zmian.
+
 Rozszerzenie z 2026-09-23 (kroki 4-7): zaadaptowano modele silnika Calculator (parser, procenty, jednostki, daty/czas, formatowanie i statyczne tabele) oraz mechanizm zapytań nazw Spotlight z FileSearchService/Query. Nie przeniesiono CurrencyFeed, pobierania kursów ani historii kalkulatora. Własne preferencje personalizacji i integracja schowka wykorzystują istniejące usługi Mac Managera. Wiele skrótów ma odrębne identyfikatory Carbon.
 
 Tabele `CountryZoneData.generated.swift` i `CurrencyData.generated.swift` zawierają dane Unicode CLDR (nazwy krajów i walut) oraz IANA zone.tab (mapowanie stref). Licencja Unicode V3 z https://www.unicode.org/license.txt jest dołączona do zasobów aplikacji. Dane stref IANA pochodzą z domeny publicznej: https://www.iana.org/time-zones.
