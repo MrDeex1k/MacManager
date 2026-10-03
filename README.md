@@ -16,7 +16,7 @@ A native macOS utility for live system monitoring, independent mouse scrolling a
 </div>
 
 > [!IMPORTANT]
-> **Hardware monitoring and Stage 3A clipboard history are implemented.** Clipboard operation has been confirmed on the installed app. The local launcher now supports app and command search; files, calculator and personalization are still planned. Final distribution checks and the first signed, notarized DMG are still pending; there is no public release yet.
+> **Hardware monitoring, Stage 3A clipboard history and launcher steps 1-7 are implemented.** The launcher supports applications, commands, selected-folder file search, a local calculator, personalization and shared clipboard search. Responsiveness and background-work improvements are implemented; full launcher acceptance and the first signed, notarized DMG remain pending. There is no public release yet.
 
 ## Built for daily use
 
@@ -44,7 +44,7 @@ A native macOS utility for live system monitoring, independent mouse scrolling a
 
 The collapsed notch-area panel will show nothing. It will use the active built-in MacBook display when available, otherwise the main display.
 
-**Next:** Launcher personalization, file search, calculator and a shared clipboard mode, followed by full launcher acceptance. Public distribution remains pending notarization and DMG acceptance. Installed-app launch at login has been confirmed.
+**Next:** Full launcher acceptance, including accessibility, IME/Spaces, folder permissions and end-to-end performance profiling. Public distribution remains pending notarization and DMG acceptance. Installed-app launch at login has been confirmed.
 
 ## Requirements
 
@@ -87,6 +87,8 @@ Queries stay in memory. Application discovery is limited to standard application
 Enable file search and choose folders in Settings to search names through Spotlight, with file-type filters. The inline calculator supports arithmetic, percentages, units and date/time expressions such as `20% of 500`, `10 km to mi` and `tomorrow + 2 days`; Enter copies the answer. Calculator keywords use English syntax, with no exchange-rate downloads or calculation history.
 
 Press **Tab** to switch to the shared clipboard history. Enter restores an item for manual `Command-V`; clipboard content stays out of ordinary application searches. [Implementation and remaining acceptance work](docs/reports/etap-3b-launcher-4-7.md).
+
+The application catalog is cached across openings, results remain visible while the next query runs, and clipboard filtering runs outside the UI thread. Spotlight searches can be cancelled. The calculator follows the system's 12/24-hour preference. Shortcuts for removed applications are released; moved applications keep their shortcuts when resolved through LaunchServices. [Optimization results and limitations](docs/reports/wdrozenie-optymalizacji-2026-10-03.md).
 
 ### Keyboard shortcuts
 
