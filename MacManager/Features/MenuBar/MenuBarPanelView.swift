@@ -41,13 +41,18 @@ struct MenuBarPanelView: View {
             }
             .accessibilityIdentifier("menuBar.metrics")
 
-            Divider()
-
-            VStack(spacing: 9) {
-                addressRow(label: strings("network.local"), address: state.network.environment.primary?.address)
-                addressRow(label: strings("network.public"), address: state.network.publicAddress)
+            if state.preferences.showsLocalIPInMenuBar || state.preferences.showsPublicIPInMenuBar {
+                Divider()
+                VStack(spacing: 9) {
+                    if state.preferences.showsLocalIPInMenuBar {
+                        addressRow(label: strings("network.local"), address: state.network.environment.primary?.address)
+                    }
+                    if state.preferences.showsPublicIPInMenuBar {
+                        addressRow(label: strings("network.public"), address: state.network.publicAddress)
+                    }
+                }
+                .font(.callout)
             }
-            .font(.callout)
 
             if let release = state.updates.availableRelease {
                 Divider()

@@ -518,10 +518,149 @@ final class AppShellTests: XCTestCase {
     }
 
     @MainActor
+    func testLauncherSearchEscapeAndNavigation() throws {
+        let app = launch(reset: true)
+        element("navigation.settings", in: app).click()
+        app.buttons["launcher.open"].click()
+        let field = app.textFields["launcher.search"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.click(); field.typeText("netw")
+        XCTAssertTrue(app.buttons["launcher.result.command:network"].waitForExistence(timeout: 5))
+        field.typeKey(.escape, modifierFlags: [])
+        XCTAssertEqual(field.value as? String, "")
+        field.typeText("siec")
+        XCTAssertTrue(app.buttons["launcher.result.command:network"].waitForExistence(timeout: 5))
+        field.typeKey(.return, modifierFlags: [])
+        XCTAssertTrue(element("network.unavailable", in: app).waitForExistence(timeout: 5))
+        XCTAssertFalse(field.exists)
+        element("navigation.settings", in: app).click()
+        app.buttons["launcher.open"].click()
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.typeKey(.escape, modifierFlags: [])
+        XCTAssertFalse(field.exists)
+        app.terminate()
+    }
+
+    @MainActor
+    func testLauncherGlobalShortcutHiddenWindowAndApplicationLaunch() throws {
+        let app = launch(reset: true, launcherLiveTesting: true)
+        app.windows["main"].buttons["_XCUI:CloseWindow"].click()
+        let finder = XCUIApplication(bundleIdentifier: "com.apple.finder")
+        finder.activate()
+        finder.typeKey(" ", modifierFlags: [.control, .option])
+        let field = app.textFields["launcher.search"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.windows["main"].exists)
+        field.typeText("calculator")
+        let result = app.buttons["launcher.result.app:com.apple.calculator"]
+        XCTAssertTrue(result.waitForExistence(timeout: 10))
+        let calculator = XCUIApplication(bundleIdentifier: "com.apple.calculator")
+        let wasRunning = calculator.state != .notRunning
+        result.click()
+        XCTAssertTrue(calculator.wait(for: .runningForeground, timeout: 10))
+        XCTAssertFalse(field.exists)
+        if !wasRunning { calculator.terminate() }
+        finder.activate()
+        finder.typeKey(" ", modifierFlags: [.control, .option])
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.typeText("settings")
+        let settings = app.buttons["launcher.result.command:settings"]
+        XCTAssertTrue(settings.waitForExistence(timeout: 5))
+        settings.click()
+        XCTAssertTrue(app.buttons["launcher.open"].waitForExistence(timeout: 5))
+        app.popUpButtons["launcher.key"].click()
+        app.menuItems["K"].click()
+        XCTAssertEqual(app.popUpButtons["launcher.key"].value as? String, "K")
+        app.popUpButtons["launcher.key"].click()
+        app.menuItems["Space"].click()
+        app.popUpButtons["launcher.modifiers"].click()
+        app.menuItems["⌥"].click()
+        XCTAssertEqual(app.popUpButtons["launcher.modifiers"].value as? String, "⌥")
+        XCTAssertFalse(app.staticTexts["Shortcut unavailable. Previous binding was kept, if active. Choose another combination."].exists)
+        app.windows["main"].buttons["_XCUI:CloseWindow"].click()
+        finder.activate()
+        finder.typeKey(" ", modifierFlags: [.option])
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.typeKey(.escape, modifierFlags: [])
+        XCTAssertFalse(field.exists)
+        XCTAssertTrue(finder.wait(for: .runningForeground, timeout: 5))
+        app.terminate()
+    }
+
+    @MainActor
+    func testLauncherCalculatorAndSharedClipboardMode() throws {
+        let app = launch(reset: true, clipboardFixture: true)
+        defer { app.terminate() }
+        app.typeKey(",", modifierFlags: .command)
+        app.buttons["launcher.open"].click()
+        let field = app.textFields["launcher.search"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.typeText("2+3*4")
+        let result = app.buttons["launcher.result.calculator:result"]
+        XCTAssertTrue(result.waitForExistence(timeout: 5))
+        XCTAssertTrue(result.label.contains("14"), result.debugDescription)
+        app.typeKey(.return, modifierFlags: [])
+        XCTAssertFalse(field.exists)
+        app.buttons["launcher.open"].click()
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        app.typeKey(.tab, modifierFlags: [])
+        field.typeText("Project notes")
+        let clipboardResult = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "launcher.result.clipboard:")).firstMatch
+        XCTAssertTrue(clipboardResult.waitForExistence(timeout: 5))
+        app.typeKey(.return, modifierFlags: [])
+        XCTAssertFalse(field.exists)
+        app.buttons["launcher.open"].click()
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.typeText("Project notes")
+        XCTAssertFalse(clipboardResult.exists)
+        app.typeKey(.escape, modifierFlags: [])
+        app.typeKey(.tab, modifierFlags: [])
+        XCTAssertTrue(clipboardResult.waitForExistence(timeout: 5))
+        app.typeKey(.escape, modifierFlags: [])
+        XCTAssertFalse(field.exists)
+    }
+
+    @MainActor
+    func testLauncherAliasFavoriteAndShortcutConflict() throws {
+        let app = launch(reset: true, launcherLiveTesting: true)
+        defer { app.terminate() }
+        app.typeKey(",", modifierFlags: .command)
+        app.buttons["launcher.open"].click()
+        let field = app.textFields["launcher.search"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.typeText("network")
+        let result = app.buttons["launcher.result.command:network"]
+        XCTAssertTrue(result.waitForExistence(timeout: 5))
+        result.rightClick()
+        app.menuItems["Customize"].click()
+        let alias = app.textFields["launcher.alias"]
+        XCTAssertTrue(alias.waitForExistence(timeout: 5))
+        alias.click(); alias.typeText("myconnection")
+        app.checkBoxes["Favorite"].click()
+        let popover = app.popovers.firstMatch
+        popover.checkBoxes["Enable global shortcut"].click()
+        app.buttons["Save"].click()
+        XCTAssertTrue(alias.exists, "Conflicting palette shortcut must keep the editor open")
+        app.popUpButtons["launcher.itemKey"].click()
+        app.menuItems["N"].click()
+        app.buttons["Save"].click()
+        field.click(); field.typeKey("a", modifierFlags: .command); field.typeText("myconnection")
+        XCTAssertTrue(result.waitForExistence(timeout: 5))
+        app.typeKey(.return, modifierFlags: [])
+        XCTAssertTrue(element("network.unavailable", in: app).waitForExistence(timeout: 5))
+        app.windows.firstMatch.buttons[XCUIIdentifierCloseWindow].click()
+        let finder = XCUIApplication(bundleIdentifier: "com.apple.finder")
+        finder.activate()
+        finder.typeKey("n", modifierFlags: [.control, .option])
+        XCTAssertTrue(element("network.unavailable", in: app).waitForExistence(timeout: 5))
+    }
+
+    @MainActor
     private func launch(
         reset: Bool,
         liveMetrics: Bool = false,
         clipboardFixture: Bool = false,
+        launcherLiveTesting: Bool = false,
         scrollPermission: Bool = false,
         inputMonitoringRequired: Bool = false,
         loginItemRequiresApproval: Bool = false,
@@ -534,6 +673,7 @@ final class AppShellTests: XCTestCase {
         app.launchArguments = ["--ui-testing", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
         if reset { app.launchArguments.append("--reset-preferences") }
         if liveMetrics { app.launchArguments.append("--live-metrics") }
+        if launcherLiveTesting { app.launchArguments.append("--launcher-live-testing") }
         if clipboardFixture { app.launchArguments.append("--clipboard-fixture") }
         if scrollPermission { app.launchArguments.append("--scroll-permission-granted") }
         if inputMonitoringRequired { app.launchArguments.append("--scroll-input-monitoring-required") }

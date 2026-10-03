@@ -22,7 +22,12 @@ Aktualny punkt prac i kolejność kolejnych zadań: [Stan projektu](10-stan-proj
 | [Raport kroku 8](reports/etap-1-krok-8.md) | Wyniki testów aktualizacji, interfejsu, diagnostyki i audytu prywatności. |
 | [Raport kroku 9](reports/etap-1-krok-9a.md) | Testy automatyczne, audyt dostępności, wydajność w tle i próba na urządzeniu referencyjnym. |
 | [Analiza integracji TinyCast](reports/analiza-integracji-tinycast.md) | Stan kodu, etapy 2/3, kandydaci do adaptacji i proponowany zakres integracji. |
+| [Przegląd nowych commitów Tinycast](reports/tinycast-aktualizacja-2026-10-01.md) | Zmiany od rewizji bazowej launchera, priorytety adaptacji i skróty Option. |
+| [Audyt optymalizacji](reports/audyt-optymalizacji-2026-10-03.md) | Stan przed zmianami, pomiary launchera, schowka i planisty aktualizacji. |
+| [Wdrożenie optymalizacji](reports/wdrozenie-optymalizacji-2026-10-03.md) | Zmiany launchera i pracy w tle, format 12/24h, skróty aplikacji, walidacja i ograniczenia. |
 | [Dwa scenariusze integracji TinyCast](12-scenariusze-integracji-tinycast.md) | Prywatny schowek i pełny launcher; porównanie zakresu lokalnego z dalszymi integracjami. |
+| [Launcher 3B, kroki 4-7](reports/etap-3b-launcher-4-7.md) | Personalizacja, Spotlight, lokalny kalkulator i wspólny tryb schowka. |
+| [Launcher 3B, kroki 1-3](reports/etap-3b-launcher-1-3.md) | Adaptacja Tinycast, wyszukiwanie, paleta, skrót globalny, aplikacje i polecenia. |
 | [Raport schowka 3A](reports/etap-3a-schowek.md) | Implementacja, ochrona danych, wyniki testów i ręczny odbiór zgód. |
 | [Raport prototypów](reports/etap-1-krok-1.md) | Wyniki pierwszych uruchomień etapu 1 i brakujące dowody. |
 | [Raport szkieletu](reports/etap-1-krok-2.md) | Projekt Xcode, lokalny Core, interfejs i wyniki testów kroku 2. |

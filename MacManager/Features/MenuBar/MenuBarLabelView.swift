@@ -2,8 +2,10 @@ import MacManagerCore
 import SwiftUI
 
 struct MenuBarLabelView: View {
+    @Environment(\.openWindow) private var openWindow
     let state: AppState
     @Environment(\.displayScale) private var displayScale
+    @State private var imageCache = MenuBarImageCache()
 
     private var segments: [MenuBarStatusSegment] {
         MenuBarStatusFormatter.segments(
@@ -15,15 +17,20 @@ struct MenuBarLabelView: View {
     }
 
     var body: some View {
+        let segments = segments
         Image(nsImage: segments.isEmpty
               ? (NSImage(systemSymbolName: "macbook", accessibilityDescription: "Mac Manager") ?? NSImage())
-              : statusImage)
-            .accessibilityLabel(accessibilityLabel)
+              : statusImage(for: segments))
+            .accessibilityLabel(accessibilityLabel(for: segments))
+            .onAppear { state.launcher.openMainWindow = { openWindow(id: "main") } }
     }
 
     // MenuBarExtra flattens text labels; a template image preserves both rows
     // and lets macOS apply the correct color for the menu bar background.
-    private var statusImage: NSImage {
+    private func statusImage(for segments: [MenuBarStatusSegment]) -> NSImage {
+        let language = state.preferences.language.resolvedCode()
+        if imageCache.segments == segments, imageCache.language == language,
+           imageCache.scale == displayScale, let image = imageCache.image { return image }
         let renderer = ImageRenderer(content:
             HStack(spacing: 8) {
                 ForEach(segments) { segment in
@@ -43,8 +50,10 @@ struct MenuBarLabelView: View {
         )
         renderer.scale = displayScale
         let image = renderer.nsImage ?? NSImage()
-        image.accessibilityDescription = accessibilityLabel
+        image.accessibilityDescription = accessibilityLabel(for: segments)
         image.isTemplate = true
+        imageCache.segments = segments; imageCache.language = language
+        imageCache.scale = displayScale; imageCache.image = image
         return image
     }
 
@@ -58,7 +67,7 @@ struct MenuBarLabelView: View {
         }
     }
 
-    private var accessibilityLabel: String {
+    private func accessibilityLabel(for segments: [MenuBarStatusSegment]) -> String {
         (["Mac Manager"] + segments.map { segment in
             let label = switch segment.kind {
             case .cpuTemperature: state.strings("menuBar.cpuTemperature")
@@ -69,4 +78,11 @@ struct MenuBarLabelView: View {
             return "\(label) \(segment.text)"
         }).joined(separator: ", ")
     }
+}
+
+@MainActor private final class MenuBarImageCache {
+    var segments: [MenuBarStatusSegment] = []
+    var language = ""
+    var scale: CGFloat = 0
+    var image: NSImage?
 }

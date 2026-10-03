@@ -50,6 +50,10 @@ public final class NetworkService {
         nextAttempt = max(now + 2, (lastAttempt ?? -.infinity) + 30)
     }
 
+    public func refreshIsDue(at now: TimeInterval) -> Bool {
+        enabled && !suspended && receivedEnvironment && environment.online && request == nil && now >= nextAttempt
+    }
+
     public func refresh(now: TimeInterval, manual: Bool = false) async {
         guard enabled, !suspended, receivedEnvironment, environment.online, request == nil,
               manual || now >= nextAttempt else { return }

@@ -78,17 +78,21 @@ private actor HistorySampler: MetricsSampling {
     }
 }
 
-@MainActor @Test func serviceSharesHistoryAndPrunesWithoutNewSamples() async {
+@MainActor private final class HistoryTestClock {
     var now = 2.0
+}
+
+@MainActor @Test func serviceSharesHistoryAndPrunesWithoutNewSamples() async {
+    let clock = HistoryTestClock()
     let sampler = HistorySampler()
-    let service = MetricsService(sampler: sampler, now: { now })
+    let service = MetricsService(sampler: sampler, now: { clock.now })
     await service.collect()
     #expect(service.history.count == 1)
     service.checkFreshness(now: 8)
     #expect(service.history.points(for: .cpu).first?.value == 20)
     #expect(service.snapshot[.cpu].status == .stale)
     service.setSuspended(true)
-    now = 303
+    clock.now = 303
     service.setSuspended(false)
     #expect(service.history.count == 0)
     #expect(await sampler.calls == 1)

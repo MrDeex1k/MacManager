@@ -21,6 +21,7 @@ public final class UpdateService {
     @ObservationIgnored private let diagnostics: DiagnosticsStore
     @ObservationIgnored private let clock: @Sendable () -> Date
     @ObservationIgnored private var request: Task<UpdateCheckPayload, Error>?
+    @ObservationIgnored private var requestGeneration = 0
 
     public init(
         preferences: PreferencesStore,
@@ -90,7 +91,7 @@ public final class UpdateService {
     }
 
     public func nextAutomaticDate(now: Date) -> Date? {
-        guard automaticChecksEnabled else { return nil }
+        guard automaticChecksEnabled, request == nil else { return nil }
         return lastAttempt.map { $0.addingTimeInterval(Self.automaticInterval) } ?? now
     }
 
@@ -126,21 +127,32 @@ public final class UpdateService {
 
         let task = Task { try await fetch(cache.etag) }
         request = task
-        defer { request = nil }
+        let token = requestGeneration
+        defer { if token == requestGeneration { request = nil } }
 
         do {
             let payload = try await task.value
+            guard token == requestGeneration else { return true }
             try apply(payload, at: clock())
             MacManagerLog.updates.info("Release check completed")
         } catch is CancellationError {
+            guard token == requestGeneration else { return true }
             status = cachedStatus
             return true
         } catch let failure as UpdateCheckFailure {
+            guard token == requestGeneration else { return true }
             applyFailure(failure.kind, at: clock())
         } catch {
+            guard token == requestGeneration else { return true }
             applyFailure(.transport, at: clock())
         }
         return true
+    }
+
+    public func cancelCheck() {
+        requestGeneration += 1
+        request?.cancel(); request = nil
+        status = isOnline ? cachedStatus : .offline
     }
 
     public func refreshStatus() {

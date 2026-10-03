@@ -273,3 +273,61 @@ private func clipboardDirectory() -> URL {
     let stored = try #require(item as? Data)
     #expect(stored.range(of: first.withUnsafeBytes { Data($0) }) == nil)
 }
+
+@Test func clipboardInsertReturnsRetentionDeltaAndDuplicateDoesNotAddAnEntry() async throws {
+    let directory = clipboardDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let repo = ClipboardRepository(directory: directory, keys: ClipboardTestKey())
+    var preferences = ClipboardPreferences(); preferences.maximumCount = 1
+    let now = Date()
+    let first = try await repo.insert(ClipboardContent(kind: .text, data: Data("first".utf8)), preferences: preferences, now: now)
+    let firstID = try #require(first.inserted?.id)
+    let second = try await repo.insert(ClipboardContent(kind: .text, data: Data("second".utf8)), preferences: preferences, now: now.addingTimeInterval(1))
+    #expect(second.removed == [firstID])
+    #expect(second.inserted?.text == "second")
+    let duplicate = try await repo.insert(ClipboardContent(kind: .text, data: Data("second".utf8)), preferences: preferences, now: now.addingTimeInterval(2))
+    #expect(duplicate.inserted == nil && duplicate.removed.isEmpty)
+    #expect(try await repo.maintain(preferences: preferences, now: now.addingTimeInterval(3)).isEmpty)
+    #expect(try await repo.load(preferences: preferences, now: now.addingTimeInterval(3)).entries.map(\.id) == [second.inserted!.id])
+}
+
+@MainActor @Test func clipboardUnchangedMaintenanceDoesNotRepublishOrDecryptHistory() async throws {
+    let directory = clipboardDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let repo = ClipboardRepository(directory: directory, keys: ClipboardTestKey())
+    var preferences = ClipboardPreferences(); preferences.enabled = true
+    let mock = ClipboardMock()
+    let service = ClipboardService(preferences: preferences, pasteboard: mock, repository: repo, storageExists: false)
+    await service.start()
+    mock.copy("first"); service.poll()
+    #expect(await waitUntil { service.entries.count == 1 })
+    let first = try #require(service.entries.first)
+    // A normal insert must reuse the already loaded first entry, not reread its preview.
+    try Data("damaged on disk".utf8).write(to: directory.appendingPathComponent("\(first.id).preview"))
+    mock.copy("second"); service.poll()
+    #expect(await waitUntil { service.entries.count == 2 })
+    #expect(service.entries.first(where: { $0.id == first.id })?.text == "first")
+    let revision = service.revision
+    await service.maintain()
+    #expect(service.revision == revision)
+    // A full, uncached reopen still checks ciphertext integrity.
+    let reopened = try await repo.load(preferences: preferences, now: Date())
+    #expect(reopened.entries.first(where: { $0.id == first.id })?.damaged == true)
+    await service.setSuspended(true)
+    #expect(service.entries.isEmpty)
+    service.stop()
+}
+
+@Test func clipboardSearchFindsFullTextAndRespectsOrderLimitAndCancellation() async throws {
+    let search = ClipboardSearch()
+    let entries = (0..<100).map { i in
+        ClipboardEntry(record: ClipboardRecord(kind: .text, capturedAt: Date(), storedBytes: 100),
+            text: String(repeating: "x", count: 10_000) + " Zażółć \(i)", thumbnail: nil, sourceBundleID: nil)
+    }
+    let matches = try await search.search("ZAŻÓŁĆ", entries: entries, limit: 40)
+    #expect(matches.map(\.id) == Array(entries.prefix(40)).map(\.id))
+    let task = Task { try await search.search("missing", entries: entries) }
+    task.cancel()
+    do { _ = try await task.value; Issue.record("Cancelled clipboard search returned results") }
+    catch { #expect(error is CancellationError) }
+}

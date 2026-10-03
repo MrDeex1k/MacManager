@@ -26,6 +26,20 @@ public final class PreferencesStore {
 
     @ObservationIgnored private let defaults: UserDefaults
 
+    public var launcher: LauncherPreferences {
+        didSet {
+            if let data = try? JSONEncoder().encode(launcher) { defaults.set(data, forKey: "preferences.launcher") }
+        }
+    }
+
+    public var launcherShortcut: LauncherShortcut {
+        didSet {
+            if let data = try? JSONEncoder().encode(launcherShortcut) {
+                defaults.set(data, forKey: "preferences.launcherShortcut")
+            }
+        }
+    }
+
     public var clipboard: ClipboardPreferences {
         didSet {
             if let data = try? JSONEncoder().encode(clipboard) {
@@ -44,6 +58,14 @@ public final class PreferencesStore {
 
     public var reverseMouseScroll: Bool {
         didSet { defaults.set(reverseMouseScroll, forKey: Key.reverseMouseScroll) }
+    }
+
+    public var showsLocalIPInMenuBar: Bool {
+        didSet { defaults.set(showsLocalIPInMenuBar, forKey: "preferences.network.menuBar.showsLocalIP") }
+    }
+
+    public var showsPublicIPInMenuBar: Bool {
+        didSet { defaults.set(showsPublicIPInMenuBar, forKey: "preferences.network.menuBar.showsPublicIP") }
     }
 
     public var publicIPEnabled: Bool {
@@ -92,12 +114,19 @@ public final class PreferencesStore {
 
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        launcher = defaults.data(forKey: "preferences.launcher")
+            .flatMap { try? JSONDecoder().decode(LauncherPreferences.self, from: $0) } ?? LauncherPreferences()
+        let shortcut = defaults.data(forKey: "preferences.launcherShortcut")
+            .flatMap { try? JSONDecoder().decode(LauncherShortcut.self, from: $0) }
+        launcherShortcut = shortcut.flatMap { $0.isValid ? $0 : nil } ?? LauncherShortcut()
         let savedClipboard = defaults.data(forKey: "preferences.clipboard")
             .flatMap { try? JSONDecoder().decode(ClipboardPreferences.self, from: $0) }
         clipboard = savedClipboard.flatMap { $0.isValid ? $0 : nil } ?? ClipboardPreferences()
         temperatureUnit = defaults.string(forKey: "preferences.temperatureUnit").flatMap(TemperatureUnit.init(rawValue:)) ?? .celsius
         reverseMouseScroll = Self.bool(defaults, forKey: Key.reverseMouseScroll, default: false)
         samplingInterval = SamplingInterval(rawValue: defaults.integer(forKey: Key.samplingInterval)) ?? .two
+        showsLocalIPInMenuBar = Self.bool(defaults, forKey: "preferences.network.menuBar.showsLocalIP", default: false)
+        showsPublicIPInMenuBar = Self.bool(defaults, forKey: "preferences.network.menuBar.showsPublicIP", default: false)
         publicIPEnabled = Self.bool(defaults, forKey: Key.publicIPEnabled, default: true)
         appIntegration = AppIntegrationPreferences(
             showsDockIcon: Self.bool(defaults, forKey: Key.showsDockIcon, default: true),

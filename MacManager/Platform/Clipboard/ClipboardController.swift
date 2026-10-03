@@ -1,12 +1,14 @@
 import AppKit
 import CryptoKit
 import MacManagerCore
+import Observation
 
 @MainActor
 final class ClipboardController: ApplicationLifecycleParticipant {
     let service: ClipboardService
     private let repository: ClipboardRepository
     private var loop: Task<Void, Never>?
+    private var polling: Task<Void, Never>?
     private var observers: [(NotificationCenter, NSObjectProtocol)] = []
     private let testing: Bool
     private let fixture: Bool
@@ -56,30 +58,46 @@ final class ClipboardController: ApplicationLifecycleParticipant {
         loop = Task { [weak self] in
             guard let self, !Task.isCancelled else { return }
             if self.fixture {
-                try? await self.repository.insert(ClipboardContent(kind: .text, data: Data("Project notes\nLocal clipboard history".utf8)),
+                _ = try? await self.repository.insert(ClipboardContent(kind: .text, data: Data("Project notes\nLocal clipboard history".utf8)),
                                                   preferences: self.service.preferences, now: Date())
-                try? await self.repository.insert(ClipboardContent(kind: .text, data: Data("Zażółć gęślą jaźń".utf8)),
+                _ = try? await self.repository.insert(ClipboardContent(kind: .text, data: Data("Zażółć gęślą jaźń".utf8)),
                                                   preferences: self.service.preferences, now: Date().addingTimeInterval(1))
             }
             await self.service.setSuspended(!self.suspendedReasons.isEmpty)
             guard !Task.isCancelled else { return }
             await self.service.start()
-            var nextMaintenance = Date().addingTimeInterval(60)
+            guard !Task.isCancelled else { return }
+            self.watchCaptureState()
             while !Task.isCancelled {
-                self.service.poll()
-                if Date() >= nextMaintenance {
-                    await self.service.maintain()
-                    nextMaintenance = Date().addingTimeInterval(60)
-                }
-                do { try await Task.sleep(for: .milliseconds(500)) } catch { return }
+                do { try await Task.sleep(for: .seconds(60), tolerance: .seconds(1)) } catch { return }
+                await self.service.maintain()
             }
         }
     }
 
     func stop() {
         loop?.cancel(); loop = nil
+        polling?.cancel(); polling = nil
         observers.forEach { $0.0.removeObserver($0.1) }; observers.removeAll()
         service.stop()
+    }
+
+    private func watchCaptureState() {
+        guard loop != nil else { return }
+        polling?.cancel(); polling = nil
+        let capture = withObservationTracking {
+            service.preferences.enabled && !service.preferences.paused && !service.suspended
+        } onChange: { [weak self] in
+            Task { @MainActor [weak self] in self?.watchCaptureState() }
+        }
+        guard capture else { return }
+        polling = Task { [weak self] in
+            while !Task.isCancelled {
+                self?.service.poll()
+                do { try await Task.sleep(for: .milliseconds(500), tolerance: .milliseconds(50)) }
+                catch { return }
+            }
+        }
     }
 
     private func observe(_ center: NotificationCenter, _ name: Notification.Name, reason: String, suspended: Bool) {

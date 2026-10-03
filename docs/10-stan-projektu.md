@@ -43,11 +43,19 @@ Zaimplementowany na `feat/stage-3a-clipboard`, opartym na aktualnym `main`. Nowa
 
 SQLite przechowuje tylko metadane. Treści i miniatury są zaszyfrowane AES-GCM. Klucz odtwarzany jest z materiału Secure Enclave zapisanego w niesynchronizowanym Keychain. Usługa działa niezależnie od okna, zatrzymuje odczyty po pauzie/odmowie/blokadzie i nie przejmuje skrótów kopiowania ani wklejania.
 
-Weryfikacja: 74 testy Core i dwa nowe testy GUI przechodzą. Rzeczywisty test Secure Enclave/Keychain używa własnego tymczasowego wpisu. Testy interfejsu korzystają z osobnego schowka i danych syntetycznych. Ręczny odbiór zgód na schowek, blokady/odblokowania i zachowania podpisanej aktualizacji pozostaje do wykonania. Nie podmieniano instalacji w `/Applications`. [Raport 3A](reports/etap-3a-schowek.md).
+Weryfikacja: 74 testy Core i dwa nowe testy GUI przechodzą. Rzeczywisty test Secure Enclave/Keychain używa własnego tymczasowego wpisu. Testy interfejsu korzystają z osobnego schowka i danych syntetycznych. Właściciel potwierdził działanie zainstalowanego schowka 3A. Oddzielny odbiór aktualizacji podpisanego wydania pozostaje do wykonania. Nie podmieniano instalacji w `/Applications`. [Raport 3A](reports/etap-3a-schowek.md).
 
-Dalej: odbiór 3A, pełny launcher lokalny (3B), panel wyspy (3C), integracje Music/Spotify (3D). Publikacja DMG i rozszerzanie mapowania Apple Silicon pozostają niezależnymi zadaniami.
+Dalej: pełny launcher lokalny (3B), panel wyspy (3C), integracje Music/Spotify (3D). Publikacja DMG i rozszerzanie mapowania Apple Silicon pozostają niezależnymi zadaniami.
+
+## Etap 3B: launcher, kroki 1-7
+
+Na `feat/stage-3b-launcher`, opartym na branchu 3A, wdrożono rdzeń wyszukiwarki, paletę ze skrótem globalnym oraz katalog aplikacji i poleceń. Ranking i mechanizmy katalogu/panelu/skrótu adaptowano z przypiętej rewizji Tinycast. Paleta działa niezależnie od głównego okna i ustawienia Docka; domyślny skrót to Control + Option + Spacja. Zapytania nie są zapisywane ani wysyłane. [Raport kroków 1-3](reports/etap-3b-launcher-1-3.md).
+
+Wdrożono także personalizację i skróty pozycji, pliki przez Spotlight w wybranych folderach, lokalny kalkulator i wspólny tryb Schowek pod Tab. [Raport kroków 4-7](reports/etap-3b-launcher-4-7.md). Do 3B pozostaje krok 8: pełny odbiór dostępności, IME/Spaces, uprawnień folderów i kosztu pracy w tle.
 
 ## Dowody i granice
+
+Aktualizacja 2026-10-03: na branchu 3B wdrożono cache katalogu i ikon launchera, stabilną listę wyników z ochroną przed wykonaniem starego wyniku, anulowalne zapytania Spotlight i wyszukiwanie schowka poza MainActor. Kalkulator respektuje format 12/24h użytkownika; skróty usuniętych aplikacji są zwalniane, a przeniesionych uzgadniane przez LaunchServices. Pozostałe zmiany obejmują naprawę pętli updatera, przyrostowe odświeżanie historii schowka, ograniczenie pracy w tle, wspólny odczyt SMC oraz cache wykresów i paska menu. 98 testów Core Release z rzeczywistym Spotlight i build Release przeszły. Test interfejsu wykonano przez Computer Use po timeoutcie inicjalizacji XCTest UI. Pełny profil Instruments i odbiór na macOS 26 pozostają do wykonania. Narzędzia i CI/CD bez zmian. [Raport wdrożenia](reports/wdrozenie-optymalizacji-2026-10-03.md).
 
 Historyczny odbiór etapu 1: 53 testy Core i 9 testów prototypów przeszło. Czternaście scenariuszy XCTest UI obejmuje nawigację, język z restartem, rzeczywiste metryki z trwałym interwałem, wykresy, trzy przepływy scrolla, ustawienia paska menu, sterowanie Dockiem i oknem, autostart, kontrolę aktualizacji, diagnostykę oraz audyt dostępności pięciu sekcji. Debug i Release kompilują się dla arm64, a plik Release zawiera wyłącznie arm64. Pomiar Release przez 602 s przy zamkniętym oknie wykazał średnio 0,413% CPU, 96,81 MB RSS i brak wzrostu pamięci; szczegóły zawiera [raport kroku 9](reports/etap-1-krok-9a.md).
 

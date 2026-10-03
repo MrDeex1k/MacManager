@@ -44,7 +44,7 @@ final class MetricsController: ApplicationLifecycleParticipant {
                         self.recordState()
                     }
                 }
-                do { try await Task.sleep(for: .seconds(1)) } catch { return }
+                do { try await Task.sleep(for: .seconds(1), tolerance: .milliseconds(100)) } catch { return }
             }
         }
     }

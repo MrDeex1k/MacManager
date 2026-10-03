@@ -7,9 +7,16 @@ public struct ClipboardLibrary: Sendable {
     public let databaseBytes: Int
 }
 
+public struct ClipboardMutation: Sendable {
+    public let inserted: ClipboardEntry?
+    public let removed: Set<UUID>
+    public let databaseBytes: Int
+}
+
 public struct ClipboardRestoredContent: Sendable {
     public let kind: ClipboardKind
     public let data: Data
+    public init(kind: ClipboardKind, data: Data) { self.kind = kind; self.data = data }
 }
 
 public actor ClipboardRepository {
@@ -35,13 +42,16 @@ public actor ClipboardRepository {
         self.directory = directory; self.keys = keys
     }
 
-    public func load(preferences: ClipboardPreferences, now: Date) throws -> ClipboardLibrary {
+    public func load(preferences: ClipboardPreferences, now: Date, reusing existing: [ClipboardEntry] = []) throws -> ClipboardLibrary {
         try open()
         let key = try currentKey()
         try prune(preferences: preferences, now: now)
         let records = try records()
         try removeOrphans(records: records)
-        let entries = records.map { record -> ClipboardEntry in
+        let reusable = Dictionary(existing.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        let entries = try records.map { record -> ClipboardEntry in
+            try Task.checkCancellation()
+            if let entry = reusable[record.id], entry.record == record, !entry.damaged { return entry }
             do {
                 let data = try decrypt(record.id, role: "preview", key: key, maximumBytes: 7_000_000)
                 let preview = try JSONDecoder().decode(Preview.self, from: data)
@@ -52,19 +62,21 @@ public actor ClipboardRepository {
                 return ClipboardEntry(record: record, text: nil, thumbnail: nil, sourceBundleID: nil, damaged: true)
             }
         }
-        let size = (try? files.attributesOfItem(atPath: databaseURL.path)[.size] as? NSNumber)?.intValue ?? 0
-        return ClipboardLibrary(entries: entries, databaseBytes: size)
+        return ClipboardLibrary(entries: entries, databaseBytes: databaseBytes)
     }
 
-    public func insert(_ content: ClipboardContent, preferences: ClipboardPreferences, now: Date) throws {
+    @discardableResult
+    public func insert(_ content: ClipboardContent, preferences: ClipboardPreferences, now: Date) throws -> ClipboardMutation {
         try Task.checkCancellation()
         guard content.isValid, preferences.isValid else { throw ClipboardFailure.tooLarge }
         try open()
         let key = try currentKey()
-        try prune(preferences: preferences, now: now)
-        if let latest = try records().first, latest.kind == content.kind,
+        var removed = try prune(preferences: preferences, now: now)
+        if let latest = try records(limit: 1).first, latest.kind == content.kind,
            let previous = try? decrypt(latest.id, role: "payload", key: key, maximumBytes: 21_000_000),
-           previous == content.data { return }
+           previous == content.data {
+            return ClipboardMutation(inserted: nil, removed: removed, databaseBytes: databaseBytes)
+        }
         let id = UUID()
         let preview = Preview(version: 1, text: content.kind == .text ? String(data: content.data, encoding: .utf8) : nil,
                               thumbnail: content.thumbnail, sourceBundleID: content.sourceBundleID,
@@ -88,16 +100,21 @@ public actor ClipboardRepository {
         } catch {
             try? files.removeItem(at: fileURL(id, role: "payload"))
             try? files.removeItem(at: fileURL(id, role: "preview"))
+            if error is CancellationError { throw error }
             throw ClipboardFailure.storage
         }
-        try prune(preferences: preferences, now: now)
+        removed.formUnion(try prune(preferences: preferences, now: now))
+        let record = ClipboardRecord(id: id, kind: content.kind, capturedAt: now, storedBytes: bytes)
+        let entry = ClipboardEntry(record: record, text: preview.text, thumbnail: preview.thumbnail,
+                                   sourceBundleID: preview.sourceBundleID)
+        return ClipboardMutation(inserted: removed.contains(id) ? nil : entry, removed: removed, databaseBytes: databaseBytes)
     }
 
     public func restore(_ id: UUID, preferences: ClipboardPreferences, now: Date) throws -> ClipboardRestoredContent {
         try open()
         let key = try currentKey()
         try prune(preferences: preferences, now: now)
-        guard let record = try records().first(where: { $0.id == id }) else { throw ClipboardFailure.damagedEntry }
+        guard let record = try records(id: id).first else { throw ClipboardFailure.damagedEntry }
         let data = try decrypt(id, role: "payload", key: key, maximumBytes: 21_000_000)
         guard ClipboardContent(kind: record.kind, data: data).isValid else { throw ClipboardFailure.damagedEntry }
         return ClipboardRestoredContent(kind: record.kind, data: data)
@@ -114,9 +131,10 @@ public actor ClipboardRepository {
     }
 
     // Metadata retention can run during pause or session lock without decrypting content.
-    public func maintain(preferences: ClipboardPreferences, now: Date) throws {
+    @discardableResult
+    public func maintain(preferences: ClipboardPreferences, now: Date) throws -> Set<UUID> {
         try open()
-        try prune(preferences: preferences, now: now)
+        return try prune(preferences: preferences, now: now)
     }
 
     public func removalCount(preferences: ClipboardPreferences, now: Date) throws -> Int {
@@ -125,6 +143,9 @@ public actor ClipboardRepository {
         return all.count - ClipboardRetention.retained(all, preferences: preferences, now: now).count
     }
 
+    private var databaseBytes: Int {
+        (try? files.attributesOfItem(atPath: databaseURL.path)[.size] as? NSNumber)?.intValue ?? 0
+    }
     private var databaseURL: URL { directory.appendingPathComponent("history.sqlite") }
     private func fileURL(_ id: UUID, role: String) -> URL { directory.appendingPathComponent("\(id.uuidString).\(role)") }
 
@@ -152,6 +173,7 @@ public actor ClipboardRepository {
             try execute("PRAGMA journal_mode=DELETE")
             try execute("PRAGMA synchronous=FULL")
             try execute("CREATE TABLE IF NOT EXISTS entries (id TEXT PRIMARY KEY NOT NULL, kind TEXT NOT NULL, captured REAL NOT NULL, bytes INTEGER NOT NULL)")
+            try execute("CREATE INDEX IF NOT EXISTS entries_captured ON entries(captured DESC, id ASC)")
             try execute("PRAGMA user_version=1")
             try files.setAttributes([.posixPermissions: 0o600], ofItemAtPath: databaseURL.path)
         } catch {
@@ -161,15 +183,18 @@ public actor ClipboardRepository {
     }
 
     private func currentKey() throws -> SymmetricKey {
-        let hasRecords = try !records().isEmpty
+        if try !records(limit: 1).isEmpty { return try keys.key(createIfMissing: false) }
         let hasPayloads = try files.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)
             .contains { ["payload", "preview", "pending"].contains($0.pathExtension) }
-        return try keys.key(createIfMissing: !hasRecords && !hasPayloads)
+        return try keys.key(createIfMissing: !hasPayloads)
     }
 
-    private func records() throws -> [ClipboardRecord] {
-        let query = try statement("SELECT id, kind, captured, bytes FROM entries ORDER BY captured DESC, id ASC")
+    private func records(id: UUID? = nil, limit: Int? = nil) throws -> [ClipboardRecord] {
+        let selection = id == nil ? "" : " WHERE id = ?"
+        let bound = limit.map { " LIMIT \($0)" } ?? ""
+        let query = try statement("SELECT id, kind, captured, bytes FROM entries" + selection + " ORDER BY captured DESC, id ASC" + bound)
         defer { sqlite3_finalize(query) }
+        if let id { bind(id.uuidString, to: query, at: 1) }
         var result: [ClipboardRecord] = []
         while true {
             let status = sqlite3_step(query)
@@ -186,11 +211,14 @@ public actor ClipboardRepository {
         }
     }
 
-    private func prune(preferences: ClipboardPreferences, now: Date) throws {
+    @discardableResult
+    private func prune(preferences: ClipboardPreferences, now: Date) throws -> Set<UUID> {
         guard preferences.isValid else { throw ClipboardFailure.storage }
         let all = try records()
         let retained = Set(ClipboardRetention.retained(all, preferences: preferences, now: now).map(\.id))
-        try remove(Set(all.map(\.id)).subtracting(retained))
+        let removed = Set(all.map(\.id)).subtracting(retained)
+        try remove(removed)
+        return removed
     }
 
     private func remove(_ ids: Set<UUID>) throws {

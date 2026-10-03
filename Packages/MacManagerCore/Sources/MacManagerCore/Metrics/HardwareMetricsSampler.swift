@@ -38,12 +38,11 @@ public actor HardwareMetricsSampler: MetricsSampling {
             compressor: memory.compressor_pages, pageSize: memory.page_size, physical: memory.physical_bytes) : nil
         readings[.memory] = MetricReading(kind: .memory, value: bytes.map { Double($0) },
                                          status: bytes == nil ? .unavailable : .available, source: "Mach VM statistics")
-        var watts = 0.0
-        let powerStatus = mm_power_read(&watts)
-        readings[.power] = MetricReading(kind: .power, value: powerStatus == 0 ? watts : nil,
-                                        status: powerStatus == 0 ? .available : .unavailable,
-                                        source: "AppleSMC PSTR")
+        // Power, temperatures and fans share a single read-only SMC connection per sample.
         let sensors = await sensorSampler.sample(catalog: sensorCatalog)
+        readings[.power] = MetricReading(kind: .power, value: sensors.powerWatts,
+                                        status: sensors.powerWatts == nil ? .unavailable : .available,
+                                        source: "AppleSMC PSTR")
         return MetricsSnapshot(uptime: start, readings: readings, physicalMemory: memoryStatus == 0 ? memory.physical_bytes : 0,
                                collectionMilliseconds: (MetricsTime.now() - start) * 1000, sensors: sensors)
     }

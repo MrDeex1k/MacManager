@@ -44,7 +44,7 @@ final class ScrollController: ApplicationLifecycleParticipant {
         recordState()
         loop = Task { [weak self] in
             while !Task.isCancelled {
-                do { try await Task.sleep(for: .seconds(1)) } catch { return }
+                do { try await Task.sleep(for: .seconds(self?.service.enabled == true ? 1 : 5), tolerance: .milliseconds(200)) } catch { return }
                 guard let self else { return }
                 self.service.refresh()
                 self.recordState()

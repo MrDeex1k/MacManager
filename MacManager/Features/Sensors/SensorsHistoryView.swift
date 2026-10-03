@@ -5,13 +5,14 @@ import SwiftUI
 struct SensorsHistoryView: View {
     @Environment(AppState.self) private var state
     @State private var selectedTemperature: SensorHistoryKind = .cpuTemperature
+    @State private var series = MetricsChartSeries()
 
     private var history: MetricsHistory { state.metrics.history }
     private var unit: TemperatureUnit { state.preferences.temperatureUnit }
-    private var temperaturePoints: [MetricHistoryPoint] { history.points(for: selectedTemperature) }
+    private var temperaturePoints: [MetricHistoryPoint] { series.points(history: history, sensor: selectedTemperature) }
     private var fanPoints: [FanChartPoint] {
         (0..<history.fanCount).flatMap { index in
-            history.points(for: .fan(index)).map { point in
+            series.points(history: history, sensor: .fan(index)).map { point in
                 FanChartPoint(fan: index, point: point)
             }
         }

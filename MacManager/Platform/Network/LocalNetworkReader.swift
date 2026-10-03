@@ -4,6 +4,8 @@ import MacManagerCore
 import SystemConfiguration
 
 actor LocalNetworkReader {
+    private let store = SCDynamicStoreCreate(nil, "MacManager" as CFString, nil, nil)
+    private let preferences = SCPreferencesCreate(nil, "MacManager" as CFString, nil)
     func read(online: Bool) -> NetworkEnvironment {
         var addresses: [NetworkAddress] = []
         var tunnels = Set<String>()
@@ -29,13 +31,12 @@ actor LocalNetworkReader {
             }
         }
         addresses.sort { $0.id < $1.id }
-        let store = SCDynamicStoreCreate(nil, "MacManager" as CFString, nil, nil)
         let global = store.flatMap { SCDynamicStoreCopyValue($0, "State:/Network/Global/IPv4" as CFString) as? [String: Any] }
         let systemPrimary = global?["PrimaryInterface"] as? String
         // Rank configured physical services in the user's service order. A tunnel is never a LAN fallback.
         var physical: [String] = []
-        if let preferences = SCPreferencesCreate(nil, "MacManager" as CFString, nil),
-           let services = SCNetworkServiceCopyAll(preferences) as? [SCNetworkService] {
+        if let preferences { SCPreferencesSynchronize(preferences) }
+        if let preferences, let services = SCNetworkServiceCopyAll(preferences) as? [SCNetworkService] {
             let order = SCNetworkSetCopyCurrent(preferences).flatMap { SCNetworkSetGetServiceOrder($0) as? [String] } ?? []
             let sorted = services.sorted {
                 let a = (SCNetworkServiceGetServiceID($0) as String?) ?? ""
