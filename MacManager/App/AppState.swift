@@ -41,6 +41,7 @@ final class AppState {
     @ObservationIgnored private var launchObserver: NSObjectProtocol?
     var section: AppSection? = .overview
     var mainWindowVisible = false
+    var mainWindowContentVisible = true
 
     init() {
         let launchContext = ApplicationLaunchContextDetector.detect()
@@ -48,7 +49,7 @@ final class AppState {
         let initiallyShowsMainWindow = launchContext != .loginItem
         mainWindowVisible = initiallyShowsMainWindow
         diagnostics = DiagnosticsStore()
-        let appVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.8.0"
+        let appVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.8.1"
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("--ui-testing"),
            let defaults = UserDefaults(suiteName: "dev.macmanager.MacManager.UITests") {
@@ -147,6 +148,7 @@ final class AppState {
 
     func setMainWindowVisible(_ isVisible: Bool) {
         mainWindowVisible = isVisible
+        if isVisible { mainWindowContentVisible = true }
         _ = dock.setMainWindowVisible(isVisible)
     }
 
@@ -226,6 +228,7 @@ private struct TestUpdateFixture: Sendable {
     }
 
     let mode: Mode
+    let currentVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.8.1"
 
     init(arguments: [String]) {
         if arguments.contains("--update-available") {
@@ -246,7 +249,7 @@ private struct TestUpdateFixture: Sendable {
         case .noRelease:
             return .noPublicRelease(etag: "\"ui-test\"")
         case .current:
-            return .release(release(version: "0.8.0"), etag: "\"ui-test\"")
+            return .release(release(version: currentVersion), etag: "\"ui-test\"")
         case .available:
             return .release(release(version: "0.9.0"), etag: "\"ui-test\"")
         case .failed:

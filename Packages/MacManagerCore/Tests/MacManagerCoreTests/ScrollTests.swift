@@ -106,6 +106,7 @@ private func wheel(continuous: Bool) throws -> CGEvent {
 
 @MainActor
 private final class FakeScrollDriver: ScrollDriving {
+    var onStateChange: (@MainActor @Sendable () -> Void)?
     var permission: ScrollPermission = .accessibility
     var state: ScrollDriverState = .stopped
     var starts = 0
@@ -229,4 +230,27 @@ private final class FakeScrollDriver: ScrollDriving {
     service.refresh()
     #expect(service.accessibilityGranted && !service.inputMonitoringGranted)
     #expect(service.status == .inputMonitoringRequired && driver.state == .stopped)
+}
+
+@MainActor @Test func driverCallbackReportsInterruptionWithoutPermissionPollingAndIgnoresLateEvents() {
+    let driver = FakeScrollDriver()
+    driver.permission = .granted
+    let service = ScrollService(enabled: true, driver: driver)
+    service.refresh()
+    driver.state = .interrupted
+    driver.onStateChange?()
+    #expect(service.status == .interrupted)
+    #expect(driver.starts == 1)
+    service.setEnabled(false)
+    driver.state = .failed
+    driver.onStateChange?()
+    #expect(service.status == .off)
+    service.setEnabled(true)
+    service.setSuspended(true)
+    driver.state = .active
+    driver.onStateChange?()
+    #expect(service.status == .suspended)
+    service.shutdown()
+    driver.onStateChange?()
+    #expect(service.status == .off)
 }

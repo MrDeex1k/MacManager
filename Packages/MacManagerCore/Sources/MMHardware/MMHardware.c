@@ -7,6 +7,7 @@
 #include <stddef.h>
 #include <string.h>
 #include <math.h>
+#include <pthread.h>
 
 int32_t mm_cpu_read(MMCPUTicks *ticks) {
     host_cpu_load_info_data_t value = {0};
@@ -24,23 +25,26 @@ int32_t mm_cpu_read(MMCPUTicks *ticks) {
     return 0;
 }
 
+static pthread_once_t memory_constants_once = PTHREAD_ONCE_INIT;
+static uint64_t physical_memory = 0;
+static void read_memory_constants(void) {
+    size_t length = sizeof(physical_memory);
+    if (sysctlbyname("hw.memsize", &physical_memory, &length, NULL, 0) != 0)
+        physical_memory = 0;
+}
+
 int32_t mm_memory_read(MMMemory *memory) {
     vm_statistics64_data_t value = {0};
     mach_msg_type_number_t count = HOST_VM_INFO64_COUNT;
     mach_port_t host = mach_host_self();
-    vm_size_t page_size = 0;
-    kern_return_t status = host_page_size(host, &page_size);
-    if (status == KERN_SUCCESS)
-        status = host_statistics64(host, HOST_VM_INFO64, (host_info64_t)&value, &count);
+    kern_return_t status = host_statistics64(host, HOST_VM_INFO64, (host_info64_t)&value, &count);
     mach_port_deallocate(mach_task_self(), host);
     if (status != KERN_SUCCESS) return status;
     if (count < HOST_VM_INFO64_COUNT) return kIOReturnUnderrun;
-    uint64_t physical = 0;
-    size_t length = sizeof(physical);
-    if (sysctlbyname("hw.memsize", &physical, &length, NULL, 0) != 0)
-        return kIOReturnError;
+    pthread_once(&memory_constants_once, read_memory_constants);
+    if (!physical_memory || !vm_page_size) return kIOReturnError;
     *memory = (MMMemory){
-        physical, page_size, value.internal_page_count, value.wire_count,
+        physical_memory, vm_page_size, value.internal_page_count, value.wire_count,
         value.compressor_page_count, value.purgeable_count,
         value.external_page_count, value.free_count
     };
@@ -195,19 +199,29 @@ int32_t mm_smc_decode_number(uint32_t type, const uint8_t *bytes, uint32_t lengt
     return 0;
 }
 
-int32_t mm_smc_read_number(uint32_t connection, uint32_t key, double *value) {
-    if (!value) return kIOReturnBadArgument;
+int32_t mm_smc_read_number_cached(uint32_t connection, uint32_t key, MMSMCKeyInfo *info, double *value) {
+    if (!value || !info) return kIOReturnBadArgument;
     *value = NAN;
     if (!connection) return kIOReturnBadArgument;
     MMTransaction request = {0}, response = {0};
     request.key = key;
-    request.command = 9;
-    int32_t status = mm_smc_call(connection, &request, &response);
-    if (status) return status;
-    request.info = response.info;
-    if (!request.info.length || request.info.length > sizeof(response.bytes)) return kIOReturnUnsupported;
+    if (!info->length) {
+        request.command = 9;
+        int32_t status = mm_smc_call(connection, &request, &response);
+        if (status) return status;
+        if (!response.info.length || response.info.length > sizeof(response.bytes)) return kIOReturnUnsupported;
+        *info = (MMSMCKeyInfo){response.info.length, response.info.type, response.info.attributes};
+    }
+    if (info->length > sizeof(response.bytes)) { info->length = 0; return kIOReturnUnsupported; }
+    request.info = (MMKeyInfo){info->length, info->type, info->attributes};
     request.command = 5; // Read only; never expose SMC write commands
-    status = mm_smc_call(connection, &request, &response);
-    if (status) return status;
-    return mm_smc_decode_number(request.info.type, response.bytes, request.info.length, value);
+    int32_t status = mm_smc_call(connection, &request, &response);
+    if (!status) status = mm_smc_decode_number(info->type, response.bytes, info->length, value);
+    if (status) info->length = 0; // Rediscover metadata after a failed read.
+    return status;
+}
+
+int32_t mm_smc_read_number(uint32_t connection, uint32_t key, double *value) {
+    MMSMCKeyInfo info = {0};
+    return mm_smc_read_number_cached(connection, key, &info, value);
 }

@@ -137,6 +137,18 @@ public actor ClipboardRepository {
         return try prune(preferences: preferences, now: now)
     }
 
+    public func nextExpiration(preferences: ClipboardPreferences) throws -> Date? {
+        try open()
+        let query = try statement("SELECT captured FROM entries ORDER BY captured ASC LIMIT 1")
+        defer { sqlite3_finalize(query) }
+        let result = sqlite3_step(query)
+        if result == SQLITE_DONE { return nil }
+        guard result == SQLITE_ROW else { throw ClipboardFailure.storage }
+        let captured = sqlite3_column_double(query, 0)
+        guard captured.isFinite else { throw ClipboardFailure.storage }
+        return Date(timeIntervalSince1970: captured + Double(preferences.maximumDays) * 86_400)
+    }
+
     public func removalCount(preferences: ClipboardPreferences, now: Date) throws -> Int {
         try open()
         let all = try records()

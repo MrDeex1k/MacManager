@@ -19,6 +19,12 @@ struct SensorsHistoryView: View {
     }
 
     var body: some View {
+        Group {
+            if state.mainWindowContentVisible { visibleContent }
+        }
+    }
+
+    @ViewBuilder private var visibleContent: some View {
         VStack(alignment: .leading, spacing: 24) {
             Divider()
             VStack(alignment: .leading, spacing: 14) {

@@ -331,3 +331,49 @@ private func clipboardDirectory() -> URL {
     do { _ = try await task.value; Issue.record("Cancelled clipboard search returned results") }
     catch { #expect(error is CancellationError) }
 }
+
+@Test func clipboardExpiryDeadlineTracksOldestRecordDeletionAndRetentionPreferences() async throws {
+    let directory = clipboardDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let repo = ClipboardRepository(directory: directory, keys: ClipboardTestKey())
+    var settings = ClipboardPreferences()
+    settings.maximumDays = 1
+    let now = Date(timeIntervalSince1970: 1_000_000)
+    #expect(try await repo.nextExpiration(preferences: settings) == nil)
+    let first = try await repo.insert(ClipboardContent(kind: .text, data: Data("first".utf8)), preferences: settings, now: now)
+    _ = try await repo.insert(ClipboardContent(kind: .text, data: Data("second".utf8)), preferences: settings, now: now.addingTimeInterval(10))
+    #expect(try await repo.nextExpiration(preferences: settings) == now.addingTimeInterval(86_400))
+    let id = try #require(first.inserted?.id)
+    try await repo.delete([id])
+    #expect(try await repo.nextExpiration(preferences: settings) == now.addingTimeInterval(86_410))
+    settings.maximumDays = 2
+    #expect(try await repo.nextExpiration(preferences: settings) == now.addingTimeInterval(172_810))
+    _ = try await repo.maintain(preferences: settings, now: now.addingTimeInterval(172_810))
+    #expect(try await repo.nextExpiration(preferences: settings) == nil)
+}
+
+@MainActor @Test func clipboardExpiryStillRunsWhileLockedAndPollingBacksOffWithoutPermission() async throws {
+    let directory = clipboardDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let repo = ClipboardRepository(directory: directory, keys: ClipboardTestKey())
+    let mock = ClipboardMock()
+    var settings = ClipboardPreferences(); settings.enabled = true; settings.maximumDays = 1
+    var now = Date(timeIntervalSince1970: 1_000_000)
+    _ = try await repo.insert(ClipboardContent(kind: .text, data: Data("expires".utf8)), preferences: settings, now: now)
+    let service = ClipboardService(preferences: settings, pasteboard: mock, repository: repo, storageExists: true, now: { now })
+    await service.start()
+    #expect(service.pollingSeconds == 0.5)
+    mock.access = .denied; service.poll()
+    #expect(service.pollingSeconds == 5)
+    mock.access = .allowed; service.poll()
+    #expect(service.pollingSeconds == 0.5)
+    await service.setSuspended(true)
+    #expect(service.entries.isEmpty)
+    #expect(try await service.nextMaintenanceDate() == now.addingTimeInterval(86_400))
+    now = now.addingTimeInterval(86_400)
+    await service.maintain()
+    #expect(try await service.nextMaintenanceDate() == nil)
+    await service.setSuspended(false)
+    #expect(service.entries.isEmpty)
+    service.stop()
+}

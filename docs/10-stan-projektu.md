@@ -68,3 +68,7 @@ Buildy developerskie mają osobną tożsamość `.Development`, ustawienia i zgo
 Weryfikacja 2026-09-20: ponownie przeszły 53 testy Core, 9 testów prototypów, 5 kontroli zdarzeń autostartu i kompilacja Release arm64 bez podpisu. Nie powtarzano pełnego zestawu UI ani pomiaru obciążenia. Najnowsze poprawki: panel 300 pkt, trzy kolory dostępności pomiarów, brak godziny pobrania IP i ukryta sekcja Wygląd.
 
 Publikacja 0.8.0 została odłożona na prośbę właściciela z powodu konfiguracji hasła notaryzacji. Certyfikat Developer ID Application jest dostępny; historyczny brak certyfikatu z 20 września nie jest już aktualną przeszkodą. Prace etapu 2 są niezależne od publikacji.
+
+## Optymalizacje pracy w tle - 2026-10-05
+
+Lokalna aktualizacja 0.8.1 (build 9) ogranicza okresowe kontrole metryk i scrolla, ponownie używa sesji/metadanych SMC, planuje retencję schowka według daty wygaśnięcia i usuwa sekundowy timer ustawień aktualizacji. Punkty dotyczące adaptacyjnego profilu baterii, zbierania metryk na żądanie i powiadomień sieciowych pozostają poza tym zakresem. Szczegóły i wyniki weryfikacji: [raport](reports/optymalizacje-baterii-2026-10-05.md).

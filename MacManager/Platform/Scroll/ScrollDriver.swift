@@ -4,6 +4,7 @@ import MacManagerCore
 
 @MainActor
 final class ScrollDriver: ScrollDriving {
+    var onStateChange: (@MainActor @Sendable () -> Void)?
     private var worker: ScrollTapWorker?
     private var requestingInput = false
     var accessibilityGranted: Bool { AXIsProcessTrusted() }
@@ -16,7 +17,7 @@ final class ScrollDriver: ScrollDriving {
 
     func start() {
         guard worker == nil else { return }
-        let worker = ScrollTapWorker()
+        let worker = ScrollTapWorker(onStateChange: { [weak self] in self?.onStateChange?() })
         self.worker = worker
         worker.start()
     }
@@ -53,7 +54,17 @@ final class ScrollDriver: ScrollDriving {
 private final class ScrollTapWorker: @unchecked Sendable {
     private let lock = NSLock()
     private var wanted = true
-    private var reported: ScrollDriverState = .starting
+    private let onStateChange: @MainActor @Sendable () -> Void
+    init(onStateChange: @escaping @MainActor @Sendable () -> Void) {
+        self.onStateChange = onStateChange
+    }
+    private var reported: ScrollDriverState = .starting {
+        didSet {
+            guard oldValue != reported else { return }
+            let callback = onStateChange
+            DispatchQueue.main.async { callback() }
+        }
+    }
     private var runLoop: CFRunLoop?
     private var tap: CFMachPort?
     private var gestureTap: CFMachPort?
@@ -77,7 +88,11 @@ private final class ScrollTapWorker: @unchecked Sendable {
             reported = .stopped
             return runLoop
         }
-        if let loop { CFRunLoopStop(loop); CFRunLoopWakeUp(loop) }
+        if let loop {
+            // A queued stop also works if stop() races with entry into CFRunLoopRunInMode.
+            CFRunLoopPerformBlock(loop, CFRunLoopMode.defaultMode.rawValue) { CFRunLoopStop(loop) }
+            CFRunLoopWakeUp(loop)
+        }
         stopGestureObservation()
     }
 
@@ -158,9 +173,9 @@ private final class ScrollTapWorker: @unchecked Sendable {
         CFRunLoopAddSource(loop, source, .defaultMode)
         defer { CFRunLoopRemoveSource(loop, source, .defaultMode) }
         lock.withLock { if wanted { reported = .active } }
-        // A bounded run also handles stop() arriving just before the run loop begins.
+        // A slow watchdog catches invalidated taps even if no disable callback arrives.
         while lock.withLock({ wanted }) {
-            autoreleasepool { _ = CFRunLoopRunInMode(.defaultMode, 1, false) }
+            autoreleasepool { _ = CFRunLoopRunInMode(.defaultMode, 30, false) }
             lock.withLock {
                 guard let gestureTap else {
                     if wanted {
@@ -181,6 +196,12 @@ private final class ScrollTapWorker: @unchecked Sendable {
     private func handle(_ type: CGEventType, event: CGEvent) {
         lock.withLock {
             guard wanted else { return }
+            defer {
+                if !wanted, let runLoop {
+                    CFRunLoopPerformBlock(runLoop, CFRunLoopMode.defaultMode.rawValue) { CFRunLoopStop(runLoop) }
+                    CFRunLoopWakeUp(runLoop)
+                }
+            }
             if type == .tapDisabledByTimeout {
                 if recovery.shouldRetry(at: MetricsTime.now()), let tap {
                     CGEvent.tapEnable(tap: tap, enable: true)

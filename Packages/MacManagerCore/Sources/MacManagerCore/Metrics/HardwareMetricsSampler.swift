@@ -9,7 +9,10 @@ public actor HardwareMetricsSampler: MetricsSampling {
     private var previousTime: TimeInterval?
 
     public init() {}
-    public func reset() { previous = nil; previousTime = nil }
+    public func reset() async {
+        previous = nil; previousTime = nil
+        await sensorSampler.reset()
+    }
 
     public func sample() async -> MetricsSnapshot {
         let start = MetricsTime.now()
@@ -23,7 +26,7 @@ public actor HardwareMetricsSampler: MetricsSampling {
                                           status: percent == nil ? .loading : .available, source: "Mach CPU ticks")
             previous = ticks; previousTime = start
         } else {
-            reset()
+            previous = nil; previousTime = nil
             readings[.cpu] = MetricReading(kind: .cpu, status: .failed, source: "Mach CPU ticks")
         }
         var gpu = 0.0
@@ -38,7 +41,7 @@ public actor HardwareMetricsSampler: MetricsSampling {
             compressor: memory.compressor_pages, pageSize: memory.page_size, physical: memory.physical_bytes) : nil
         readings[.memory] = MetricReading(kind: .memory, value: bytes.map { Double($0) },
                                          status: bytes == nil ? .unavailable : .available, source: "Mach VM statistics")
-        // Power, temperatures and fans share a single read-only SMC connection per sample.
+        // The sensor actor owns a reusable read-only SMC session, reset after sleep/interval changes.
         let sensors = await sensorSampler.sample(catalog: sensorCatalog)
         readings[.power] = MetricReading(kind: .power, value: sensors.powerWatts,
                                         status: sensors.powerWatts == nil ? .unavailable : .available,

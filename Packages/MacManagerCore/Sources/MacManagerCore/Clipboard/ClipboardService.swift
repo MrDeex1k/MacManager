@@ -16,7 +16,10 @@ private actor ClipboardNormalizer {
 public final class ClipboardService {
     public private(set) var preferences: ClipboardPreferences
     public private(set) var entries: [ClipboardEntry] = [] {
-        didSet { revision += 1 }
+        didSet {
+            revision += 1
+            oldestEntryDate = entries.map(\.record.capturedAt).min()
+        }
     }
     public private(set) var revision = 0
     public private(set) var access: ClipboardAccess = .needsPermission
@@ -33,6 +36,7 @@ public final class ClipboardService {
         if failure == .storage || failure == .keyUnavailable { return .unavailable }
         return .recording
     }
+    @ObservationIgnored private var oldestEntryDate: Date?
     @ObservationIgnored private let pasteboard: any ClipboardPasteboard
     @ObservationIgnored private let repository: ClipboardRepository
     @ObservationIgnored private let savePreferences: (ClipboardPreferences) -> Void
@@ -100,7 +104,7 @@ public final class ClipboardService {
             invalidateCapture()
         }
         let cutoff = now().addingTimeInterval(-Double(preferences.maximumDays) * 86_400)
-        if entries.contains(where: { $0.record.capturedAt <= cutoff }) {
+        if let oldestEntryDate, oldestEntryDate <= cutoff {
             entries.removeAll { $0.record.capturedAt <= cutoff }
         }
         guard preferences.enabled, !preferences.paused, access == .allowed,
@@ -145,6 +149,16 @@ public final class ClipboardService {
                 }
             }
         }
+    }
+
+    /// Permission/storage failures need only a slow retry, not capture-frequency polling.
+    public var pollingSeconds: Double {
+        access == .allowed && failure != .keyUnavailable && failure != .storage ? 0.5 : 5
+    }
+
+    public func nextMaintenanceDate() async throws -> Date? {
+        guard running, storageStarted else { return nil }
+        return try await repository.nextExpiration(preferences: preferences)
     }
 
     public func maintain() async {
