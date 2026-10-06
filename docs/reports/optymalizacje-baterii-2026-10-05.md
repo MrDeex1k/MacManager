@@ -1,6 +1,6 @@
 # Optymalizacje pracy w tle - 2026-10-05
 
-Branch: `codex/battery-optimizations-4-8`. Wersja aplikacji: 0.8.1, build 9.
+Branch: `feat/battery-optimization`. Wersja aplikacji: 0.8.1, build 9.
 
 ## Zakres
 
