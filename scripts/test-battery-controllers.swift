@@ -88,7 +88,7 @@ actor FetchCounter {
         defer { defaults.removePersistentDomain(forName: suite) }
         let updatePreferences = PreferencesStore(defaults: defaults)
         let calls = FetchCounter()
-        let updates = UpdateService(preferences: updatePreferences, installedVersion: "0.8.2", diagnostics: DiagnosticsStore(), fetch: { _ in
+        let updates = UpdateService(preferences: updatePreferences, installedVersion: "0.8.3", diagnostics: DiagnosticsStore(), fetch: { _ in
             await calls.increment()
             return .noPublicRelease(etag: nil)
         })
