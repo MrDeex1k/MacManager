@@ -52,7 +52,8 @@ public actor HardwareSensorSampler {
         metadata.removeAll()
     }
 
-    public func sample(catalog: SensorCatalog) -> HardwareSensorSnapshot {
+    public func sample(catalog: SensorCatalog, request: MetricSamplingRequest = .full) -> HardwareSensorSnapshot {
+        guard request.cpuTemperature || request.gpuTemperature || request.fans || request.kinds.contains(.power) else { return .empty }
         let uptime = MetricsTime.now()
         if catalogKeys != catalog.temperatureKeys {
             catalogKeys = catalog.temperatureKeys
@@ -60,7 +61,7 @@ public actor HardwareSensorSampler {
             codes.removeAll()
             metadata.removeAll()
         }
-        let keys = sortedKeys
+        let keys = sortedKeys.filter { (request.cpuTemperature && catalog.cpuKeys.contains($0)) || (request.gpuTemperature && catalog.gpuKeys.contains($0)) }
         guard connection != 0 || mm_smc_open(&connection) == 0 else {
             return HardwareSensorSnapshot(uptime: uptime, fans: .unavailable, readings: keys.map {
                 HardwareSensorReading(sensor: .init(key: $0, kind: .temperature), rawValue: nil)
@@ -85,8 +86,8 @@ public actor HardwareSensorSampler {
             successfulReads += 1
             return value
         }
-        let power = read("PSTR").flatMap { $0 >= 0 ? $0 : nil }
-        let fans = FanInventory(rawCount: read("FNum"))
+        let power = request.kinds.contains(.power) ? read("PSTR").flatMap { $0 >= 0 ? $0 : nil } : nil
+        let fans = FanInventory(rawCount: request.fans ? read("FNum") : nil)
         var readings = keys.map {
             HardwareSensorReading(sensor: .init(key: $0, kind: .temperature), rawValue: read($0))
         }

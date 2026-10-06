@@ -5,14 +5,16 @@ import Observation
 @MainActor
 final class MetricsController: ApplicationLifecycleParticipant {
     private let service: MetricsService
+    private let energy: EnergyPolicy?
     private let diagnostics: DiagnosticsStore
     private var loop: Task<Void, Never>?
     private var observers: [(NotificationCenter, NSObjectProtocol)] = []
     private var running = false
     private var reportedFailure = false
 
-    init(service: MetricsService, diagnostics: DiagnosticsStore) {
+    init(service: MetricsService, diagnostics: DiagnosticsStore, energy: EnergyPolicy? = nil) {
         self.service = service
+        self.energy = energy
         self.diagnostics = diagnostics
     }
 
@@ -24,7 +26,7 @@ final class MetricsController: ApplicationLifecycleParticipant {
         for (name, sleeping) in [(NSWorkspace.willSleepNotification, true), (NSWorkspace.didWakeNotification, false)] {
             let token = center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
                 Task { @MainActor [weak self] in
-                    self?.service.setSuspended(sleeping)
+                    if self?.energy == nil { self?.service.setSuspended(sleeping) }
                 }
             }
             observers.append((center, token))
@@ -36,11 +38,14 @@ final class MetricsController: ApplicationLifecycleParticipant {
         guard running else { return }
         loop?.cancel()
         loop = nil
-        let (interval, suspended) = withObservationTracking {
-            (service.interval, service.suspended)
+        let (interval, suspended, request) = withObservationTracking {
+            (energy?.metricsInterval(saved: service.interval) ?? Double(service.interval.rawValue),
+             energy?.pausesMetrics ?? service.suspended, energy?.request ?? .full)
         } onChange: { [weak self] in
             Task { @MainActor [weak self] in self?.scheduleSampling() }
         }
+        if energy != nil { service.setSuspended(suspended) }
+        service.configure(intervalSeconds: interval, request: request)
         guard !suspended else { return }
         loop = Task { [weak self] in
             while !Task.isCancelled {
@@ -54,7 +59,7 @@ final class MetricsController: ApplicationLifecycleParticipant {
                     self.recordState()
                 }
                 do {
-                    try await Task.sleep(for: .seconds(interval.rawValue), tolerance: .milliseconds(100))
+                    try await Task.sleep(for: .seconds(interval), tolerance: .milliseconds(100))
                 } catch { return }
             }
         }

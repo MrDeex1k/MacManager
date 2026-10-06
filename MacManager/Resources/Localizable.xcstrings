@@ -4158,6 +4158,54 @@
           }
         }
       }
+    },
+    "energy.adapt": {
+      "localizations": {
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dostosuj działanie do oszczędzania energii macOS"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adapt to macOS Low Power Mode"
+          }
+        }
+      }
+    },
+    "energy.paused": {
+      "localizations": {
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Odczyty wstrzymane"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sampling paused"
+          }
+        }
+      }
+    },
+    "energy.interval": {
+      "localizations": {
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Efektywny interwał odczytów: %.0f s"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Effective sampling interval: %.0f s"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

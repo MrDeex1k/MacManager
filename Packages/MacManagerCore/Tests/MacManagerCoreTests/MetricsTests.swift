@@ -123,3 +123,18 @@ private actor DeferredSampler: MetricsSampling {
     #expect(service.history.count == 1)
     #expect(await sampler.resets == 2)
 }
+
+@MainActor @Test func sleepClosesSamplerAfterPendingReadWithoutWaitingForWake() async {
+    let sampler = DeferredSampler()
+    let service = MetricsService(sampler: sampler, now: { 20 })
+    let read = Task { await service.collect() }
+    #expect(await waitUntil { await sampler.ready() })
+    service.setSuspended(true)
+    #expect(await sampler.resets == 1)
+    await sampler.complete()
+    await read.value
+    #expect(await waitUntil { await sampler.resets == 2 })
+    #expect(service.snapshot[.cpu].value == nil)
+    await service.collect()
+    #expect(await sampler.samples == 1)
+}

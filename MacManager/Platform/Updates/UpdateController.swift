@@ -1,18 +1,22 @@
 import AppKit
 import MacManagerCore
 import Network
+import Observation
 
 @MainActor
 final class UpdateController: ApplicationLifecycleParticipant {
     private let service: UpdateService
+    private let energy: EnergyPolicy?
+    private var wakeNotBefore = Date.distantPast
     private let monitor = NWPathMonitor()
     private var scheduledCheck: Task<Void, Never>?
     private var observers: [(NotificationCenter, NSObjectProtocol)] = []
     private var isRunning = false
     private var isSuspended = false
 
-    init(service: UpdateService) {
+    init(service: UpdateService, energy: EnergyPolicy? = nil) {
         self.service = service
+        self.energy = energy
     }
 
     func start() {
@@ -39,6 +43,7 @@ final class UpdateController: ApplicationLifecycleParticipant {
                 MainActor.assumeIsolated {
                     guard let self else { return }
                     self.isSuspended = suspended
+                    if !suspended { self.wakeNotBefore = Date().addingTimeInterval(30) }
                     if suspended { self.service.cancelCheck() }
                     self.scheduleNextCheck()
                 }
@@ -83,9 +88,12 @@ final class UpdateController: ApplicationLifecycleParticipant {
     private func scheduleNextCheck() {
         scheduledCheck?.cancel()
         scheduledCheck = nil
-        guard isRunning, !isSuspended, service.isOnline,
+        let allows = withObservationTracking { energy?.allowsAutomaticUpdates ?? true } onChange: { [weak self] in
+            Task { @MainActor [weak self] in self?.scheduleNextCheck() }
+        }
+        guard isRunning, !isSuspended, allows, service.isOnline,
               let date = service.nextAutomaticDate(now: Date()) else { return }
-        let delay = max(0, date.timeIntervalSinceNow)
+        let delay = max(0, max(date, wakeNotBefore).timeIntervalSinceNow)
         scheduledCheck = Task { [weak self] in
             do {
                 if delay > 0 {
@@ -96,7 +104,7 @@ final class UpdateController: ApplicationLifecycleParticipant {
             } catch {
                 return
             }
-            guard let self, self.isRunning, !self.isSuspended, !Task.isCancelled else { return }
+            guard let self, self.isRunning, !self.isSuspended, self.energy?.allowsAutomaticUpdates ?? true, !Task.isCancelled else { return }
             _ = await self.service.check(trigger: .automatic, now: Date())
             self.scheduleNextCheck()
         }

@@ -39,7 +39,7 @@ struct MetricsHistoryView: View {
 
     var body: some View {
         Group {
-            if state.mainWindowContentVisible { visibleContent }
+            if (state.mainWindowContentVisible && !state.energy.sleeping) { visibleContent }
         }
     }
 

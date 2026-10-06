@@ -118,7 +118,8 @@ final class ClipboardController: ApplicationLifecycleParticipant {
 
     private func scheduleMaintenance() {
         guard loop != nil else { return }
-        maintenance?.cancel()
+        maintenance?.cancel(); maintenance = nil
+        guard !suspendedReasons.contains("sleep") else { return }
         maintenance = Task { [weak self] in
             var attemptedDate: Date?
             while !Task.isCancelled {
@@ -147,6 +148,8 @@ final class ClipboardController: ApplicationLifecycleParticipant {
                 guard let self else { return }
                 if suspended { self.suspendedReasons.insert(reason) }
                 else { self.suspendedReasons.remove(reason) }
+                self.scheduleMaintenance()
+                if reason == "sleep", !suspended { await self.service.maintain() }
                 await self.service.setSuspended(!self.suspendedReasons.isEmpty)
             }
         }

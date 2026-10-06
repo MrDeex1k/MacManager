@@ -16,6 +16,7 @@ final class LauncherController: ApplicationLifecycleParticipant {
     @ObservationIgnored private let clipboardSearch = ClipboardSearch()
     @ObservationIgnored private let applicationIcons = NSCache<NSURL, NSImage>()
     @ObservationIgnored private let thumbnails = NSCache<NSUUID, NSImage>()
+    var catalogRefreshSeconds: Double = 60 { didSet { model.catalogRefreshSeconds = catalogRefreshSeconds } }
     @ObservationIgnored private var shortcutCleanup: Task<Void, Never>?
     @ObservationIgnored private var lastIconRefresh: ContinuousClock.Instant?
 
@@ -80,7 +81,11 @@ final class LauncherController: ApplicationLifecycleParticipant {
     }
     private func observe(_ center: NotificationCenter, _ name: Notification.Name) {
         let token = center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
-            MainActor.assumeIsolated { self?.hide(restoreFocus: false) }
+            MainActor.assumeIsolated {
+                self?.hide(restoreFocus: false)
+                self?.model.cancel()
+                self?.shortcutCleanup?.cancel(); self?.shortcutCleanup = nil
+            }
         }
         observers.append((center, token))
     }
@@ -107,7 +112,7 @@ final class LauncherController: ApplicationLifecycleParticipant {
         guard running else { return }
         if visible { panel?.makeKeyAndOrderFront(nil); return }
         reconcileApplicationShortcuts()
-        if lastIconRefresh.map({ $0.duration(to: .now) >= .seconds(60) }) ?? true {
+        if lastIconRefresh.map({ $0.duration(to: .now) >= .seconds(catalogRefreshSeconds) }) ?? true {
             applicationIcons.removeAllObjects()
             lastIconRefresh = .now
         }

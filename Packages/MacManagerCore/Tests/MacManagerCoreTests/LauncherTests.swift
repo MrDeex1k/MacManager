@@ -294,3 +294,21 @@ private func launcherEntry(_ id: String, _ title: String, alternate: [String] = 
     #expect(!model.canPerform(old) && !model.canPerform(removed))
     model.cancel()
 }
+
+@MainActor @Test func launcherHonorsEffectiveCatalogTTLAndLanguageChanges() async {
+    let provider = CountingLauncherProvider()
+    let model = LauncherSearchModel()
+    model.catalogRefreshSeconds = 300
+    model.load(providers: [provider], language: "en", commands: [])
+    #expect(await waitUntil { !model.isLoading && model.resultsAreCurrent })
+    model.load(providers: [provider], language: "en", commands: [])
+    #expect(await waitUntil { model.resultsAreCurrent })
+    #expect(provider.calls == 1)
+    model.catalogRefreshSeconds = 0
+    model.load(providers: [provider], language: "en", commands: [])
+    #expect(await waitUntil { !model.isLoading && provider.calls == 2 })
+    model.catalogRefreshSeconds = 300
+    model.load(providers: [provider], language: "pl", commands: [])
+    #expect(await waitUntil { !model.isLoading && provider.calls == 3 })
+    model.cancel()
+}

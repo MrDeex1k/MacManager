@@ -11,6 +11,7 @@ final class ScrollController: ApplicationLifecycleParticipant {
     private var observers: [(NotificationCenter, NSObjectProtocol)] = []
     private var sleeping = false
     private var inactiveSession = false
+    private var locked = false
     private var reportedStatus: ScrollStatus?
 
     init(service: ScrollService, diagnostics: DiagnosticsStore) {
@@ -27,7 +28,7 @@ final class ScrollController: ApplicationLifecycleParticipant {
                 MainActor.assumeIsolated {
                     guard let self else { return }
                     self.sleeping = sleeping
-                    self.service.setSuspended(self.sleeping || self.inactiveSession)
+                    self.service.setSuspended(self.sleeping || self.inactiveSession || self.locked)
                 }
             }
             observers.append((center, token))
@@ -38,11 +39,27 @@ final class ScrollController: ApplicationLifecycleParticipant {
                 MainActor.assumeIsolated {
                     guard let self else { return }
                     self.inactiveSession = inactive
-                    self.service.setSuspended(self.sleeping || self.inactiveSession)
+                    self.service.setSuspended(self.sleeping || self.inactiveSession || self.locked)
                 }
             }
             observers.append((center, token))
         }
+        if let session = CGSessionCopyCurrentDictionary() as? [String: Any] {
+            locked = session["CGSSessionScreenIsLocked"] as? Bool == true
+            inactiveSession = session["kCGSessionOnConsoleKey"] as? Bool == false
+        }
+        let distributed = DistributedNotificationCenter.default()
+        for (name, locked) in [("com.apple.screenIsLocked", true), ("com.apple.screenIsUnlocked", false)] {
+            let token = distributed.addObserver(forName: .init(name), object: nil, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated {
+                    guard let self else { return }
+                    self.locked = locked
+                    self.service.setSuspended(self.sleeping || self.inactiveSession || self.locked)
+                }
+            }
+            observers.append((distributed, token))
+        }
+        service.setSuspended(sleeping || inactiveSession || locked)
         service.refresh()
         recordState()
         let appCenter = NotificationCenter.default

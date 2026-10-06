@@ -8,6 +8,15 @@ public final class NetworkService {
     public private(set) var publicAddress: String?
     public private(set) var observedAt: Date?
     public private(set) var enabled: Bool
+    public private(set) var refreshIntervalSeconds: Double = 900
+    @ObservationIgnored private var periodicDeadline = false
+    public var nextRefreshDeadline: TimeInterval? {
+        enabled && !suspended && receivedEnvironment && environment.online && request == nil ? nextAttempt : nil
+    }
+    public func setRefreshInterval(_ seconds: Double) {
+        refreshIntervalSeconds = seconds
+        if periodicDeadline, let lastAttempt { nextAttempt = lastAttempt + seconds }
+    }
     @ObservationIgnored private let lookup: @Sendable () async throws -> String
     @ObservationIgnored private var request: Task<String, Error>?
     @ObservationIgnored private var generation = 0
@@ -57,7 +66,7 @@ public final class NetworkService {
     public func refresh(now: TimeInterval, manual: Bool = false) async {
         guard enabled, !suspended, receivedEnvironment, environment.online, request == nil,
               manual || now >= nextAttempt else { return }
-        lastAttempt = now; nextAttempt = now + 900
+        lastAttempt = now; nextAttempt = now + refreshIntervalSeconds; periodicDeadline = true
         publicAddress = nil; observedAt = nil; state = .loading
         let token = generation
         let task = Task { try await lookup() }
@@ -81,6 +90,7 @@ public final class NetworkService {
     }
 
     private func invalidate() {
+        periodicDeadline = false
         generation += 1; request?.cancel(); request = nil
         publicAddress = nil; observedAt = nil
     }

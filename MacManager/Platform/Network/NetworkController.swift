@@ -1,10 +1,13 @@
 import AppKit
 import MacManagerCore
 import Network
+import Observation
 
 @MainActor
 final class NetworkController: ApplicationLifecycleParticipant {
     private let service: NetworkService
+    private let energy: EnergyPolicy?
+    private var running = false
     private let diagnostics: DiagnosticsStore
     private let reader = LocalNetworkReader()
     private let monitor = NWPathMonitor()
@@ -16,13 +19,15 @@ final class NetworkController: ApplicationLifecycleParticipant {
     private var lastRead = -Double.infinity
     private var reportedState: PublicIPState?
 
-    init(service: NetworkService, diagnostics: DiagnosticsStore) {
+    init(service: NetworkService, diagnostics: DiagnosticsStore, energy: EnergyPolicy? = nil) {
         self.service = service
+        self.energy = energy
         self.diagnostics = diagnostics
     }
 
     func start() {
-        guard loop == nil else { return }
+        guard !running else { return }
+        running = true
         monitor.pathUpdateHandler = { [weak self] path in
             let online = path.status == .satisfied && path.supportsIPv4
             Task { @MainActor [weak self] in
@@ -30,7 +35,7 @@ final class NetworkController: ApplicationLifecycleParticipant {
                 self.revision += 1
                 self.online = online
                 self.lastRead = -.infinity
-                self.service.pathChanged(now: ProcessInfo.processInfo.systemUptime)
+                if !self.suspended { self.service.pathChanged(now: ProcessInfo.processInfo.systemUptime); self.schedule() }
             }
         }
         monitor.start(queue: DispatchQueue(label: "dev.macmanager.network-path"))
@@ -42,16 +47,31 @@ final class NetworkController: ApplicationLifecycleParticipant {
                     self.revision += 1
                     self.suspended = sleeping; self.lastRead = -.infinity
                     self.service.setSuspended(sleeping, now: ProcessInfo.processInfo.systemUptime)
+                    self.schedule()
                 }
             }
             observers.append((center, token))
         }
+        schedule()
+    }
+
+    private func schedule() {
+        guard running else { return }
+        loop?.cancel(); loop = nil
+        let (sleeping, interval, publicInterval) = withObservationTracking {
+            (energy?.sleeping ?? suspended, energy?.localNetworkInterval ?? 5, energy?.publicNetworkInterval ?? 900)
+        } onChange: { [weak self] in Task { @MainActor [weak self] in self?.schedule() } }
+        if suspended != sleeping { revision += 1; lastRead = -.infinity }
+        suspended = sleeping
+        service.setSuspended(sleeping, now: ProcessInfo.processInfo.systemUptime)
+        service.setRefreshInterval(publicInterval)
+        guard !sleeping else { return }
         loop = Task { [weak self] in
             while !Task.isCancelled {
                 guard let self else { return }
                 if !self.suspended {
                     let now = ProcessInfo.processInfo.systemUptime
-                    if now - self.lastRead >= 5 {
+                    if now - self.lastRead >= interval {
                         let revision = self.revision
                         let environment = await self.reader.read(online: self.online)
                         if revision == self.revision {
@@ -68,12 +88,15 @@ final class NetworkController: ApplicationLifecycleParticipant {
                         }
                     }
                 }
-                do { try await Task.sleep(for: .seconds(1), tolerance: .milliseconds(200)) } catch { return }
+                let now = ProcessInfo.processInfo.systemUptime
+                let deadline = min(self.lastRead + interval, self.service.nextRefreshDeadline ?? .infinity)
+                do { try await Task.sleep(for: .seconds(max(0.2, deadline - now)), tolerance: .milliseconds(200)) } catch { return }
             }
         }
     }
 
     func stop() {
+        running = false
         revision += 1
         loop?.cancel()
         loop = nil

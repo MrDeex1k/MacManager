@@ -20,6 +20,8 @@ enum DiagnosticReportBuilder {
                 ("mac_model", hardwareModel()),
                 ("sampling_interval_seconds", String(state.preferences.samplingInterval.rawValue)),
                 ("metrics_status", metricsStatus(state.metrics)),
+                ("energy_profile", state.energy.sleeping ? "sleep" : state.energy.lowPower ? "lowPower" : "normal"),
+                ("effective_sampling_seconds", String(state.metrics.effectiveIntervalSeconds)),
                 ("network_status", state.network.environment.online ? "online" : "offline"),
                 ("public_ip_lookup", state.network.state.rawValue),
                 ("scroll_status", state.scroll.status.rawValue),

@@ -52,6 +52,10 @@ public final class PreferencesStore {
         didSet { defaults.set(temperatureUnit.rawValue, forKey: "preferences.temperatureUnit") }
     }
 
+    public var adaptsToLowPower: Bool {
+        didSet { defaults.set(adaptsToLowPower, forKey: "preferences.adaptsToLowPower") }
+    }
+
     public var samplingInterval: SamplingInterval {
         didSet { defaults.set(samplingInterval.rawValue, forKey: Key.samplingInterval) }
     }
@@ -114,6 +118,7 @@ public final class PreferencesStore {
 
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        adaptsToLowPower = Self.bool(defaults, forKey: "preferences.adaptsToLowPower", default: true)
         launcher = defaults.data(forKey: "preferences.launcher")
             .flatMap { try? JSONDecoder().decode(LauncherPreferences.self, from: $0) } ?? LauncherPreferences()
         let shortcut = defaults.data(forKey: "preferences.launcherShortcut")

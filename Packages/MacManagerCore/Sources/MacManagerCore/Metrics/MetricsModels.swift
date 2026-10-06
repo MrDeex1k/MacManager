@@ -62,4 +62,9 @@ public struct MetricsSnapshot: Sendable {
 public protocol MetricsSampling: Sendable {
     func sample() async -> MetricsSnapshot
     func reset() async
+    func sample(request: MetricSamplingRequest) async -> MetricsSnapshot
+}
+
+public extension MetricsSampling {
+    func sample(request: MetricSamplingRequest) async -> MetricsSnapshot { await sample() }
 }
