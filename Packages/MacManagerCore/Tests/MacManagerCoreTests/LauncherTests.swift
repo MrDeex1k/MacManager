@@ -312,3 +312,21 @@ private func launcherEntry(_ id: String, _ title: String, alternate: [String] = 
     #expect(await waitUntil { !model.isLoading && provider.calls == 3 })
     model.cancel()
 }
+
+@Test func launcherCalculatorDistinguishesBitAndByteRates() {
+    let cases = [
+        ("500 Mbps in MBps", "62.5 MBps"),
+        ("62.5 MBps in Mbps", "500 Mbps"),
+        ("8 bps to Bps", "1 Bps"),
+        ("1 MBps in MB/s", "1 MB/s"),
+        ("1 MiB/s in MBps", "1.048576 MBps"),
+        ("1 KBps in bps", "8,000 bps"),
+        ("1 GBps in Gbps", "8 Gbps"),
+        ("1 TBps in Tbps", "8 Tbps")
+    ]
+    for (query, expected) in cases {
+        let result = CalcEngine.evaluate(query, now: Date(), calendar: Calendar(identifier: .gregorian))
+        guard case .value(let display, _) = result?.payload else { Issue.record("No answer for \(query)"); continue }
+        #expect(display == expected, "\(query)")
+    }
+}

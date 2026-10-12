@@ -1,3 +1,5 @@
+// Adapted transfer-rate aliases from Tinycast f99090889513c65ffba9477ef30abde61029a276.
+// Modified 2026-10-12: integrated with the local-only Mac Manager calculator.
 // Adapted from Tinycast, Copyright (C) 2026 Abue Ammar.
 // AGPL-3.0-or-later; used under AGPL-3.0. Source: c5cff8cbb9b7e12ac75c058da9573045c76029b7.
 // Integrated 2026-09-23: local evaluation only, no rate service or history.
@@ -148,6 +150,8 @@ enum CalcUnits {
         // Data transfer rate
         "Mbps": ("kbps", false), "Gbps": ("mbps", false), "Kbps": ("bps", false),
         "bps": ("kbps", false), "Tbps": ("gbps", false),
+        "Bps": ("bps", false), "kBps": ("kbps", false), "MBps": ("mbps", false),
+        "GBps": ("gbps", false), "TBps": ("tbps", false),
         "Wh": ("kwh", false), "mWh": ("wh", false), "kWh": ("wh", false), "MWh": ("kwh", false),
         "W": ("kw", false), "mW": ("w", false), "kW": ("w", false), "MW": ("kw", false),
         "A": ("ma", false), "mA": ("a", false), "µA": ("ma", false), "MA": ("a", false),
