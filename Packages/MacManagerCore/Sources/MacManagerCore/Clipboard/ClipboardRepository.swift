@@ -165,6 +165,7 @@ public actor ClipboardRepository {
     public func search(_ query: String, entries: [ClipboardEntry], preferences: ClipboardPreferences,
                        now: Date, limit: Int) throws -> [ClipboardEntry] {
         guard memoryAccessAllowed else { throw CancellationError() }
+        try Task.checkCancellation()
         let interval = signposter.beginInterval("Filter", id: signposter.makeSignpostID())
         defer { signposter.endInterval("Filter", interval) }
         guard limit > 0 else { return [] }

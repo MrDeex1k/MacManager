@@ -10,6 +10,7 @@ struct ClipboardView: View {
     @State private var selected: ClipboardEntry?
     @State private var filtered: [ClipboardEntry] = []
     @State private var completedSearch: SearchRequest?
+    @State private var searchFailure: ClipboardFailure?
 
     private struct SearchRequest: Hashable {
         let query: String
@@ -111,6 +112,15 @@ struct ClipboardView: View {
                 }
                 if !query.isEmpty && completedSearch != searchRequest {
                     ProgressView().frame(maxWidth: .infinity, minHeight: 180)
+                } else if !query.isEmpty, completedSearch == searchRequest, let searchFailure {
+                    VStack(spacing: 16) {
+                        Label(state.strings("clipboard.error.\(searchFailure.rawValue)"), systemImage: "exclamationmark.triangle")
+                            .foregroundStyle(.orange)
+                            .accessibilityIdentifier("clipboard.search.failure")
+                        Button(state.strings("clipboard.retry")) { Task { await service.refresh() } }
+                            .buttonStyle(.glass)
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 180)
                 } else if visibleEntries.isEmpty {
                     ContentUnavailableView(state.strings(query.isEmpty ? "clipboard.empty" : "clipboard.noResults"),
                                            systemImage: "clipboard", description: Text(state.strings("clipboard.empty.note")))
@@ -126,7 +136,9 @@ struct ClipboardView: View {
             }
         }
         .task(id: searchRequest) {
+            guard !Task.isCancelled else { return }
             let request = searchRequest
+            searchFailure = nil
             guard !request.suspended, !request.query.isEmpty else {
                 filtered = []; completedSearch = nil
                 return
@@ -136,9 +148,16 @@ struct ClipboardView: View {
                 try Task.checkCancellation()
                 guard request == searchRequest else { return }
                 filtered = matches; completedSearch = request
-            } catch { }
+            } catch is CancellationError {
+                // Cancelled requests must not overwrite a newer request's state.
+            } catch {
+                guard !Task.isCancelled, request == searchRequest else { return }
+                filtered = []
+                searchFailure = error as? ClipboardFailure ?? .storage
+                completedSearch = request
+            }
         }
-        .onDisappear { filtered = []; completedSearch = nil }
+        .onDisappear { filtered = []; completedSearch = nil; searchFailure = nil }
         .sheet(isPresented: $showingSettings) { ClipboardSettingsView().environment(state) }
         .sheet(item: $selected) { entry in
             ClipboardDetailView(service: service, entry: entry, strings: state.strings) { selected = nil }

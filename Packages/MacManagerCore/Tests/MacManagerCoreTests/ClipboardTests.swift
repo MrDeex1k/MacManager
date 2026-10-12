@@ -483,3 +483,15 @@ private func clipboardDirectory() -> URL {
     #expect((entry.text?.utf8.count ?? 0) <= 1_203)
     #expect(try await repo.restore(entry.id, preferences: .init(), now: now).data == Data(text.utf8))
 }
+
+@Test func clipboardCancelledSearchDoesNotOpenStorageOrAccessKey() async throws {
+    let directory = clipboardDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let repository = ClipboardRepository(directory: directory, keys: MissingClipboardKey())
+    let task = Task {
+        withUnsafeCurrentTask { $0?.cancel() }
+        return try await repository.search("text", entries: [], preferences: .init(), now: Date(), limit: 40)
+    }
+    await #expect(throws: CancellationError.self) { try await task.value }
+    #expect(!FileManager.default.fileExists(atPath: directory.path))
+}

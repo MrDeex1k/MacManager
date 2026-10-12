@@ -46,7 +46,7 @@ final class ScrollController: ApplicationLifecycleParticipant {
         }
         if let session = CGSessionCopyCurrentDictionary() as? [String: Any] {
             locked = session["CGSSessionScreenIsLocked"] as? Bool == true
-            inactiveSession = session["kCGSessionOnConsoleKey"] as? Bool == false
+            inactiveSession = session[kCGSessionOnConsoleKey as String] as? Bool == false
         }
         let distributed = DistributedNotificationCenter.default()
         for (name, locked) in [("com.apple.screenIsLocked", true), ("com.apple.screenIsUnlocked", false)] {

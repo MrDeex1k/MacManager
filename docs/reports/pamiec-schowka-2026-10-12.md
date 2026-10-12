@@ -23,3 +23,9 @@ Branch: `feat/battery-optimization`. Zmiana dotyczy schowka i trybu schowka w la
 - Kompilacja aplikacji Release arm64.
 
 Pierwszą próbę GUI uruchomiono błędnie w Release, który nie aktywuje izolowanych fixture testowych; nie znaleziono wtedy wpisów testowych. Właściwa próba w Debug przeszła. Nie mierzono spadku RSS całego procesu ani kosztu skanowania maksymalnej historii na dysku.
+
+## Poprawki review PR #8
+
+Błąd wyszukiwania kończy bieżące żądanie i pokazuje istniejący komunikat PL/EN z możliwością ponowienia. Anulowane lub nieaktualne zadanie nie może zastąpić wyników nowszego żądania. Repozytorium sprawdza anulowanie przed otwarciem bazy i odczytem klucza. Osobna poprawka scrolla używa stałej `kCGSessionOnConsoleKey` z SDK podczas ustalania początkowego stanu sesji.
+
+Weryfikacja: 113 testów Core Release, w tym nowa regresja anulowania przed utworzeniem magazynu; końcowy build Release arm64; istniejący test GUI schowka (wyszukiwanie, przywracanie, retencja i czyszczenie) w Debug. Wszystkie przeszły. Test GUI jest kontrolą regresji zwykłego przepływu, nie symulacją awarii klucza ani zmiany użytkownika systemu.
