@@ -1,3 +1,5 @@
+// Adapted transfer-rate aliases from Tinycast f99090889513c65ffba9477ef30abde61029a276.
+// Modified 2026-10-12: integrated with the local-only Mac Manager calculator.
 // Adapted from Tinycast, Copyright (C) 2026 Abue Ammar.
 // AGPL-3.0-or-later; used under AGPL-3.0. Source: c5cff8cbb9b7e12ac75c058da9573045c76029b7.
 // Integrated 2026-09-23: local evaluation only, no rate service or history.
@@ -188,6 +190,11 @@ enum CalcUnitCatalog {
         mmHg|Millimeters of Mercury|133.322387415|mmhg
         Torr|Torr|133.32236842105263|torr
         dataRate
+        Bps|Bytes per Second|1.0|Bps
+        kBps|Kilobytes per Second|1000.0|kBps,KBps
+        MBps|Megabytes per Second|1000000.0|MBps
+        GBps|Gigabytes per Second|1000000000.0|GBps
+        TBps|Terabytes per Second|1000000000000.0|TBps
         bps|Bits per Second|0.125|bps
         Kbps|Kilobits per Second|125.0|kbps,kbit/s,kb/s
         Mbps|Megabits per Second|125000.0|mbps,mbit/s,mb/s

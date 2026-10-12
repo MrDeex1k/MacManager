@@ -621,6 +621,53 @@ final class AppShellTests: XCTestCase {
     }
 
     @MainActor
+    func testLauncherRestoresSearchFocusAfterMenuAndCustomization() throws {
+        let app = launch(reset: true)
+        defer { app.terminate() }
+        app.typeKey(",", modifierFlags: .command)
+        app.buttons["launcher.open"].click()
+        let field = app.textFields["launcher.search"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.typeText("net")
+        let result = app.buttons["launcher.result.command:network"]
+        XCTAssertTrue(result.waitForExistence(timeout: 5))
+        result.rightClick()
+        XCTAssertTrue(app.menuItems["Customize"].waitForExistence(timeout: 5))
+        field.typeKey(.escape, modifierFlags: [])
+        XCTAssertTrue(app.menuItems["Customize"].waitForNonExistence(timeout: 3))
+        field.typeText("work")
+        XCTAssertEqual(field.value as? String, "network")
+        field.typeKey(.leftArrow, modifierFlags: [])
+        result.rightClick()
+        field.typeKey(.escape, modifierFlags: [])
+        XCTAssertTrue(app.menuItems["Customize"].waitForNonExistence(timeout: 3))
+        field.typeText("x")
+        XCTAssertEqual(field.value as? String, "networxk", "Menu dismissal must preserve the insertion point")
+        field.typeKey("a", modifierFlags: .command)
+        field.typeText("network")
+        result.rightClick()
+        app.menuItems["Customize"].click()
+        let alias = app.textFields["launcher.alias"]
+        XCTAssertTrue(alias.waitForExistence(timeout: 5))
+        alias.click(); alias.typeText("net-alias")
+        XCTAssertEqual(alias.value as? String, "net-alias")
+        app.buttons["Cancel"].click()
+        XCTAssertTrue(alias.waitForNonExistence(timeout: 3))
+        field.typeText("s")
+        XCTAssertEqual(field.value as? String, "networks")
+        field.typeKey(.escape, modifierFlags: [])
+        field.typeText("net")
+        XCTAssertEqual(field.value as? String, "net")
+        result.rightClick()
+        app.menuItems["Customize"].click()
+        XCTAssertTrue(alias.waitForExistence(timeout: 5))
+        app.buttons["Save"].click()
+        XCTAssertTrue(alias.waitForNonExistence(timeout: 3))
+        field.typeText("work")
+        XCTAssertEqual(field.value as? String, "network")
+    }
+
+    @MainActor
     func testLauncherAliasFavoriteAndShortcutConflict() throws {
         let app = launch(reset: true, launcherLiveTesting: true)
         defer { app.terminate() }

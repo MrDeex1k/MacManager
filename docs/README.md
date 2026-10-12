@@ -24,6 +24,7 @@ Aktualizacja 2026-10-12 na branchu optymalizacji baterii: [ponowne używanie uch
 | [Raport kroku 8](reports/etap-1-krok-8.md) | Wyniki testów aktualizacji, interfejsu, diagnostyki i audytu prywatności. |
 | [Raport kroku 9](reports/etap-1-krok-9a.md) | Testy automatyczne, audyt dostępności, wydajność w tle i próba na urządzeniu referencyjnym. |
 | [Analiza integracji TinyCast](reports/analiza-integracji-tinycast.md) | Stan kodu, etapy 2/3, kandydaci do adaptacji i proponowany zakres integracji. |
+| [Cztery poprawki TinyCast](reports/plan-poprawek-launchera-tinycast-2026-10-12.md) | Bity/bajty, wybór kopii aplikacji, symlinki i fokus po menu. |
 | [Przegląd nowych commitów Tinycast](reports/tinycast-aktualizacja-2026-10-01.md) | Zmiany od rewizji bazowej launchera, priorytety adaptacji i skróty Option. |
 | [Audyt optymalizacji](reports/audyt-optymalizacji-2026-10-03.md) | Stan przed zmianami, pomiary launchera, schowka i planisty aktualizacji. |
 | [Wdrożenie optymalizacji](reports/wdrozenie-optymalizacji-2026-10-03.md) | Zmiany launchera i pracy w tle, format 12/24h, skróty aplikacji, walidacja i ograniczenia. |

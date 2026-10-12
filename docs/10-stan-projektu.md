@@ -1,8 +1,10 @@
 # Aktualny stan projektu i dalsza kolejność
 
-Aktualizacja brancha `feat/battery-optimization`, 2026-10-12: profile oszczędzania i sleep/wake są wdrożone, a sampler ponownie używa uchwytu GPU. Sieć korzysta z powiadomień SCDynamicStore i rzadszej kontroli awaryjnej. Schowek przechowuje krótkie podglądy i wczytuje pełne treści na żądanie ze wspólnym cache danych 16 MB; wyszukiwanie pozostaje pełnotekstowe. [Pamięć schowka](reports/pamiec-schowka-2026-10-12.md). Wersja na branchu: 0.8.3. Zmiany nie są jeszcze scalone do `main`. [Profile energii](reports/profile-energii-2026-10-06.md), [GPU i sieć](reports/gpu-siec-2026-10-12.md).
+Scalone do `main` w PR #8 (`9e2d24c`), 2026-10-12: profile oszczędzania i sleep/wake są wdrożone, a sampler ponownie używa uchwytu GPU. Sieć korzysta z powiadomień SCDynamicStore i rzadszej kontroli awaryjnej. Schowek przechowuje krótkie podglądy i wczytuje pełne treści na żądanie ze wspólnym cache danych 16 MB; wyszukiwanie pozostaje pełnotekstowe. [Pamięć schowka](reports/pamiec-schowka-2026-10-12.md). Wersja na `main`: 0.8.3. [Profile energii](reports/profile-energii-2026-10-06.md), [GPU i sieć](reports/gpu-siec-2026-10-12.md).
 
 Aktualizacja: 2026-09-23. Projekt jest w trakcie końcowego odbioru etapu 1; nie ma jeszcze publicznego wydania DMG. Kroki 1-8 są zaimplementowane i odebrane. W kroku 9 wykonano pełne testy automatyczne, audyt dostępności, 10-minutowy pomiar pracy w tle oraz ręczną próbę na urządzeniu referencyjnym, w tym offline i sleep/wake. Gotowy jest lokalny skrypt budowania, podpisywania i notaryzacji DMG. Autostart z `/Applications` po poprawce rozpoznawania login item został potwierdzony przez właściciela. Pozostają wykonanie i odbiór procesu dystrybucji.
+
+Aktualizacja brancha `fix/launcher-upstream-improvements`, 2026-10-12: kalkulator rozróżnia bity i bajty szybkości transferu. Katalog wybiera najnowszą poprawną kopię aplikacji w folderze, respektując kolejność zakresów, obsługuje symlinki i uzgadnia personalizacje oraz cele skrótów. Menu wyników i zamknięcie personalizacji przywracają fokus wyszukiwarki z ochroną cyklu życia i kompozycji tekstu. [Wdrożenie i walidacja](reports/plan-poprawek-launchera-tinycast-2026-10-12.md). Te zmiany nie są jeszcze scalone do `main`.
 
 ## Co działa
 
