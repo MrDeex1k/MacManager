@@ -972,3 +972,11 @@ Tinycast transfer-rate adaptation (2026-10-12)
 Copyright (C) 2026 Abue Ammar. AGPL-3.0-or-later; used under version 3.
 Source: https://github.com/abue-ammar/tinycast/commit/f99090889513c65ffba9477ef30abde61029a276
 Files: CalcUnitCatalog.swift, CalcUnits.swift. Modifications: local-only calculator integration and regression tests.
+
+Tinycast application scanning adaptations (2026-10-12)
+Copyright (C) 2026 Abue Ammar. AGPL-3.0-or-later; used under version 3.
+Source versions: https://github.com/abue-ammar/tinycast/commit/4207ab11914470e79538fbffc6935f63b0bb3ad1
+and https://github.com/abue-ammar/tinycast/commit/5ec0f9de11196183ea92f35c550c43395e2b2245
+File: SearchScopes.swift. Local modifications: fresh metadata in ApplicationProvider.swift,
+deterministic ties, scope priority, bounded cancellable scans and shortcut/customization
+reconciliation in LauncherSearch.swift and LauncherController.swift.

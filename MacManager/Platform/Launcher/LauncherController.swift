@@ -46,6 +46,7 @@ final class LauncherController: ApplicationLifecycleParticipant {
     }
     func start() {
         guard !running else { return }; running = true
+        model.onCatalogLoaded = { [weak self] entries in self?.reconcileCatalogApplications(entries) }
         hotKey.onPress = { [weak self] in self?.toggle() }
         if usesRealShortcut { shortcutFailed = !hotKey.register(preferences.launcherShortcut) }
         model.additionalResults = { [weak self] query in
@@ -193,7 +194,10 @@ final class LauncherController: ApplicationLifecycleParticipant {
             guard !usesRealShortcut || binding.register(shortcut) else {
                 if itemHotKeys[id] == nil { binding.stop() }; itemShortcutFailures.insert(id); return false
             }
-            binding.onPress = { [weak self] in self?.execute(value.entry) }
+            binding.onPress = { [weak self] in
+                guard let self, let current = self.preferences.launcher.items[id] else { return }
+                self.execute(current.entry)
+            }
             itemHotKeys[id] = binding
         } else { itemHotKeys.removeValue(forKey: id)?.stop() }
         itemShortcutFailures.remove(id)
@@ -215,6 +219,22 @@ final class LauncherController: ApplicationLifecycleParticipant {
         applicationIcons.countLimit = 128
         applicationIcons.setObject(image, forKey: url as NSURL)
         return image
+    }
+
+    private func reconcileCatalogApplications(_ entries: [LauncherEntry]) {
+        var updated = preferences.launcher
+        for entry in entries {
+            guard case .application = entry.action, var item = updated.items[entry.id], item.entry != entry else { continue }
+            if case .application(let oldURL) = item.entry.action {
+                applicationIcons.removeObject(forKey: oldURL as NSURL)
+            }
+            item.entry = entry
+            updated.items[entry.id] = item
+        }
+        if updated != preferences.launcher {
+            preferences.launcher = updated
+            model.preferences = updated
+        }
     }
 
     private func reconcileApplicationShortcuts() {

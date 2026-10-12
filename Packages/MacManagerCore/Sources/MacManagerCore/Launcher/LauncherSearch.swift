@@ -112,6 +112,7 @@ public final class LauncherSearchModel {
         }
     }
     @ObservationIgnored public var additionalResults: (@MainActor (String) async throws -> [LauncherEntry])?
+    @ObservationIgnored public var onCatalogLoaded: (@MainActor ([LauncherEntry]) -> Void)?
     public init() {}
 
     public func invalidateCatalog() { loadedAt = nil }
@@ -159,6 +160,7 @@ public final class LauncherSearchModel {
             self.loadedAt = self.providerFailed ? nil : .now
             self.isLoading = false
             self.loadTask = nil
+            self.onCatalogLoaded?(self.providerEntries)
             if changed { self.search(self.query) }
         }
     }

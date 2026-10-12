@@ -15,21 +15,23 @@ public struct ApplicationProvider: LauncherProvider {
         var seen = Set<String>()
         for url in SearchScopes.appBundles(in: scopes) {
             try Task.checkCancellation()
-            guard let bundle = Bundle(url: url), let id = bundle.bundleIdentifier,
-                  bundle.object(forInfoDictionaryKey: "CFBundlePackageType") as? String == "APPL",
-                  bundle.object(forInfoDictionaryKey: "LSBackgroundOnly") as? Bool != true,
+            guard let info = SearchScopes.infoDictionary(for: url),
+                  let bundle = Bundle(url: url.resolvingSymlinksInPath()),
+                  let id = info["CFBundleIdentifier"] as? String, !id.isEmpty,
+                  info["CFBundlePackageType"] as? String == "APPL",
+                  info["LSBackgroundOnly"] as? Bool != true,
                   seen.insert(id).inserted else { continue }
             let base = url.deletingPathExtension().lastPathComponent
-            let name = Self.localizedName(bundle, language: language) ?? base
+            let name = Self.localizedName(bundle, language: language, info: info) ?? base
             result.append(LauncherEntry(id: "app:" + id, title: name, subtitle: base == name ? (language == "pl" ? "Aplikacja" : "Application") : base,
                 action: .application(url), alternateNames: [base], bundleID: id))
         }
         return result
     }
-    static func localizedName(_ bundle: Bundle, language: String) -> String? {
+    static func localizedName(_ bundle: Bundle, language: String, info: [String: Any]? = nil) -> String? {
         let local = bundle.path(forResource: language, ofType: "lproj").flatMap(Bundle.init(path:))
         for key in ["CFBundleDisplayName", "CFBundleName"] {
-            let fallback = bundle.infoDictionary?[key] as? String
+            let fallback = (info ?? bundle.infoDictionary)?[key] as? String
             let name = local?.localizedString(forKey: key, value: fallback, table: "InfoPlist") ?? fallback
             if let name, !name.isEmpty, name != key { return name }
         }
