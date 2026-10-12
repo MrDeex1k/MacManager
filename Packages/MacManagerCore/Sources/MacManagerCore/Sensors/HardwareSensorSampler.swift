@@ -38,27 +38,56 @@ public struct HardwareSensorSnapshot: Sendable {
 // Explicit temperature keys are supplied by a model-specific catalog. Never infer
 // CPU/GPU meaning from an arbitrary SMC prefix. No background timer is created here.
 public actor HardwareSensorSampler {
+    private var connection: UInt32 = 0
+    private var metadata: [UInt32: MMSMCKeyInfo] = [:]
+    private var codes: [String: UInt32] = [:]
+    private var catalogKeys: [String] = []
+    private var sortedKeys: [String] = []
     public init() {}
+    deinit { mm_smc_close(connection) }
 
-    public func sample(catalog: SensorCatalog) -> HardwareSensorSnapshot {
+    public func reset() {
+        mm_smc_close(connection)
+        connection = 0
+        metadata.removeAll()
+    }
+
+    public func sample(catalog: SensorCatalog, request: MetricSamplingRequest = .full) -> HardwareSensorSnapshot {
+        guard request.cpuTemperature || request.gpuTemperature || request.fans || request.kinds.contains(.power) else { return .empty }
         let uptime = MetricsTime.now()
-        let keys = Array(Set(catalog.temperatureKeys)).sorted()
-        var connection: UInt32 = 0
-        guard mm_smc_open(&connection) == 0 else {
+        if catalogKeys != catalog.temperatureKeys {
+            catalogKeys = catalog.temperatureKeys
+            sortedKeys = Array(Set(catalogKeys)).sorted()
+            codes.removeAll()
+            metadata.removeAll()
+        }
+        let keys = sortedKeys.filter { (request.cpuTemperature && catalog.cpuKeys.contains($0)) || (request.gpuTemperature && catalog.gpuKeys.contains($0)) }
+        guard connection != 0 || mm_smc_open(&connection) == 0 else {
             return HardwareSensorSnapshot(uptime: uptime, fans: .unavailable, readings: keys.map {
                 HardwareSensorReading(sensor: .init(key: $0, kind: .temperature), rawValue: nil)
             }, catalog: catalog)
         }
-        defer { mm_smc_close(connection) }
+        var successfulReads = 0
+        defer { if successfulReads == 0 { reset() } }
         func read(_ key: String) -> Double? {
-            let bytes = Array(key.utf8)
-            guard bytes.count == 4, bytes.allSatisfy({ $0 >= 32 && $0 <= 126 }) else { return nil }
-            let code = bytes.reduce(UInt32(0)) { ($0 << 8) | UInt32($1) }
+            let code: UInt32
+            if let cached = codes[key] { code = cached }
+            else {
+                let bytes = Array(key.utf8)
+                guard bytes.count == 4, bytes.allSatisfy({ $0 >= 32 && $0 <= 126 }) else { return nil }
+                code = bytes.reduce(UInt32(0)) { ($0 << 8) | UInt32($1) }
+                codes[key] = code
+            }
+            var info = metadata[code] ?? MMSMCKeyInfo()
             var value = Double.nan
-            return mm_smc_read_number(connection, code, &value) == 0 ? value : nil
+            let result = mm_smc_read_number_cached(connection, code, &info, &value)
+            metadata[code] = info.length == 0 ? nil : info
+            guard result == 0 else { return nil }
+            successfulReads += 1
+            return value
         }
-        let power = read("PSTR").flatMap { $0 >= 0 ? $0 : nil }
-        let fans = FanInventory(rawCount: read("FNum"))
+        let power = request.kinds.contains(.power) ? read("PSTR").flatMap { $0 >= 0 ? $0 : nil } : nil
+        let fans = FanInventory(rawCount: request.fans ? read("FNum") : nil)
         var readings = keys.map {
             HardwareSensorReading(sensor: .init(key: $0, kind: .temperature), rawValue: read($0))
         }

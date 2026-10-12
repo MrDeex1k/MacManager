@@ -7,6 +7,7 @@
 #include <stddef.h>
 #include <string.h>
 #include <math.h>
+#include <pthread.h>
 
 int32_t mm_cpu_read(MMCPUTicks *ticks) {
     host_cpu_load_info_data_t value = {0};
@@ -24,57 +25,92 @@ int32_t mm_cpu_read(MMCPUTicks *ticks) {
     return 0;
 }
 
+static pthread_once_t memory_constants_once = PTHREAD_ONCE_INIT;
+static uint64_t physical_memory = 0;
+static void read_memory_constants(void) {
+    size_t length = sizeof(physical_memory);
+    if (sysctlbyname("hw.memsize", &physical_memory, &length, NULL, 0) != 0)
+        physical_memory = 0;
+}
+
 int32_t mm_memory_read(MMMemory *memory) {
     vm_statistics64_data_t value = {0};
     mach_msg_type_number_t count = HOST_VM_INFO64_COUNT;
     mach_port_t host = mach_host_self();
-    vm_size_t page_size = 0;
-    kern_return_t status = host_page_size(host, &page_size);
-    if (status == KERN_SUCCESS)
-        status = host_statistics64(host, HOST_VM_INFO64, (host_info64_t)&value, &count);
+    kern_return_t status = host_statistics64(host, HOST_VM_INFO64, (host_info64_t)&value, &count);
     mach_port_deallocate(mach_task_self(), host);
     if (status != KERN_SUCCESS) return status;
     if (count < HOST_VM_INFO64_COUNT) return kIOReturnUnderrun;
-    uint64_t physical = 0;
-    size_t length = sizeof(physical);
-    if (sysctlbyname("hw.memsize", &physical, &length, NULL, 0) != 0)
-        return kIOReturnError;
+    pthread_once(&memory_constants_once, read_memory_constants);
+    if (!physical_memory || !vm_page_size) return kIOReturnError;
     *memory = (MMMemory){
-        physical, page_size, value.internal_page_count, value.wire_count,
+        physical_memory, vm_page_size, value.internal_page_count, value.wire_count,
         value.compressor_page_count, value.purgeable_count,
         value.external_page_count, value.free_count
     };
     return 0;
 }
 
-int32_t mm_gpu_read(double *percent) {
+static int32_t mm_gpu_value(io_service_t service, double *percent) {
+    CFTypeRef raw = IORegistryEntryCreateCFProperty(
+        service, CFSTR("PerformanceStatistics"), kCFAllocatorDefault, 0);
+    double result = NAN;
+    if (raw && CFGetTypeID(raw) == CFDictionaryGetTypeID()) {
+        CFTypeRef number = CFDictionaryGetValue(raw, CFSTR("Device Utilization %"));
+        if (number && CFGetTypeID(number) == CFNumberGetTypeID())
+            CFNumberGetValue(number, kCFNumberDoubleType, &result);
+    }
+    if (raw) CFRelease(raw);
+    if (!isfinite(result) || result < 0 || result > 100) return kIOReturnUnsupported;
+    *percent = result;
+    return 0;
+}
+
+void mm_gpu_close(uint32_t service) {
+    if (service) IOObjectRelease(service);
+}
+
+static int32_t mm_gpu_find(uint32_t *selected) {
     io_iterator_t iterator = 0;
     kern_return_t status = IOServiceGetMatchingServices(
         kIOMainPortDefault, IOServiceMatching("AGXAccelerator"), &iterator);
     if (status != KERN_SUCCESS) return status;
     unsigned matches = 0;
-    double result = NAN;
-    io_service_t service;
+    io_service_t service, candidate = 0;
     while ((service = IOIteratorNext(iterator))) {
-        CFTypeRef raw = IORegistryEntryCreateCFProperty(
-            service, CFSTR("PerformanceStatistics"), kCFAllocatorDefault, 0);
-        if (raw && CFGetTypeID(raw) == CFDictionaryGetTypeID()) {
-            CFTypeRef number = CFDictionaryGetValue(raw, CFSTR("Device Utilization %"));
-            double candidate = NAN;
-            if (number && CFGetTypeID(number) == CFNumberGetTypeID()
-                && CFNumberGetValue(number, kCFNumberDoubleType, &candidate)) {
-                ++matches;
-                result = candidate;
-            }
+        double value = NAN;
+        if (mm_gpu_value(service, &value) == 0) {
+            ++matches;
+            if (!candidate) { candidate = service; continue; }
         }
-        if (raw) CFRelease(raw);
         IOObjectRelease(service);
     }
     IOObjectRelease(iterator);
-    if (matches != 1 || !isfinite(result) || result < 0 || result > 100)
-        return kIOReturnUnsupported;
-    *percent = result;
+    if (matches != 1) { mm_gpu_close(candidate); return kIOReturnUnsupported; }
+    *selected = candidate;
     return 0;
+}
+
+int32_t mm_gpu_read_cached(uint32_t *service, double *percent) {
+    if (!service || !percent) return kIOReturnBadArgument;
+    *percent = NAN;
+    if (*service) {
+        int32_t status = mm_gpu_value(*service, percent);
+        if (!status) return 0;
+        mm_gpu_close(*service); *service = 0;
+    }
+    int32_t status = mm_gpu_find(service);
+    if (status) return status;
+    status = mm_gpu_value(*service, percent);
+    if (status) { mm_gpu_close(*service); *service = 0; }
+    return status;
+}
+
+int32_t mm_gpu_read(double *percent) {
+    uint32_t service = 0;
+    int32_t status = mm_gpu_read_cached(&service, percent);
+    mm_gpu_close(service);
+    return status;
 }
 
 // Undocumented, read-only AppleSMC user-client ABI.
@@ -195,19 +231,29 @@ int32_t mm_smc_decode_number(uint32_t type, const uint8_t *bytes, uint32_t lengt
     return 0;
 }
 
-int32_t mm_smc_read_number(uint32_t connection, uint32_t key, double *value) {
-    if (!value) return kIOReturnBadArgument;
+int32_t mm_smc_read_number_cached(uint32_t connection, uint32_t key, MMSMCKeyInfo *info, double *value) {
+    if (!value || !info) return kIOReturnBadArgument;
     *value = NAN;
     if (!connection) return kIOReturnBadArgument;
     MMTransaction request = {0}, response = {0};
     request.key = key;
-    request.command = 9;
-    int32_t status = mm_smc_call(connection, &request, &response);
-    if (status) return status;
-    request.info = response.info;
-    if (!request.info.length || request.info.length > sizeof(response.bytes)) return kIOReturnUnsupported;
+    if (!info->length) {
+        request.command = 9;
+        int32_t status = mm_smc_call(connection, &request, &response);
+        if (status) return status;
+        if (!response.info.length || response.info.length > sizeof(response.bytes)) return kIOReturnUnsupported;
+        *info = (MMSMCKeyInfo){response.info.length, response.info.type, response.info.attributes};
+    }
+    if (info->length > sizeof(response.bytes)) { info->length = 0; return kIOReturnUnsupported; }
+    request.info = (MMKeyInfo){info->length, info->type, info->attributes};
     request.command = 5; // Read only; never expose SMC write commands
-    status = mm_smc_call(connection, &request, &response);
-    if (status) return status;
-    return mm_smc_decode_number(request.info.type, response.bytes, request.info.length, value);
+    int32_t status = mm_smc_call(connection, &request, &response);
+    if (!status) status = mm_smc_decode_number(info->type, response.bytes, info->length, value);
+    if (status) info->length = 0; // Rediscover metadata after a failed read.
+    return status;
+}
+
+int32_t mm_smc_read_number(uint32_t connection, uint32_t key, double *value) {
+    MMSMCKeyInfo info = {0};
+    return mm_smc_read_number_cached(connection, key, &info, value);
 }

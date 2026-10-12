@@ -23,6 +23,8 @@ enum AppSection: String, CaseIterable, Identifiable {
 @MainActor
 @Observable
 final class AppState {
+    let energy = EnergyPolicy()
+    var menuBarPanelVisible = false
     let preferences: PreferencesStore
     let metrics: MetricsService
     let scroll: ScrollService
@@ -41,6 +43,7 @@ final class AppState {
     @ObservationIgnored private var launchObserver: NSObjectProtocol?
     var section: AppSection? = .overview
     var mainWindowVisible = false
+    var mainWindowContentVisible = true
 
     init() {
         let launchContext = ApplicationLaunchContextDetector.detect()
@@ -48,7 +51,7 @@ final class AppState {
         let initiallyShowsMainWindow = launchContext != .loginItem
         mainWindowVisible = initiallyShowsMainWindow
         diagnostics = DiagnosticsStore()
-        let appVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.8.0"
+        let appVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.8.3"
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("--ui-testing"),
            let defaults = UserDefaults(suiteName: "dev.macmanager.MacManager.UITests") {
@@ -78,8 +81,9 @@ final class AppState {
             )
             let updateOffline = ProcessInfo.processInfo.arguments.contains("--update-offline")
             updates.setOnline(!updateOffline)
-            updateController = UpdateController(service: updates)
+            updateController = UpdateController(service: updates, energy: energy)
             var participants: [any ApplicationLifecycleParticipant] = [
+                EnergyController(policy: energy),
                 dock,
                 loginItem,
                 clipboardController,
@@ -88,12 +92,13 @@ final class AppState {
             ]
             if !updateOffline { participants.append(updateController) }
             if ProcessInfo.processInfo.arguments.contains("--live-metrics") {
-                participants.append(MetricsController(service: metrics, diagnostics: diagnostics))
+                participants.append(MetricsController(service: metrics, diagnostics: diagnostics, energy: energy))
             }
             lifecycle = ApplicationLifecycleCoordinator(participants: participants)
             observeLaunch()
             observeTermination()
             connectLauncher()
+            watchEnergyPreferences()
             lifecycle.start()
             return
         }
@@ -114,21 +119,39 @@ final class AppState {
             installedVersion: appVersion,
             diagnostics: diagnostics
         )
-        updateController = UpdateController(service: updates)
+        updateController = UpdateController(service: updates, energy: energy)
         lifecycle = ApplicationLifecycleCoordinator(participants: [
+            EnergyController(policy: energy),
             dock,
             loginItem,
             clipboardController,
             launcher,
             ScrollController(service: scroll, diagnostics: diagnostics),
-            NetworkController(service: network, diagnostics: diagnostics),
-            MetricsController(service: metrics, diagnostics: diagnostics),
+            NetworkController(service: network, diagnostics: diagnostics, energy: energy),
+            MetricsController(service: metrics, diagnostics: diagnostics, energy: energy),
             updateController
         ])
         observeLaunch()
         observeTermination()
         connectLauncher()
+        watchEnergyPreferences()
         lifecycle.start()
+    }
+
+    private func watchEnergyPreferences() {
+        withObservationTracking {
+            energy.adaptsToLowPower = preferences.adaptsToLowPower
+            energy.metricsVisible = menuBarPanelVisible || (mainWindowVisible && mainWindowContentVisible && (section == .overview || section == .sensors))
+            energy.networkVisible = menuBarPanelVisible || (mainWindowVisible && mainWindowContentVisible && section == .network)
+            let display = preferences.appIntegration.menuBar
+            var kinds: Set<MetricKind> = []
+            if display.showsCPU { kinds.insert(.cpu) }
+            if display.showsGPU { kinds.insert(.gpu) }
+            if display.showsRAM { kinds.insert(.memory) }
+            if display.showsPower { kinds.insert(.power) }
+            energy.backgroundRequest = MetricSamplingRequest(kinds: kinds, cpuTemperature: display.showsCPUTemperature, gpuTemperature: display.showsGPUTemperature, fans: display.showsFans)
+            launcher.catalogRefreshSeconds = energy.launcherCatalogInterval
+        } onChange: { [weak self] in Task { @MainActor [weak self] in self?.watchEnergyPreferences() } }
     }
 
     private func connectLauncher() {
@@ -147,6 +170,7 @@ final class AppState {
 
     func setMainWindowVisible(_ isVisible: Bool) {
         mainWindowVisible = isVisible
+        if isVisible { mainWindowContentVisible = true }
         _ = dock.setMainWindowVisible(isVisible)
     }
 
@@ -226,6 +250,7 @@ private struct TestUpdateFixture: Sendable {
     }
 
     let mode: Mode
+    let currentVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.8.3"
 
     init(arguments: [String]) {
         if arguments.contains("--update-available") {
@@ -246,7 +271,7 @@ private struct TestUpdateFixture: Sendable {
         case .noRelease:
             return .noPublicRelease(etag: "\"ui-test\"")
         case .current:
-            return .release(release(version: "0.8.0"), etag: "\"ui-test\"")
+            return .release(release(version: currentVersion), etag: "\"ui-test\"")
         case .available:
             return .release(release(version: "0.9.0"), etag: "\"ui-test\"")
         case .failed:

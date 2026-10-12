@@ -38,6 +38,12 @@ struct MetricsHistoryView: View {
     }
 
     var body: some View {
+        Group {
+            if (state.mainWindowContentVisible && !state.energy.sleeping) { visibleContent }
+        }
+    }
+
+    @ViewBuilder private var visibleContent: some View {
         let samples = points
         VStack(alignment: .leading, spacing: 16) {
             HStack(alignment: .center) {

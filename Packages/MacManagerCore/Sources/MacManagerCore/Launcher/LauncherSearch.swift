@@ -82,6 +82,7 @@ public actor LauncherSearchEngine {
 
 @MainActor @Observable
 public final class LauncherSearchModel {
+    public var catalogRefreshSeconds: Double = 60
     public private(set) var results: [LauncherEntry] = []
     public private(set) var isLoading = false
     public private(set) var isSearching = false
@@ -133,7 +134,7 @@ public final class LauncherSearchModel {
         catalog = commands + providerEntries
         failed = providerFailed
         search("")
-        if let loadedAt, loadedAt.duration(to: .now) < .seconds(60) { return }
+        if let loadedAt, loadedAt.duration(to: .now) < .seconds(catalogRefreshSeconds) { return }
         isLoading = true
         let token = generation
         loadTask = Task { [weak self] in

@@ -42,7 +42,7 @@ private func clipboardDirectory() -> URL {
     let reopened = ClipboardRepository(directory: directory, keys: key)
     let library = try await reopened.load(preferences: .init(), now: now)
     #expect(library.entries.count == 1)
-    #expect(library.entries.first?.text == text)
+    #expect(library.entries.first?.text == String(text.prefix(300)))
     #expect(library.entries.first?.sourceBundleID == "private.source.app")
     let id = try #require(library.entries.first?.id)
     let restored = try await reopened.restore(id, preferences: .init(), now: now)
@@ -319,15 +319,179 @@ private func clipboardDirectory() -> URL {
 }
 
 @Test func clipboardSearchFindsFullTextAndRespectsOrderLimitAndCancellation() async throws {
-    let search = ClipboardSearch()
-    let entries = (0..<100).map { i in
-        ClipboardEntry(record: ClipboardRecord(kind: .text, capturedAt: Date(), storedBytes: 100),
-            text: String(repeating: "x", count: 10_000) + " Zażółć \(i)", thumbnail: nil, sourceBundleID: nil)
+    let directory = clipboardDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let repository = ClipboardRepository(directory: directory, keys: ClipboardTestKey())
+    var settings = ClipboardPreferences(); settings.maximumCount = 100
+    let now = Date()
+    for index in 0..<60 {
+        let text = String(repeating: "x", count: 10_000) + " Zażółć \(index)"
+        try await repository.insert(.init(kind: .text, data: Data(text.utf8)), preferences: settings,
+                                    now: now.addingTimeInterval(Double(index)))
     }
-    let matches = try await search.search("ZAŻÓŁĆ", entries: entries, limit: 40)
+    let entries = try await repository.load(preferences: settings, now: now).entries
+    let matches = try await repository.search("ZAŻÓŁĆ", entries: entries, preferences: settings, now: now, limit: 40)
     #expect(matches.map(\.id) == Array(entries.prefix(40)).map(\.id))
-    let task = Task { try await search.search("missing", entries: entries) }
+    let task = Task { try await repository.search("missing", entries: entries, preferences: settings, now: now, limit: 40) }
     task.cancel()
     do { _ = try await task.value; Issue.record("Cancelled clipboard search returned results") }
     catch { #expect(error is CancellationError) }
+}
+
+@Test func clipboardExpiryDeadlineTracksOldestRecordDeletionAndRetentionPreferences() async throws {
+    let directory = clipboardDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let repo = ClipboardRepository(directory: directory, keys: ClipboardTestKey())
+    var settings = ClipboardPreferences()
+    settings.maximumDays = 1
+    let now = Date(timeIntervalSince1970: 1_000_000)
+    #expect(try await repo.nextExpiration(preferences: settings) == nil)
+    let first = try await repo.insert(ClipboardContent(kind: .text, data: Data("first".utf8)), preferences: settings, now: now)
+    _ = try await repo.insert(ClipboardContent(kind: .text, data: Data("second".utf8)), preferences: settings, now: now.addingTimeInterval(10))
+    #expect(try await repo.nextExpiration(preferences: settings) == now.addingTimeInterval(86_400))
+    let id = try #require(first.inserted?.id)
+    try await repo.delete([id])
+    #expect(try await repo.nextExpiration(preferences: settings) == now.addingTimeInterval(86_410))
+    settings.maximumDays = 2
+    #expect(try await repo.nextExpiration(preferences: settings) == now.addingTimeInterval(172_810))
+    _ = try await repo.maintain(preferences: settings, now: now.addingTimeInterval(172_810))
+    #expect(try await repo.nextExpiration(preferences: settings) == nil)
+}
+
+@MainActor @Test func clipboardExpiryStillRunsWhileLockedAndPollingBacksOffWithoutPermission() async throws {
+    let directory = clipboardDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let repo = ClipboardRepository(directory: directory, keys: ClipboardTestKey())
+    let mock = ClipboardMock()
+    var settings = ClipboardPreferences(); settings.enabled = true; settings.maximumDays = 1
+    var now = Date(timeIntervalSince1970: 1_000_000)
+    _ = try await repo.insert(ClipboardContent(kind: .text, data: Data("expires".utf8)), preferences: settings, now: now)
+    let service = ClipboardService(preferences: settings, pasteboard: mock, repository: repo, storageExists: true, now: { now })
+    await service.start()
+    #expect(service.pollingSeconds == 0.5)
+    mock.access = .denied; service.poll()
+    #expect(service.pollingSeconds == 5)
+    mock.access = .allowed; service.poll()
+    #expect(service.pollingSeconds == 0.5)
+    await service.setSuspended(true)
+    #expect(service.entries.isEmpty)
+    #expect(try await service.nextMaintenanceDate() == now.addingTimeInterval(86_400))
+    now = now.addingTimeInterval(86_400)
+    await service.maintain()
+    #expect(try await service.nextMaintenanceDate() == nil)
+    await service.setSuspended(false)
+    #expect(service.entries.isEmpty)
+    service.stop()
+}
+
+@Test func clipboardCacheEvictsLeastRecentlyUsedAndRejectsOversizedPayloads() {
+    var cache = ClipboardMemoryCache(limit: 10)
+    let first = ClipboardMemoryCache.Key(id: UUID(), role: "payload")
+    let second = ClipboardMemoryCache.Key(id: UUID(), role: "thumbnail")
+    let third = ClipboardMemoryCache.Key(id: UUID(), role: "payload")
+    cache.insert(Data(repeating: 1, count: 5), for: first)
+    cache.insert(Data(repeating: 2, count: 5), for: second)
+    #expect(cache.value(for: first) != nil)
+    cache.insert(Data(repeating: 3, count: 5), for: third)
+    #expect(cache.value(for: second) == nil && cache.bytes == 10)
+    cache.insert(Data(repeating: 4, count: 11), for: second)
+    #expect(cache.bytes == 10 && cache.value(for: second) == nil)
+    cache.remove([first.id])
+    #expect(cache.bytes == 5)
+    cache.clear()
+    #expect(cache.bytes == 0 && cache.value(for: third) == nil)
+}
+
+@Test func clipboardCompactHistorySearchesFullPayloadAndLoadsImagesOnDemand() async throws {
+    let directory = clipboardDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let repo = ClipboardRepository(directory: directory, keys: ClipboardTestKey(), memoryLimitBytes: 1_000)
+    let now = Date()
+    let text = String(repeating: "x", count: 800) + "hidden-tail"
+    let mutation = try await repo.insert(.init(kind: .text, data: Data(text.utf8)), preferences: .init(), now: now)
+    let id = try #require(mutation.inserted?.id)
+    try await repo.insert(.init(kind: .image, data: Data([1, 2]), thumbnail: Data([3, 4])),
+                          preferences: .init(), now: now.addingTimeInterval(1))
+    let entries = try await repo.load(preferences: .init(), now: now).entries
+    #expect(entries.allSatisfy { $0.thumbnail == nil && ($0.text?.count ?? 0) <= 300 })
+    #expect(await repo.cachedBytes == 0)
+    let matches = try await repo.search("hidden-tail", entries: entries, preferences: .init(), now: now, limit: 40)
+    #expect(matches.map(\.id) == [id] && matches.first?.text?.contains("hidden-tail") == false)
+    #expect(await repo.cachedBytes == 0)
+    #expect(try await repo.restore(id, preferences: .init(), now: now).data == Data(text.utf8))
+    let image = try #require(entries.first { $0.record.kind == .image })
+    #expect(try await repo.thumbnail(image.id) == Data([3, 4]))
+    #expect(try await repo.restore(image.id, preferences: .init(), now: now).data == Data([1, 2]))
+    #expect(await repo.cachedBytes <= 1_000)
+    try await repo.delete([id])
+    #expect(await repo.cachedBytes == 4)
+    try await repo.clear()
+    #expect(await repo.cachedBytes == 0)
+}
+
+@Test func clipboardLegacyPreviewRemainsReadableWithoutKeepingFullTextInHistory() async throws {
+    let directory = clipboardDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let key = ClipboardTestKey()
+    let repo = ClipboardRepository(directory: directory, keys: key)
+    let now = Date(), text = String(repeating: "a", count: 900) + "legacy-tail"
+    let mutation = try await repo.insert(.init(kind: .text, data: Data(text.utf8)), preferences: .init(), now: now)
+    let id = try #require(mutation.inserted?.id)
+    let preview = try JSONSerialization.data(withJSONObject: ["version": 1, "text": text, "sourceIsEstimated": false])
+    let sealed = try #require(AES.GCM.seal(preview, using: key.value,
+                                         authenticating: Data("\(id.uuidString):preview:1".utf8)).combined)
+    try sealed.write(to: directory.appendingPathComponent("\(id.uuidString).preview"))
+    let entries = try await repo.load(preferences: .init(), now: now).entries
+    #expect(entries.first?.text == String(text.prefix(300)))
+    #expect(try await repo.search("legacy-tail", entries: entries, preferences: .init(), now: now, limit: 40).count == 1)
+    #expect(try await repo.restore(id, preferences: .init(), now: now).data == Data(text.utf8))
+}
+
+@MainActor @Test func clipboardLockClearsCacheAndBlocksContentUntilResume() async throws {
+    let directory = clipboardDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let repo = ClipboardRepository(directory: directory, keys: ClipboardTestKey())
+    let now = Date(), text = String(repeating: "a", count: 800) + "private-tail"
+    let mutation = try await repo.insert(.init(kind: .text, data: Data(text.utf8)), preferences: .init(), now: now)
+    let id = try #require(mutation.inserted?.id)
+    let service = ClipboardService(preferences: .init(), pasteboard: ClipboardMock(), repository: repo, storageExists: true)
+    await service.start()
+    #expect(await service.content(id)?.data == Data(text.utf8))
+    #expect(await repo.cachedBytes > 0)
+    await service.setSuspended(true)
+    #expect(service.entries.isEmpty)
+    #expect(await repo.cachedBytes == 0)
+    #expect(await service.content(id) == nil)
+    #expect(await service.thumbnail(id) == nil)
+    await #expect(throws: CancellationError.self) { try await service.search("private-tail") }
+    await service.setSuspended(false)
+    #expect(try await service.search("private-tail").map(\.id) == [id])
+    await service.restore(id)
+    await service.clear()
+    #expect(await repo.cachedBytes == 0)
+    service.stop()
+}
+
+@Test func clipboardPreviewBoundsEvenOneVeryLargeGrapheme() async throws {
+    let directory = clipboardDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let repo = ClipboardRepository(directory: directory, keys: ClipboardTestKey())
+    let text = "a" + String(repeating: "\u{0301}", count: 20_000)
+    let now = Date()
+    let mutation = try await repo.insert(.init(kind: .text, data: Data(text.utf8)), preferences: .init(), now: now)
+    let entry = try #require(mutation.inserted)
+    #expect((entry.text?.utf8.count ?? 0) <= 1_203)
+    #expect(try await repo.restore(entry.id, preferences: .init(), now: now).data == Data(text.utf8))
+}
+
+@Test func clipboardCancelledSearchDoesNotOpenStorageOrAccessKey() async throws {
+    let directory = clipboardDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let repository = ClipboardRepository(directory: directory, keys: MissingClipboardKey())
+    let task = Task {
+        withUnsafeCurrentTask { $0?.cancel() }
+        return try await repository.search("text", entries: [], preferences: .init(), now: Date(), limit: 40)
+    }
+    await #expect(throws: CancellationError.self) { try await task.value }
+    #expect(!FileManager.default.fileExists(atPath: directory.path))
 }

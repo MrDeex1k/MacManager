@@ -37,7 +37,7 @@ public struct MetricsHistory: Sendable {
 
     private struct Record: Sendable {
         let snapshot: MetricsSnapshot
-        let interval: SamplingInterval
+        let interval: Double
         let epoch: Int
     }
 
@@ -57,11 +57,15 @@ public struct MetricsHistory: Sendable {
     }
 
     public mutating func append(_ snapshot: MetricsSnapshot, interval: SamplingInterval, now: TimeInterval) {
+        append(snapshot, intervalSeconds: Double(interval.rawValue), now: now)
+    }
+
+    public mutating func append(_ snapshot: MetricsSnapshot, intervalSeconds: Double, now: TimeInterval) {
         advance(to: now)
         let time = snapshot.uptime
         guard time.isFinite, time > referenceTime - Self.duration, time <= referenceTime,
               records.last.map({ time > $0.snapshot.uptime }) ?? true else { return }
-        records.append(Record(snapshot: snapshot, interval: interval, epoch: epoch))
+        records.append(Record(snapshot: snapshot, interval: intervalSeconds, epoch: epoch))
         revision &+= 1
     }
 
@@ -123,7 +127,7 @@ public struct MetricsHistory: Sendable {
                 let gap = record.snapshot.uptime - previous.snapshot.uptime
                 if previous.epoch != record.epoch || previous.interval != record.interval
                     || previousSource != source
-                    || gap > Double(previous.interval.rawValue) * 1.5 {
+                    || gap > previous.interval * 1.5 {
                     segment += 1
                 }
             } else {

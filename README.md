@@ -76,6 +76,8 @@ Open **Clipboard** and enable history, then grant permanent clipboard access in 
 
 Defaults are **50 items, 7 days and 200 MB**. History settings provide pause/resume, application exclusions and retention controls. Text and normalized PNG images, including thumbnails, are encrypted locally. The encryption key is protected by Secure Enclave with its wrapped representation kept in the nonsynchronizing Keychain. Missing key access never falls back to plaintext. Clearing history leaves the current system clipboard unchanged.
 
+The list keeps short previews; full content and image thumbnails load on demand through a shared 16 MB data cache. Search still covers the complete text without keeping a decrypted search index on disk. Locking the session clears the cache and private previews. [Memory behavior](docs/reports/pamiec-schowka-2026-10-12.md).
+
 [Implementation and validation](docs/reports/etap-3a-schowek.md) · [Privacy design](docs/05-dane-i-prywatnosc.md)
 
 ### Local launcher

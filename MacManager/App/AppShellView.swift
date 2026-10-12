@@ -16,6 +16,18 @@ struct AppShellView: View {
         .onReceive(NotificationCenter.default.publisher(for: .openMainWindowRequested)) { _ in
             state.setMainWindowVisible(true)
         }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didChangeOcclusionStateNotification)) { notification in
+            guard isMainWindow(notification.object), let window = notification.object as? NSWindow else { return }
+            state.mainWindowContentVisible = window.occlusionState.contains(.visible) && !window.isMiniaturized
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didMiniaturizeNotification)) { notification in
+            guard isMainWindow(notification.object) else { return }
+            state.mainWindowContentVisible = false
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didDeminiaturizeNotification)) { notification in
+            guard isMainWindow(notification.object) else { return }
+            state.mainWindowContentVisible = true
+        }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.willCloseNotification)) { notification in
             guard isMainWindow(notification.object) else { return }
             state.mainWindowWillClose()

@@ -48,6 +48,11 @@ struct SettingsView: View {
             }
             .padding(.trailing, 20)
             Divider()
+            Toggle(strings("energy.adapt"), isOn: $preferences.adaptsToLowPower)
+                .accessibilityIdentifier("energy.adapt")
+            Text(state.energy.sleeping || state.energy.pausesMetrics ? strings("energy.paused") : String(format: strings("energy.interval"), state.energy.metricsInterval(saved: preferences.samplingInterval)))
+                .font(.callout).foregroundStyle(.secondary)
+            Divider()
             LauncherSettingsView()
             Divider()
             LaunchAtLoginSettingsView()
@@ -58,7 +63,7 @@ struct SettingsView: View {
             HStack {
                 Text("Mac Manager").fontWeight(.medium)
                 Spacer()
-                Text(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.8.0")
+                Text(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.8.3")
                     .monospacedDigit()
             }
             .font(.caption)

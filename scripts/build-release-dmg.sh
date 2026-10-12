@@ -21,7 +21,7 @@ output="$root/.build/releases/v$version"
 archive="$output/MacManager.xcarchive"
 stage="$output/dmg-root"
 dmg="$output/MacManager-v$version-arm64.dmg"
-build_number=${BUILD_NUMBER:-8}
+build_number=${BUILD_NUMBER:-9}
 
 if ! security find-identity -v -p codesigning | grep -Fq "\"$DEVELOPER_ID_APPLICATION\""; then
     printf '%s\n' "Developer ID Application identity is not available in the keychain" >&2

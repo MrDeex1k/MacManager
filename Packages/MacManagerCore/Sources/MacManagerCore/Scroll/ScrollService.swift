@@ -6,6 +6,7 @@ public enum ScrollStatus: String, Sendable { case off, permissionRequired, input
 
 @MainActor
 public protocol ScrollDriving: AnyObject {
+    var onStateChange: (@MainActor @Sendable () -> Void)? { get set }
     var permission: ScrollPermission { get }
     var state: ScrollDriverState { get }
     var accessibilityGranted: Bool { get }
@@ -17,6 +18,7 @@ public protocol ScrollDriving: AnyObject {
 }
 
 public extension ScrollDriving {
+    var onStateChange: (@MainActor @Sendable () -> Void)? { get { nil } set {} }
     var accessibilityGranted: Bool { permission != .accessibility }
     var inputMonitoringGranted: Bool { permission == .granted }
 }
@@ -34,6 +36,7 @@ public final class ScrollService {
     public init(enabled: Bool, driver: any ScrollDriving) {
         self.enabled = enabled
         self.driver = driver
+        driver.onStateChange = { [weak self] in self?.refreshDriverState() }
     }
 
     public func setEnabled(_ enabled: Bool) {
@@ -54,6 +57,11 @@ public final class ScrollService {
             return
         }
         if driver.state == .stopped { driver.start() }
+        refreshDriverState()
+    }
+
+    private func refreshDriverState() {
+        guard !terminated, enabled, !suspended else { return }
         switch driver.state {
         case .stopped, .starting: status = .starting
         case .active: status = .active

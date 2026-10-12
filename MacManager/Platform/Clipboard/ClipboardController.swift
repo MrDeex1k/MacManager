@@ -8,6 +8,7 @@ final class ClipboardController: ApplicationLifecycleParticipant {
     let service: ClipboardService
     private let repository: ClipboardRepository
     private var loop: Task<Void, Never>?
+    private var maintenance: Task<Void, Never>?
     private var polling: Task<Void, Never>?
     private var observers: [(NotificationCenter, NSObjectProtocol)] = []
     private let testing: Bool
@@ -55,6 +56,11 @@ final class ClipboardController: ApplicationLifecycleParticipant {
                 suspendedReasons.insert("lock")
             }
         }
+        let clockCenter = NotificationCenter.default
+        let clockToken = clockCenter.addObserver(forName: .NSSystemClockDidChange, object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor [weak self] in self?.scheduleMaintenance() }
+        }
+        observers.append((clockCenter, clockToken))
         loop = Task { [weak self] in
             guard let self, !Task.isCancelled else { return }
             if self.fixture {
@@ -68,15 +74,13 @@ final class ClipboardController: ApplicationLifecycleParticipant {
             await self.service.start()
             guard !Task.isCancelled else { return }
             self.watchCaptureState()
-            while !Task.isCancelled {
-                do { try await Task.sleep(for: .seconds(60), tolerance: .seconds(1)) } catch { return }
-                await self.service.maintain()
-            }
+            self.watchMaintenance()
         }
     }
 
     func stop() {
         loop?.cancel(); loop = nil
+        maintenance?.cancel(); maintenance = nil
         polling?.cancel(); polling = nil
         observers.forEach { $0.0.removeObserver($0.1) }; observers.removeAll()
         service.stop()
@@ -85,8 +89,9 @@ final class ClipboardController: ApplicationLifecycleParticipant {
     private func watchCaptureState() {
         guard loop != nil else { return }
         polling?.cancel(); polling = nil
-        let capture = withObservationTracking {
-            service.preferences.enabled && !service.preferences.paused && !service.suspended
+        let (capture, seconds) = withObservationTracking {
+            (service.preferences.enabled && !service.preferences.paused && !service.suspended,
+             service.pollingSeconds)
         } onChange: { [weak self] in
             Task { @MainActor [weak self] in self?.watchCaptureState() }
         }
@@ -94,8 +99,45 @@ final class ClipboardController: ApplicationLifecycleParticipant {
         polling = Task { [weak self] in
             while !Task.isCancelled {
                 self?.service.poll()
-                do { try await Task.sleep(for: .milliseconds(500), tolerance: .milliseconds(50)) }
+                do { try await Task.sleep(for: .seconds(seconds), tolerance: .milliseconds(50)) }
                 catch { return }
+            }
+        }
+    }
+
+    private func watchMaintenance() {
+        guard loop != nil else { return }
+        withObservationTracking {
+            _ = service.revision
+            _ = service.preferences
+        } onChange: { [weak self] in
+            Task { @MainActor [weak self] in self?.watchMaintenance() }
+        }
+        scheduleMaintenance()
+    }
+
+    private func scheduleMaintenance() {
+        guard loop != nil else { return }
+        maintenance?.cancel(); maintenance = nil
+        guard !suspendedReasons.contains("sleep") else { return }
+        maintenance = Task { [weak self] in
+            var attemptedDate: Date?
+            while !Task.isCancelled {
+                guard let self else { return }
+                do {
+                    guard let date = try await self.service.nextMaintenanceDate() else { return }
+                    try Task.checkCancellation()
+                    let retryDelay = attemptedDate == date ? 60.0 : 0.0
+                    try await Task.sleep(for: .seconds(max(retryDelay, date.timeIntervalSinceNow)), tolerance: .seconds(1))
+                    try Task.checkCancellation()
+                    attemptedDate = date
+                    await self.service.maintain()
+                    // If expiry did not advance (including failures while locked), retry slowly.
+                } catch is CancellationError { return }
+                catch {
+                    do { try await Task.sleep(for: .seconds(60), tolerance: .seconds(5)) }
+                    catch { return }
+                }
             }
         }
     }
@@ -106,6 +148,8 @@ final class ClipboardController: ApplicationLifecycleParticipant {
                 guard let self else { return }
                 if suspended { self.suspendedReasons.insert(reason) }
                 else { self.suspendedReasons.remove(reason) }
+                self.scheduleMaintenance()
+                if reason == "sleep", !suspended { await self.service.maintain() }
                 await self.service.setSuspended(!self.suspendedReasons.isEmpty)
             }
         }

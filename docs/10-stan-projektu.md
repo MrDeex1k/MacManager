@@ -1,5 +1,7 @@
 # Aktualny stan projektu i dalsza kolejność
 
+Aktualizacja brancha `feat/battery-optimization`, 2026-10-12: profile oszczędzania i sleep/wake są wdrożone, a sampler ponownie używa uchwytu GPU. Sieć korzysta z powiadomień SCDynamicStore i rzadszej kontroli awaryjnej. Schowek przechowuje krótkie podglądy i wczytuje pełne treści na żądanie ze wspólnym cache danych 16 MB; wyszukiwanie pozostaje pełnotekstowe. [Pamięć schowka](reports/pamiec-schowka-2026-10-12.md). Wersja na branchu: 0.8.3. Zmiany nie są jeszcze scalone do `main`. [Profile energii](reports/profile-energii-2026-10-06.md), [GPU i sieć](reports/gpu-siec-2026-10-12.md).
+
 Aktualizacja: 2026-09-23. Projekt jest w trakcie końcowego odbioru etapu 1; nie ma jeszcze publicznego wydania DMG. Kroki 1-8 są zaimplementowane i odebrane. W kroku 9 wykonano pełne testy automatyczne, audyt dostępności, 10-minutowy pomiar pracy w tle oraz ręczną próbę na urządzeniu referencyjnym, w tym offline i sleep/wake. Gotowy jest lokalny skrypt budowania, podpisywania i notaryzacji DMG. Autostart z `/Applications` po poprawce rozpoznawania login item został potwierdzony przez właściciela. Pozostają wykonanie i odbiór procesu dystrybucji.
 
 ## Co działa
@@ -68,3 +70,7 @@ Buildy developerskie mają osobną tożsamość `.Development`, ustawienia i zgo
 Weryfikacja 2026-09-20: ponownie przeszły 53 testy Core, 9 testów prototypów, 5 kontroli zdarzeń autostartu i kompilacja Release arm64 bez podpisu. Nie powtarzano pełnego zestawu UI ani pomiaru obciążenia. Najnowsze poprawki: panel 300 pkt, trzy kolory dostępności pomiarów, brak godziny pobrania IP i ukryta sekcja Wygląd.
 
 Publikacja 0.8.0 została odłożona na prośbę właściciela z powodu konfiguracji hasła notaryzacji. Certyfikat Developer ID Application jest dostępny; historyczny brak certyfikatu z 20 września nie jest już aktualną przeszkodą. Prace etapu 2 są niezależne od publikacji.
+
+## Optymalizacje pracy w tle - 2026-10-05
+
+Lokalna aktualizacja 0.8.1 (build 9) ogranicza okresowe kontrole metryk i scrolla, ponownie używa sesji/metadanych SMC, planuje retencję schowka według daty wygaśnięcia i usuwa sekundowy timer ustawień aktualizacji. Punkty dotyczące adaptacyjnego profilu baterii, zbierania metryk na żądanie i powiadomień sieciowych pozostają poza tym zakresem. Szczegóły i wyniki weryfikacji: [raport](reports/optymalizacje-baterii-2026-10-05.md).
