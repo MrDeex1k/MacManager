@@ -1,5 +1,7 @@
 # Aktualny stan projektu i dalsza kolejność
 
+Aktualizacja brancha `feat/battery-optimization`, 2026-10-12: profile oszczędzania i sleep/wake są wdrożone, a sampler ponownie używa uchwytu GPU. Sieć korzysta z powiadomień SCDynamicStore i rzadszej kontroli awaryjnej. Wersja na branchu: 0.8.3. Zmiany nie są jeszcze scalone do `main`. [Profile energii](reports/profile-energii-2026-10-06.md), [GPU i sieć](reports/gpu-siec-2026-10-12.md).
+
 Aktualizacja: 2026-09-23. Projekt jest w trakcie końcowego odbioru etapu 1; nie ma jeszcze publicznego wydania DMG. Kroki 1-8 są zaimplementowane i odebrane. W kroku 9 wykonano pełne testy automatyczne, audyt dostępności, 10-minutowy pomiar pracy w tle oraz ręczną próbę na urządzeniu referencyjnym, w tym offline i sleep/wake. Gotowy jest lokalny skrypt budowania, podpisywania i notaryzacji DMG. Autostart z `/Applications` po poprawce rozpoznawania login item został potwierdzony przez właściciela. Pozostają wykonanie i odbiór procesu dystrybucji.
 
 ## Co działa

@@ -51,34 +51,66 @@ int32_t mm_memory_read(MMMemory *memory) {
     return 0;
 }
 
-int32_t mm_gpu_read(double *percent) {
+static int32_t mm_gpu_value(io_service_t service, double *percent) {
+    CFTypeRef raw = IORegistryEntryCreateCFProperty(
+        service, CFSTR("PerformanceStatistics"), kCFAllocatorDefault, 0);
+    double result = NAN;
+    if (raw && CFGetTypeID(raw) == CFDictionaryGetTypeID()) {
+        CFTypeRef number = CFDictionaryGetValue(raw, CFSTR("Device Utilization %"));
+        if (number && CFGetTypeID(number) == CFNumberGetTypeID())
+            CFNumberGetValue(number, kCFNumberDoubleType, &result);
+    }
+    if (raw) CFRelease(raw);
+    if (!isfinite(result) || result < 0 || result > 100) return kIOReturnUnsupported;
+    *percent = result;
+    return 0;
+}
+
+void mm_gpu_close(uint32_t service) {
+    if (service) IOObjectRelease(service);
+}
+
+static int32_t mm_gpu_find(uint32_t *selected) {
     io_iterator_t iterator = 0;
     kern_return_t status = IOServiceGetMatchingServices(
         kIOMainPortDefault, IOServiceMatching("AGXAccelerator"), &iterator);
     if (status != KERN_SUCCESS) return status;
     unsigned matches = 0;
-    double result = NAN;
-    io_service_t service;
+    io_service_t service, candidate = 0;
     while ((service = IOIteratorNext(iterator))) {
-        CFTypeRef raw = IORegistryEntryCreateCFProperty(
-            service, CFSTR("PerformanceStatistics"), kCFAllocatorDefault, 0);
-        if (raw && CFGetTypeID(raw) == CFDictionaryGetTypeID()) {
-            CFTypeRef number = CFDictionaryGetValue(raw, CFSTR("Device Utilization %"));
-            double candidate = NAN;
-            if (number && CFGetTypeID(number) == CFNumberGetTypeID()
-                && CFNumberGetValue(number, kCFNumberDoubleType, &candidate)) {
-                ++matches;
-                result = candidate;
-            }
+        double value = NAN;
+        if (mm_gpu_value(service, &value) == 0) {
+            ++matches;
+            if (!candidate) { candidate = service; continue; }
         }
-        if (raw) CFRelease(raw);
         IOObjectRelease(service);
     }
     IOObjectRelease(iterator);
-    if (matches != 1 || !isfinite(result) || result < 0 || result > 100)
-        return kIOReturnUnsupported;
-    *percent = result;
+    if (matches != 1) { mm_gpu_close(candidate); return kIOReturnUnsupported; }
+    *selected = candidate;
     return 0;
+}
+
+int32_t mm_gpu_read_cached(uint32_t *service, double *percent) {
+    if (!service || !percent) return kIOReturnBadArgument;
+    *percent = NAN;
+    if (*service) {
+        int32_t status = mm_gpu_value(*service, percent);
+        if (!status) return 0;
+        mm_gpu_close(*service); *service = 0;
+    }
+    int32_t status = mm_gpu_find(service);
+    if (status) return status;
+    status = mm_gpu_value(*service, percent);
+    if (status) { mm_gpu_close(*service); *service = 0; }
+    return status;
+}
+
+int32_t mm_gpu_read(double *percent) {
+    uint32_t service = 0;
+    int32_t status = mm_gpu_read_cached(&service, percent);
+    mm_gpu_close(service);
+    return status;
 }
 
 // Undocumented, read-only AppleSMC user-client ABI.

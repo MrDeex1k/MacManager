@@ -5,12 +5,15 @@ import MMHardware
 public actor HardwareMetricsSampler: MetricsSampling {
     private let sensorSampler = HardwareSensorSampler()
     private let sensorCatalog = SensorCatalog.current()
+    private var gpuService: UInt32 = 0
     private var previous: CPUTicks?
     private var previousTime: TimeInterval?
 
     public init() {}
+    deinit { mm_gpu_close(gpuService) }
     public func reset() async {
         previous = nil; previousTime = nil
+        mm_gpu_close(gpuService); gpuService = 0
         await sensorSampler.reset()
     }
 
@@ -36,7 +39,8 @@ public actor HardwareMetricsSampler: MetricsSampling {
             readings[.cpu] = MetricReading(kind: .cpu, status: .failed, source: "Mach CPU ticks")
         }
         var gpu = 0.0
-        let gpuStatus = request.kinds.contains(.gpu) ? mm_gpu_read(&gpu) : -1
+        if !request.kinds.contains(.gpu) { mm_gpu_close(gpuService); gpuService = 0 }
+        let gpuStatus = request.kinds.contains(.gpu) ? mm_gpu_read_cached(&gpuService, &gpu) : -1
         readings[.gpu] = MetricReading(kind: .gpu, value: gpuStatus == 0 ? gpu : nil,
                                       status: gpuStatus == 0 ? .available : .unavailable,
                                       source: "AGX Device Utilization %")

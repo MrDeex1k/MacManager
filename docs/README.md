@@ -4,6 +4,8 @@ Status: wymagania zatwierdzone przez właściciela projektu po wywiadzie Q1-Q28 
 
 Aktualny punkt prac i kolejność kolejnych zadań: [Stan projektu](10-stan-projektu.md).
 
+Aktualizacja 2026-10-12 na branchu optymalizacji baterii: [ponowne używanie uchwytu GPU i powiadomienia sieciowe](reports/gpu-siec-2026-10-12.md).
+
 ## Mapa dokumentów
 
 | Dokument | Zawartość |
