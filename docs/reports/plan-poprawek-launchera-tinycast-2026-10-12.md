@@ -1,6 +1,6 @@
 # Plan adaptacji czterech poprawek TinyCast
 
-Data: 2026-10-12. Status: wdrożenie w toku. Baza: `main` po scaleniu PR #8, commit `9e2d24c`.
+Data: 2026-10-12. Status: cztery poprawki wdrożone i zweryfikowane automatycznie. Baza: `main` po scaleniu PR #8, commit `9e2d24c`.
 
 Branch: `fix/launcher-upstream-improvements`.
 
@@ -158,6 +158,27 @@ Skoncentrowany test GUI: po zamknięciu menu albo personalizacji można od razu 
 - Docelowo trzy commity Conventional Commits: `fix(calculator): distinguish bit and byte transfer rates`, `fix(launcher): select current app copies and follow directory symlinks`, `fix(launcher): restore search focus after menus`. Dokumentację i testy zawrzeć w odpowiednich commitach.
 - Push i utworzenie kolejnego PR zgodnie z osobnym poleceniem właściciela; autoryzacja PR #8 nie oznacza automatycznej zgody na następny PR. Instalacja w /Applications również wymaga polecenia.
 
-## Gotowość do startu
+## Założenia planu
 
 Plan nie wymaga dodatkowych ustawień produktu ani migracji historii schowka. Główną zależnością jest scalenie PR #8. Najwięcej pracy integracyjnej wymaga spójność celu skrótów oraz właściwy moment odzyskania fokusu; poprawka jednostek jest niezależna, a sortowanie wersji i symlinki należy wdrażać oraz sprawdzać wspólnie.
+
+## Wynik wdrożenia, 2026-10-12
+
+Wdrożono kolejno kalkulator, wybór kopii aplikacji, symlinki i odzyskiwanie fokusu. Baza pozostaje `9e2d24c` z PR #8, branch `fix/launcher-upstream-improvements`. Wersja aplikacji pozostaje 0.8.3 (11). Nie wykonano push, nowego PR ani instalacji w /Applications.
+
+- `Bps`, `kBps`/`KBps`, `MBps`, `GBps` i `TBps` są osobnymi jednostkami od bitów. `500 Mbps in MBps` daje `62.5 MBps`; automatyczne konwersje, arytmetyka i jednostki binarne zachowują przelicznik 8. Kopiowany wynik jest taki sam w PL i EN.
+- W każdym skanowanym folderze kandydaci są sortowani według wersji liczbowo, następnie nazwy i ścieżki. Deduplikacja bundle ID następuje po walidacji aplikacji; wpis bez wersji przegrywa z wersjonowanym, a aplikacja działająca tylko w tle nie blokuje poprawnej kopii. Kolejność zakresów nadal ma pierwszeństwo przed porównaniem wersji między folderami.
+- Metadane są odczytywane ze świeżego Info.plist, bez polegania na cache Bundle dla identyfikacji i wersji. Po publikacji aktualnego katalogu kontroler aktualizuje zapisane wpisy personalizacji. Callback skrótu pobiera aktualny wpis preferencji przy uruchomieniu, więc nie zatrzymuje starej ścieżki. Zachowano aliasy, ulubione, ukrycie i rejestrację niezmienionego skrótu.
+- Skanowanie odbywa się po fizycznym katalogu, ale wyniki zachowują logiczne ścieżki symlinków. Zmiana celu linku jest widoczna przy następnym odświeżeniu katalogu. Zestaw przodków jest lokalny dla gałęzi; głębokość pozostaje ograniczona, embedded apps nie są skanowane rekurencyjnie.
+- Menu wyników ma własny NSMenu. Jego synchroniczny cykl `popUpContextMenu` daje sygnał po anulowaniu albo wykonaniu akcji, bez globalnych obserwatorów NSMenu i bez przejmowania delegatów SwiftUI. Wąski monitor lokalnych zdarzeń myszy przypisuje prawy klik oraz Control-klik do wiersza; zwykłe kliknięcia obsługuje dotychczasowy Button. Dostępność ma nazwane akcje personalizacji lub pokazania pliku w Finderze.
+- Zakończenie personalizacji żąda fokusu, a onDisappear ponawia żądanie po usunięciu widoku. Oba callbacki chronią token prezentacji, widoczność, key window i stan menu/popovera. Zapis oraz anulowanie zachowują tekst i kursor; menu otwierające edytor nie odbiera mu fokusu. Kompozycja oznaczonego tekstu nie jest przerywana. Ukrycie unieważnia oczekujące callbacki, a przejście do innej aplikacji nie aktywuje palety.
+
+### Sprawdzenia
+
+- Pełne Core Release: 118 testów zaliczonych z fixture Spotlight. Pięć testów katalogu obejmuje porównanie 9.4/26.6/27/28, remisy, brak wersji, tło, priorytet folderów, publikację/cache katalogu, retarget i łańcuch symlinków, uszkodzony link, pętlę i granicę zagnieżdżeń.
+- Rozszerzony test jednostek transferu: jawne i automatyczne przeliczenia, alias KBps, jednostki binarne, dodawanie różnych jednostek oraz akcja kopiowania w PL/EN.
+- XCTest UI Debug, izolowane preferencje: fokus po Escape i po zapisaniu/anulowaniu personalizacji, zachowanie kursora, edycja aliasu, konflikt skrótu i uruchomienie go po ukryciu głównego okna, kalkulator i wspólny tryb schowka. Trzy scenariusze zaliczone; po końcowych zmianach ponownie zaliczono test fokusu.
+- Release arm64: kompilacja zaliczona po końcowych zmianach. Zainstalowana aplikacja i jej uprawnienia pozostały bez zmian.
+- Jednorazowy pomiar SearchScopes na 200 syntetycznych aplikacjach, pięć skanów: baza 32.26 ms łącznie (6.45 ms/skan), adaptacja 77.21 ms (15.44 ms/skan). To koszt odczytu metadanych i sortowania przy odświeżaniu katalogu, nie opóźnienie każdego zapytania. Nie jest to pomiar całego ApplicationProvider ani profil energii.
+
+Ręczny odbiór wszystkich IME, Spaces, przejścia do Findera i uprawnień folderów pozostaje częścią pełnego kroku 3B.8. Wyniki powyżej nie zastępują odbioru na macOS 26 ani profilu Instruments. Adaptacje i ich konkretne źródła opisano w THIRD_PARTY_NOTICES.md, nagłówkach plików i zasobie ThirdPartyNotices.txt; teksty istniejących licencji zachowano.

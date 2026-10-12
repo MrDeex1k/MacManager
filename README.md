@@ -25,7 +25,7 @@ A native macOS utility for live system monitoring, independent mouse scrolling a
 | **System** | Live CPU, GPU and RAM readings with a persistent 1, 2 or 5 second interval. Five-minute Swift Charts history stays in memory and preserves gaps in unavailable data. |
 | **Sensors** | CPU/GPU temperatures in °C or °F, individual fan RPM and five-minute history. Temperature mapping is currently validated on M4 Pro. Read-only sensors, no fan control. |
 | **Clipboard** | Opt-in local history of text and images, search, preview and restore. Encrypted storage, app exclusions and configurable count, age and size limits. |
-| **Launcher** | Local app and command search in a floating Liquid Glass palette. Configurable global shortcut, fuzzy ranking adapted from Tinycast and keyboard navigation. |
+| **Launcher** | Local app and command search in a floating Liquid Glass palette. Latest valid app copy per folder, symlinked folders, configurable shortcuts and fuzzy ranking adapted from Tinycast. Search focus returns after result menus and personalization. |
 | **Network** | Primary local and public IPv4 addresses, connection status, manual refresh and copy actions. Independent visibility toggles for both addresses in the menu bar panel, hidden by default and configured in Network. |
 | **Scroll** | Independent vertical and horizontal mouse reversal with automatic mouse/trackpad classification. Trackpad direction and momentum remain intact. No device model lists. |
 | **macOS** | Native menu bar panel, configurable Dock icon, persistent background process, one reusable window and launch at login through `SMAppService.mainApp`. |
@@ -41,6 +41,8 @@ A native macOS utility for live system monitoring, independent mouse scrolling a
 | **1 · Mac essentials** | Metrics and five-minute history, network, mouse scroll, menu bar, Dock, launch at login and GitHub release checks. | Steps 1-8 of 9 complete |
 | **2 · Hardware sensors** | Live temperatures and fan RPM, menu bar values and five-minute history. Validated on M4 Pro; broader chip mapping and optimization remain future work. Fans are never controlled. | Complete on reference hardware |
 | **3 · Private tools and notch area** | Private clipboard, full local launcher for apps/files/commands, then hover-operated panel and local Apple Music/Spotify controls. One shared architecture supports both TinyCast integration scenarios. | Clipboard and launcher steps 1-7 implemented |
+
+The local calculator distinguishes bit and byte transfer rates (`Mbps` vs `MBps`), including binary units. App scanning preserves configured folder priority and updates saved shortcuts to the selected copy.
 
 The collapsed notch-area panel will show nothing. It will use the active built-in MacBook display when available, otherwise the main display.
 

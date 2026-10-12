@@ -1,3 +1,5 @@
+// Focus recovery inspired by Tinycast 62abccdfc6cc06df7fc027099a4defe551386a88.
+// Modified 2026-10-12: owned AppKit menus, presentation guards and selection/IME protection.
 import AppKit
 import MacManagerCore
 import Observation
@@ -9,7 +11,14 @@ final class LauncherController: ApplicationLifecycleParticipant {
     var clipboard: ClipboardService?
     private(set) var clipboardMode = false
     var fileFilter = LauncherFileFilter.all
-    var customizationEntry: LauncherEntry?
+    var customizationEntry: LauncherEntry? {
+        didSet {
+            if oldValue != nil && customizationEntry == nil { restoreSearchFocus(after: presentationID) }
+        }
+    }
+    @ObservationIgnored private var rowMenuOpen = false
+    @ObservationIgnored private var searchSelection: (query: String, range: NSRange)?
+    var focusPresentationID: UUID { presentationID }
     var options: LauncherPreferences { preferences.launcher }
     var showsResults: Bool { clipboardMode || !model.query.isEmpty }
     @ObservationIgnored private let files = LauncherFileSearch()
@@ -131,11 +140,11 @@ final class LauncherController: ApplicationLifecycleParticipant {
             guard let self else { return }
             if self.model.query.isEmpty { self.hide() } else { self.model.search("") }
         }
-        panel.navigationEnabled = { [weak self] in self?.customizationEntry == nil }
+        panel.navigationEnabled = { [weak self] in self?.customizationEntry == nil && self?.rowMenuOpen == false }
         panel.onTab = { [weak self] in self?.toggleMode() }
         panel.onArrow = { [weak self] in self?.model.moveSelection($0) }
         panel.onSubmit = { [weak self] in self?.performSelected() }
-        panel.onResign = { [weak self] in if self?.customizationEntry == nil { self?.hide(restoreFocus: false) } }
+        panel.onResign = { [weak self] in if self?.customizationEntry == nil && self?.rowMenuOpen == false { self?.hide(restoreFocus: false) } }
         let root = AnyView(LauncherView(controller: self)
             .environment(\.locale, preferences.locale).preferredColorScheme(.dark).tint(AppTheme.accent))
         let hosting = self.hosting ?? NSHostingView(rootView: root)
@@ -150,11 +159,37 @@ final class LauncherController: ApplicationLifecycleParticipant {
                               width: width, height: 90), display: false)
         visible = true
         panel.makeKeyAndOrderFront(nil)
+        restoreSearchFocus(after: presentationID)
+    }
+    func beginRowMenu() -> UUID {
+        rowMenuOpen = true
+        searchSelection = panel?.searchSelection().map { (model.query, $0) }
+        return presentationID
+    }
+    func endRowMenu(_ token: UUID) {
+        guard token == presentationID else { return }
+        rowMenuOpen = false
+        if customizationEntry == nil, panel?.isKeyWindow != true {
+            hide(restoreFocus: false)
+            return
+        }
+        restoreSearchFocus(after: token)
+    }
+    func openCustomization(_ entry: LauncherEntry) {
+        if !rowMenuOpen { searchSelection = panel?.searchSelection().map { (model.query, $0) } }
+        customizationEntry = entry
+    }
+    func restoreSearchFocus(after token: UUID) {
         DispatchQueue.main.async { [weak self] in
-            guard let self, self.visible else { return }
-            self.panel?.focusSearchField()
+            guard let self, self.running, self.visible, self.presentationID == token,
+                  !self.rowMenuOpen, self.customizationEntry == nil,
+                  let panel = self.panel, panel.isVisible, panel.isKeyWindow else { return }
+            let selection = self.searchSelection
+            panel.focusSearchField(selection: selection?.query == self.model.query ? selection?.range : nil)
+            self.searchSelection = nil
         }
     }
+
     func toggleMode(clipboard: Bool? = nil) {
         clipboardMode = clipboard ?? !clipboardMode
         model.onlyAdditionalResults = clipboardMode
@@ -299,6 +334,7 @@ final class LauncherController: ApplicationLifecycleParticipant {
     func hide(restoreFocus: Bool = true) {
         guard visible else { return }
         visible = false; presentationID = UUID(); executing = false
+        rowMenuOpen = false; searchSelection = nil
         panel?.orderOut(nil)
         // Reuse the host, but release the private mode's SwiftUI subtree immediately.
         if clipboardMode { hosting?.rootView = AnyView(Color.clear) }
@@ -322,7 +358,7 @@ final class LauncherController: ApplicationLifecycleParticipant {
             executing = true
             Task {
                 await clipboard.restore(id)
-                guard token == presentationID else { return }
+        guard token == presentationID else { return }
                 executing = false
                 if clipboard.failure == nil { hide() } else { actionFailed = true }
             }
@@ -378,12 +414,28 @@ final class LauncherController: ApplicationLifecycleParticipant {
         isReleasedWhenClosed = false; hidesOnDeactivate = false
         appearance = NSAppearance(named: .darkAqua)
     }
-    func focusSearchField() {
+    private var searchField: NSTextField? {
         func find(in view: NSView) -> NSTextField? {
             if let field = view as? NSTextField, field.identifier?.rawValue == "launcher.search" { return field }
             return view.subviews.lazy.compactMap { find(in: $0) }.first
         }
-        if let contentView, let field = find(in: contentView) { makeFirstResponder(field) }
+        return contentView.flatMap { find(in: $0) }
+    }
+    func searchSelection() -> NSRange? {
+        (searchField?.currentEditor() as? NSTextView)?.selectedRange()
+    }
+    func focusSearchField(selection: NSRange? = nil) {
+        guard let field = searchField else { return }
+        if (firstResponder as? NSTextView)?.hasMarkedText() == true { return }
+        let selection = selection ?? searchSelection()
+        makeFirstResponder(nil)
+        makeFirstResponder(field)
+        if let selection, let editor = field.currentEditor() as? NSTextView, !editor.hasMarkedText() {
+            let length = (field.stringValue as NSString).length
+            if selection.location <= length, selection.length <= length - selection.location {
+                editor.setSelectedRange(selection)
+            }
+        }
     }
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { false }

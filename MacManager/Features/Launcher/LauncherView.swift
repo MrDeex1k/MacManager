@@ -50,16 +50,8 @@ struct LauncherView: View {
                                 .disabled(!model.resultsAreCurrent)
                                 .accessibilityIdentifier("launcher.result." + entry.id)
                                 .accessibilityAddTraits(model.selectedID == entry.id ? .isSelected : [])
-                                .contextMenu {
-                                    if controller.canCustomize(entry) {
-                                        Button(controller.strings("launcher.customize")) { controller.customizationEntry = entry }
-                                    }
-                                    if case .file(let url) = entry.action {
-                                        Button(controller.strings("launcher.reveal")) {
-                                            NSWorkspace.shared.activateFileViewerSelecting([url]); controller.hide(restoreFocus: false)
-                                        }
-                                    }
-                                }
+                                .background { LauncherRowMenu(controller: controller, entry: entry) }
+                                .modifier(LauncherRowActions(controller: controller, entry: entry))
                                 .id(entry.id)
                             }
                         }
@@ -89,10 +81,12 @@ struct LauncherView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 24))
         .popover(item: Binding(get: { controller.customizationEntry }, set: { controller.customizationEntry = $0 })) { entry in
+            let presentation = controller.focusPresentationID
             LauncherCustomizationView(controller: controller,
                 draft: controller.options.items[entry.id] ?? LauncherCustomization(entry: entry)) {
                     controller.customizationEntry = nil
                 }
+                .onDisappear { controller.restoreSearchFocus(after: presentation) }
         }
         .onChange(of: controller.clipboard?.revision) { _, _ in
             if controller.clipboardMode { controller.refreshResults() }
@@ -150,9 +144,90 @@ private struct LauncherSearchField: NSViewRepresentable {
         override func viewDidMoveToWindow() {
             super.viewDidMoveToWindow()
             DispatchQueue.main.async { [weak self] in
-                guard let self, let window = self.window, window.isVisible else { return }
+                guard let self, let window = self.window, window.isVisible, window.isKeyWindow else { return }
                 window.makeFirstResponder(self)
             }
         }
+    }
+}
+
+private struct LauncherRowActions: ViewModifier {
+    let controller: LauncherController
+    let entry: LauncherEntry
+    @ViewBuilder func body(content: Content) -> some View {
+        if controller.canCustomize(entry) {
+            content.accessibilityAction(named: Text(controller.strings("launcher.customize"))) {
+                controller.openCustomization(entry)
+            }
+        } else if case .file(let url) = entry.action {
+            content.accessibilityAction(named: Text(controller.strings("launcher.reveal"))) {
+                NSWorkspace.shared.activateFileViewerSelecting([url])
+                controller.hide(restoreFocus: false)
+            }
+        } else { content }
+    }
+}
+
+// Own only right/control-click tracking; ordinary clicks remain with the SwiftUI result button.
+private struct LauncherRowMenu: NSViewRepresentable {
+    let controller: LauncherController
+    let entry: LauncherEntry
+    func makeNSView(context: Context) -> MenuView { MenuView() }
+    func updateNSView(_ view: MenuView, context: Context) {
+        view.controller = controller
+        view.entry = entry
+    }
+    static func dismantleNSView(_ view: MenuView, coordinator: ()) { view.removeMonitor() }
+    @MainActor final class MenuView: NSView {
+        weak var controller: LauncherController?
+        var entry: LauncherEntry?
+        private var action: (() -> Void)?
+        private var monitor: Any?
+        override func hitTest(_ point: NSPoint) -> NSView? { nil }
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            removeMonitor()
+            guard window != nil else { return }
+            monitor = NSEvent.addLocalMonitorForEvents(matching: [.rightMouseDown, .leftMouseDown]) { [weak self] event in
+                guard event.type == .rightMouseDown || event.modifierFlags.contains(.control) else { return event }
+                guard let self, event.window === self.window,
+                      self.visibleRect.contains(self.convert(event.locationInWindow, from: nil)),
+                      let controller = self.controller, let entry = self.entry,
+                      controller.visible, controller.model.resultsAreCurrent else { return event }
+                let isFile: Bool
+                if case .file = entry.action { isFile = true } else { isFile = false }
+                guard controller.canCustomize(entry) || isFile else { return event }
+                self.rightMouseDown(with: event)
+                return nil
+            }
+        }
+        func removeMonitor() {
+            if let monitor { NSEvent.removeMonitor(monitor) }
+            monitor = nil
+        }
+        override func rightMouseDown(with event: NSEvent) {
+            guard let controller, let entry, controller.model.resultsAreCurrent else { return }
+            let menu = NSMenu()
+            let title: String
+            if controller.canCustomize(entry) {
+                title = controller.strings("launcher.customize")
+                action = { [weak controller] in controller?.openCustomization(entry) }
+            } else if case .file(let url) = entry.action {
+                title = controller.strings("launcher.reveal")
+                action = { [weak controller] in
+                    NSWorkspace.shared.activateFileViewerSelecting([url])
+                    controller?.hide(restoreFocus: false)
+                }
+            } else { return }
+            let item = NSMenuItem(title: title, action: #selector(performAction), keyEquivalent: "")
+            item.target = self
+            menu.addItem(item)
+            let presentation = controller.beginRowMenu()
+            // popUpContextMenu returns after cancellation or the selected action has finished.
+            NSMenu.popUpContextMenu(menu, with: event, for: self)
+            action = nil
+            controller.endRowMenu(presentation)
+        }
+        @objc private func performAction() { action?() }
     }
 }

@@ -980,3 +980,11 @@ and https://github.com/abue-ammar/tinycast/commit/5ec0f9de11196183ea92f35c550c43
 File: SearchScopes.swift. Local modifications: fresh metadata in ApplicationProvider.swift,
 deterministic ties, scope priority, bounded cancellable scans and shortcut/customization
 reconciliation in LauncherSearch.swift and LauncherController.swift.
+
+Launcher focus recovery (2026-10-12)
+Inspired by Tinycast RootPaletteView.closeMenus, Copyright (C) 2026 Abue Ammar.
+AGPL-3.0-or-later; used under version 3.
+Source: https://github.com/abue-ammar/tinycast/commit/62abccdfc6cc06df7fc027099a4defe551386a88
+Local implementation: LauncherView.swift and LauncherController.swift use owned AppKit
+menus, popover dismissal, presentation guards and selection/IME protection.
+Tinycast's menu-panel infrastructure is not included.
