@@ -662,6 +662,7 @@ final class AppShellTests: XCTestCase {
         app.menuItems["Customize"].click()
         XCTAssertTrue(alias.waitForExistence(timeout: 5))
         app.buttons["Save"].click()
+        XCTAssertTrue(alias.waitForNonExistence(timeout: 3))
         field.typeText("work")
         XCTAssertEqual(field.value as? String, "network")
     }
