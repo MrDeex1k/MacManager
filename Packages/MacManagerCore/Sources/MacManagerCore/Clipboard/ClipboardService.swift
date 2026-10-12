@@ -48,6 +48,15 @@ public final class ClipboardService {
     @ObservationIgnored private var refreshID = UUID()
     @ObservationIgnored private var storageStarted: Bool
     @ObservationIgnored private var running = false
+    @ObservationIgnored private var searches: [UUID: Task<[ClipboardEntry], Error>] = [:]
+    @ObservationIgnored private var memoryAccessTask: Task<Void, Never>?
+
+    @discardableResult private func configureMemoryAccess(_ allowed: Bool) -> Task<Void, Never> {
+        let previous = memoryAccessTask, repository = repository
+        let task = Task { await previous?.value; await repository.setMemoryAccessAllowed(allowed) }
+        memoryAccessTask = task
+        return task
+    }
 
     public init(preferences: ClipboardPreferences, pasteboard: any ClipboardPasteboard,
                 repository: ClipboardRepository, storageExists: Bool,
@@ -63,6 +72,7 @@ public final class ClipboardService {
         guard !running else { return }
         running = true
         invalidateCapture()
+        await configureMemoryAccess(!suspended).value
         access = pasteboard.access
         if preferences.enabled || storageStarted { await refresh() }
     }
@@ -70,6 +80,7 @@ public final class ClipboardService {
     public func stop() {
         running = false
         invalidateCapture()
+        configureMemoryAccess(false)
         entries = []; restoredID = nil
     }
 
@@ -78,7 +89,8 @@ public final class ClipboardService {
         self.suspended = suspended
         invalidateCapture()
         if suspended { entries = []; restoredID = nil }
-        else if running && storageStarted { await refresh() }
+        await configureMemoryAccess(!suspended && running).value
+        if !self.suspended && running && storageStarted { await refresh() }
     }
 
     public func updatePreferences(_ value: ClipboardPreferences) async {
@@ -191,6 +203,41 @@ public final class ClipboardService {
         }
     }
 
+    public func search(_ query: String, limit: Int = 1_000) async throws -> [ClipboardEntry] {
+        guard running, !suspended else { throw CancellationError() }
+        let token = generation, id = UUID()
+        let repository = repository, entries = entries, preferences = preferences, date = now()
+        let task = Task { try await repository.search(query, entries: entries, preferences: preferences, now: date, limit: limit) }
+        searches[id] = task
+        defer { searches.removeValue(forKey: id) }
+        let result = try await withTaskCancellationHandler { try await task.value } onCancel: { task.cancel() }
+        guard running, !suspended, token == generation else { throw CancellationError() }
+        return result
+    }
+
+    public func content(_ id: UUID) async -> ClipboardRestoredContent? {
+        guard running, !suspended, entries.contains(where: { $0.id == id }) else { return nil }
+        let token = generation
+        do {
+            let content = try await repository.restore(id, preferences: preferences, now: now())
+            guard running, !suspended, token == generation, !Task.isCancelled,
+                  entries.contains(where: { $0.id == id }) else { return nil }
+            return content
+        } catch {
+            if token == generation && !(error is CancellationError) { failure = error as? ClipboardFailure ?? .storage }
+            return nil
+        }
+    }
+
+    public func thumbnail(_ id: UUID) async -> Data? {
+        guard running, !suspended, entries.contains(where: { $0.id == id }) else { return nil }
+        let token = generation
+        let data = try? await repository.thumbnail(id)
+        guard running, !suspended, token == generation, !Task.isCancelled,
+              entries.contains(where: { $0.id == id }) else { return nil }
+        return data
+    }
+
     public func restore(_ id: UUID) async {
         guard running, !suspended else { return }
         let token = generation
@@ -237,6 +284,7 @@ public final class ClipboardService {
 
     private func invalidateCapture() {
         generation += 1
+        searches.values.forEach { $0.cancel() }; searches.removeAll()
         captureTask?.cancel(); captureTask = nil
         lastChangeCount = pasteboard.changeCount
         restoredID = nil

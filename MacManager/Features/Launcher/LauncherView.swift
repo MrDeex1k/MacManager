@@ -95,7 +95,6 @@ struct LauncherView: View {
                 }
         }
         .onChange(of: controller.clipboard?.revision) { _, _ in
-            controller.invalidateThumbnails()
             if controller.clipboardMode { controller.refreshResults() }
         }
         .onChange(of: controller.clipboard?.suspended) { _, suspended in
@@ -104,10 +103,8 @@ struct LauncherView: View {
         .onChange(of: controller.showsResults) { _, _ in controller.resize(rowCount: model.results.count) }
     }
     @ViewBuilder private func icon(_ entry: LauncherEntry) -> some View {
-        if case .clipboard(let id) = entry.action,
-           let data = controller.clipboard?.entries.first(where: { $0.id == id })?.thumbnail,
-           let image = controller.thumbnail(for: id, data: data) {
-            Image(nsImage: image).resizable().scaledToFit()
+        if case .clipboard(let id) = entry.action, let service = controller.clipboard {
+            ClipboardThumbnailView(service: service, id: id)
         } else if case .application(let url) = entry.action {
             Image(nsImage: controller.applicationIcon(at: url)).resizable().scaledToFit()
         } else {

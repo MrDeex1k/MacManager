@@ -13,9 +13,7 @@ final class LauncherController: ApplicationLifecycleParticipant {
     var options: LauncherPreferences { preferences.launcher }
     var showsResults: Bool { clipboardMode || !model.query.isEmpty }
     @ObservationIgnored private let files = LauncherFileSearch()
-    @ObservationIgnored private let clipboardSearch = ClipboardSearch()
     @ObservationIgnored private let applicationIcons = NSCache<NSURL, NSImage>()
-    @ObservationIgnored private let thumbnails = NSCache<NSUUID, NSImage>()
     var catalogRefreshSeconds: Double = 60 { didSet { model.catalogRefreshSeconds = catalogRefreshSeconds } }
     @ObservationIgnored private var shortcutCleanup: Task<Void, Never>?
     @ObservationIgnored private var lastIconRefresh: ContinuousClock.Instant?
@@ -54,7 +52,7 @@ final class LauncherController: ApplicationLifecycleParticipant {
             guard let self, self.visible else { return [] }
             if self.clipboardMode {
                 guard let clipboard = self.clipboard, !clipboard.suspended else { return [] }
-                let entries = try await self.clipboardSearch.search(query, entries: clipboard.entries, limit: 40)
+                let entries = try await clipboard.search(query, limit: 40)
                 try Task.checkCancellation()
                 guard self.visible, self.clipboardMode, !clipboard.suspended else { return [] }
                 return entries.map {
@@ -219,16 +217,6 @@ final class LauncherController: ApplicationLifecycleParticipant {
         return image
     }
 
-    func thumbnail(for id: UUID, data: Data) -> NSImage? {
-        if let image = thumbnails.object(forKey: id as NSUUID) { return image }
-        guard let image = NSImage(data: data) else { return nil }
-        thumbnails.countLimit = 40
-        thumbnails.setObject(image, forKey: id as NSUUID)
-        return image
-    }
-
-    func invalidateThumbnails() { thumbnails.removeAllObjects() }
-
     private func reconcileApplicationShortcuts() {
         guard shortcutCleanup == nil else { return }
         let saved = preferences.launcher.items
@@ -294,7 +282,6 @@ final class LauncherController: ApplicationLifecycleParticipant {
         panel?.orderOut(nil)
         // Reuse the host, but release the private mode's SwiftUI subtree immediately.
         if clipboardMode { hosting?.rootView = AnyView(Color.clear) }
-        thumbnails.removeAllObjects()
         model.cancel(); model.onlyAdditionalResults = false; clipboardMode = false; customizationEntry = nil; actionFailed = false
         if restoreFocus, let previousApplication, !previousApplication.isTerminated,
            NSWorkspace.shared.frontmostApplication?.processIdentifier == ProcessInfo.processInfo.processIdentifier {

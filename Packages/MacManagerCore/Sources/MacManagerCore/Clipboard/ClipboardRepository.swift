@@ -1,6 +1,7 @@
 import CryptoKit
 import Foundation
 import SQLite3
+import OSLog
 
 public struct ClipboardLibrary: Sendable {
     public let entries: [ClipboardEntry]
@@ -24,6 +25,15 @@ public actor ClipboardRepository {
     private let keys: any ClipboardKeyProviding
     private var connection: Connection?
     private let files = FileManager.default
+    private var memory: ClipboardMemoryCache
+    private var memoryAccessAllowed = true
+    private let signposter = OSSignposter(subsystem: "dev.macmanager.MacManager", category: "clipboard-search")
+    var cachedBytes: Int { memory.bytes }
+
+    public func setMemoryAccessAllowed(_ allowed: Bool) {
+        memoryAccessAllowed = allowed
+        if !allowed { memory.clear() }
+    }
 
     private final class Connection: @unchecked Sendable {
         let handle: OpaquePointer
@@ -38,11 +48,14 @@ public actor ClipboardRepository {
         let sourceIsEstimated: Bool
     }
 
-    public init(directory: URL, keys: any ClipboardKeyProviding) {
+    public init(directory: URL, keys: any ClipboardKeyProviding, memoryLimitBytes: Int = 16_000_000) {
         self.directory = directory; self.keys = keys
+        memory = ClipboardMemoryCache(limit: max(0, min(16_000_000, memoryLimitBytes)))
     }
 
     public func load(preferences: ClipboardPreferences, now: Date, reusing existing: [ClipboardEntry] = []) throws -> ClipboardLibrary {
+        guard memoryAccessAllowed else { throw CancellationError() }
+        try Task.checkCancellation()
         try open()
         let key = try currentKey()
         try prune(preferences: preferences, now: now)
@@ -51,12 +64,15 @@ public actor ClipboardRepository {
         let reusable = Dictionary(existing.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         let entries = try records.map { record -> ClipboardEntry in
             try Task.checkCancellation()
-            if let entry = reusable[record.id], entry.record == record, !entry.damaged { return entry }
+            if let entry = reusable[record.id], entry.record == record, !entry.damaged {
+                return ClipboardEntry(record: record, text: compactText(entry.text), thumbnail: nil,
+                                      sourceBundleID: entry.sourceBundleID)
+            }
             do {
                 let data = try decrypt(record.id, role: "preview", key: key, maximumBytes: 7_000_000)
                 let preview = try JSONDecoder().decode(Preview.self, from: data)
-                guard preview.version == 1 else { throw ClipboardFailure.damagedEntry }
-                return ClipboardEntry(record: record, text: preview.text, thumbnail: preview.thumbnail,
+                guard preview.version == 1 || preview.version == 2 else { throw ClipboardFailure.damagedEntry }
+                return ClipboardEntry(record: record, text: compactText(preview.text), thumbnail: nil,
                                       sourceBundleID: preview.sourceBundleID)
             } catch {
                 return ClipboardEntry(record: record, text: nil, thumbnail: nil, sourceBundleID: nil, damaged: true)
@@ -78,7 +94,7 @@ public actor ClipboardRepository {
             return ClipboardMutation(inserted: nil, removed: removed, databaseBytes: databaseBytes)
         }
         let id = UUID()
-        let preview = Preview(version: 1, text: content.kind == .text ? String(data: content.data, encoding: .utf8) : nil,
+        let preview = Preview(version: 2, text: content.kind == .text ? compactText(String(data: content.data, encoding: .utf8)) : nil,
                               thumbnail: content.thumbnail, sourceBundleID: content.sourceBundleID,
                               sourceIsEstimated: content.sourceIsEstimated)
         let payload = try encrypt(content.data, id: id, role: "payload", key: key)
@@ -105,19 +121,72 @@ public actor ClipboardRepository {
         }
         removed.formUnion(try prune(preferences: preferences, now: now))
         let record = ClipboardRecord(id: id, kind: content.kind, capturedAt: now, storedBytes: bytes)
-        let entry = ClipboardEntry(record: record, text: preview.text, thumbnail: preview.thumbnail,
+        let entry = ClipboardEntry(record: record, text: compactText(preview.text), thumbnail: nil,
                                    sourceBundleID: preview.sourceBundleID)
         return ClipboardMutation(inserted: removed.contains(id) ? nil : entry, removed: removed, databaseBytes: databaseBytes)
     }
 
+    private func compactText(_ text: String?) -> String? {
+        text.map { String(String(decoding: $0.utf8.prefix(1_200), as: UTF8.self).prefix(300)) }
+    }
+
     public func restore(_ id: UUID, preferences: ClipboardPreferences, now: Date) throws -> ClipboardRestoredContent {
+        guard memoryAccessAllowed else { throw CancellationError() }
+        try Task.checkCancellation()
         try open()
         let key = try currentKey()
         try prune(preferences: preferences, now: now)
         guard let record = try records(id: id).first else { throw ClipboardFailure.damagedEntry }
-        let data = try decrypt(id, role: "payload", key: key, maximumBytes: 21_000_000)
+        let cacheKey = ClipboardMemoryCache.Key(id: id, role: "payload")
+        let data = try memory.value(for: cacheKey) ?? decrypt(id, role: "payload", key: key, maximumBytes: 21_000_000)
         guard ClipboardContent(kind: record.kind, data: data).isValid else { throw ClipboardFailure.damagedEntry }
+        try Task.checkCancellation()
+        memory.insert(data, for: cacheKey)
         return ClipboardRestoredContent(kind: record.kind, data: data)
+    }
+
+    public func thumbnail(_ id: UUID) throws -> Data? {
+        guard memoryAccessAllowed else { throw CancellationError() }
+        try Task.checkCancellation()
+        try open()
+        guard try records(id: id).first?.kind == .image else { return nil }
+        let cacheKey = ClipboardMemoryCache.Key(id: id, role: "thumbnail")
+        if let cached = memory.value(for: cacheKey) { return cached }
+        let data = try decrypt(id, role: "preview", key: currentKey(), maximumBytes: 7_000_000)
+        let preview = try JSONDecoder().decode(Preview.self, from: data)
+        guard preview.version == 1 || preview.version == 2, (preview.thumbnail?.count ?? 0) <= 1_000_000 else {
+            throw ClipboardFailure.damagedEntry
+        }
+        try Task.checkCancellation()
+        if let thumbnail = preview.thumbnail { memory.insert(thumbnail, for: cacheKey) }
+        return preview.thumbnail
+    }
+
+    public func search(_ query: String, entries: [ClipboardEntry], preferences: ClipboardPreferences,
+                       now: Date, limit: Int) throws -> [ClipboardEntry] {
+        guard memoryAccessAllowed else { throw CancellationError() }
+        let interval = signposter.beginInterval("Filter", id: signposter.makeSignpostID())
+        defer { signposter.endInterval("Filter", interval) }
+        guard limit > 0 else { return [] }
+        try open()
+        let live = Set(ClipboardRetention.retained(try records(), preferences: preferences, now: now).map(\.id))
+        let key = try currentKey()
+        var result: [ClipboardEntry] = []
+        for entry in entries where live.contains(entry.id) && !entry.damaged {
+            try Task.checkCancellation()
+            if query.isEmpty { result.append(entry) }
+            else if entry.record.kind == .text {
+                // Do not fill the cache with the entire history during a scan.
+                do {
+                    let cacheKey = ClipboardMemoryCache.Key(id: entry.id, role: "payload")
+                    let data = try memory.value(for: cacheKey) ?? decrypt(entry.id, role: "payload", key: key, maximumBytes: 1_000_100)
+                    if let text = String(data: data, encoding: .utf8), text.localizedStandardContains(query) { result.append(entry) }
+                } catch { if error is CancellationError { throw error } }
+            }
+            if result.count == limit { break }
+        }
+        try Task.checkCancellation()
+        return result
     }
 
     public func delete(_ ids: Set<UUID>) throws {
@@ -126,6 +195,7 @@ public actor ClipboardRepository {
     }
 
     public func clear() throws {
+        memory.clear()
         connection = nil
         if files.fileExists(atPath: directory.path) { try files.removeItem(at: directory) }
     }
@@ -235,6 +305,7 @@ public actor ClipboardRepository {
 
     private func remove(_ ids: Set<UUID>) throws {
         guard !ids.isEmpty else { return }
+        memory.remove(ids)
         try execute("BEGIN IMMEDIATE")
         do {
             for id in ids {
