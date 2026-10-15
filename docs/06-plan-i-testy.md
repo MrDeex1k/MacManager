@@ -72,6 +72,28 @@ Kolejność rozszerzonego etapu 3: P05 → prywatne repozytorium schowka, retenc
 
 Bramka: zwinięta wyspa nie pokazuje żadnej treści; schowek działa również bez widocznej wyspy; lokalne odtwarzacze obsługują podstawowe akcje; brak biblioteki, OAuth i sterowania innymi urządzeniami. Żadna odmowa uprawnienia nie unieruchamia całej aplikacji.
 
+### Plan wyspy 3C i integracji muzyki 3D
+
+Aktualizacja 2026-10-12 (D26): pierwsza wersja obejmuje pięć priorytetów doprecyzowanych po analizie NotchNook, Alcove i Atoll. Specyfikacja zachowania znajduje się w [dokumencie interfejsu](02-interfejs.md#wyspa). To plan prac i odbioru, nie deklaracja wdrożenia.
+
+Aktualizacja 2026-10-13: kroki 1–2 mają implementację panelu AppKit, sterowanie z menu i opcjonalny skrót oraz testy logiki hover i GUI. Czarna powierzchnia łączy się z notchem zgodnie z D27. Pełny odbiór P07 na wielu konfiguracjach ekranów i sesji pozostaje otwarty. [Raport kroków 1–2](reports/etap-3c-wyspa-1-2.md). Schowek, odtwarzacz i animowane przejścia pozostają kolejnymi krokami.
+
+Krok 3 jest zaimplementowany lokalnie (2026-10-13): wyspa pokazuje wspólną historię tekstów i obrazów, miniatury, wyszukiwanie, przywrócenie z „Skopiowano”, usuwanie oraz włączanie/pauzę nagrywania. Strzałki wybierają wpis, Enter przywraca, Escape zamyka. Panel ma stałą wysokość 340 punktów treści plus obszar kamery, a lista przewija się wewnątrz. [Raport kroku 3](reports/etap-3c-wyspa-3.md). Kroki 5 i 4 dla Apple Music zostały następnie wdrożone; zakres odbioru opisano poniżej.
+
+Krok 5 ma implementację i odbiór funkcjonalny (2026-10-13): skończone przejścia otwierania/zamykania, Reduce Motion, łagodne zmiany zaznaczenia i potwierdzenia oraz natychmiastowe zwalnianie prywatnej zawartości przy zamykaniu. Ukryty panel nie ma hosta, animacji ani aktywnych zadań prezentacji; wspólne usługi pozostają niezależne. Testy sprawdzają wielokrotne cykle, anulowanie wyszukiwania i stan bezczynny. [Raport kroku 5](reports/etap-3c-wyspa-5.md). Pomiar Instruments i pełna macierz sesji/ekranów pozostają w odbiorze. Zmiana sekcji oraz zatrzymanie pracy Muzyki są sprawdzone testami GUI w 3D.
+
+| Krok | Etap / zależności | Zakres i kryterium ukończenia |
+| --- | --- | --- |
+| 1. Stabilny hover | 3C / P07 | Geometria aktywacji i panelu pozwala przejść od górnej krawędzi do treści bez zwinięcia. Ruch przy granicy nie powoduje migotania; powrót kursora anuluje oczekujące zamknięcie. Zwłoki 150/350 ms stroimy na urządzeniu. |
+| 2. Przewidywalny fokus | 3C / P07 | Hover otwiera bez aktywacji aplikacji i bez przejęcia pisania. Kliknięcie pola umożliwia wyszukiwanie; skrót i pasek menu zapewniają drogę klawiaturową. Pisanie i menu kontekstowe podtrzymują panel; Escape zamyka i oddaje fokus. |
+| 3. Czytelny schowek | 3C / istniejący ClipboardService | Rozpoznawalne miniatury, czytelne fragmenty tekstu, responsywne wyszukiwanie i przywrócenie jedną akcją z potwierdzeniem „Skopiowano”. Ta sama historia co w launcherze i oknie, bez drugiego obserwatora, magazynu ani automatycznego wklejania. |
+| 4. Kompaktowy odtwarzacz | Apple Music wdrożone; Spotify odłożone / P06 i panel 3C | Okładka, tytuł, wykonawca, postęp i poprzedni/odtwórz-pauza/następny. Źródło oznaczone i przełączane w panelu; jedno grające wybierane automatycznie, dwa utrzymują ostatni wybór. Brak zgody, odtwarzacza i okładki mają czytelne stany. |
+| 5. Animacje tylko wtedy, gdy potrzebne | 3C, następnie odbiór z 3D | Dopracowane otwarcie, zamknięcie i zmiana sekcji; Reduce Motion. Bez wizualizacji audio. Renderowanie postępu tylko w widocznej sekcji Muzyka; zwinięcie, ukrycie i zmiana sekcji zatrzymują zadania prezentacji, bez mnożenia timerów przy ponownym otwieraniu. |
+
+Kolejność wykonania: prototyp P07 i kroki 1–2 → schowek w panelu (3) → przejścia i zatrzymywanie pracy prezentacji (5) → P06 i odtwarzacz (4) → wspólny odbiór 3C/3D, w tym ponowna kontrola kroku 5. Odtwarzacz pozostaje w 3D; aktualizacja nie zmienia kolejności 3A → 3B → 3C → 3D.
+
+Odbiór pierwszej wersji obejmuje T10–T12, T17, T20 oraz poniższe scenariusze T22–T26. Każdy otrzymuje wynik i opis konfiguracji; samo przygotowanie dokumentacji nie zamyka kroku. Półka plików, przeciąganie wpisów schowka, gesty, Live Activities, zastępowanie systemowych HUD-ów i widżety blokady nie są częścią tych pięciu priorytetów.
+
 ## Scenariusze odbioru
 
 | Test | Wymagania | Oczekiwany wynik |
@@ -97,6 +119,11 @@ Bramka: zwinięta wyspa nie pokazuje żadnej treści; schowek działa również 
 | T19: brak emisji danych | PRI-01 | Ruch zgodny z tabelą endpointów; brak połączeń schowka, metryk i telemetrii. |
 | T20: dostępność i lokalizacja | SYS-02/03 | PL/EN, długi tekst, VoiceOver, klawiatura, Reduce Motion/Transparency, kontrast. |
 | T21: instalacja i migracja | APP, UPD | Czysty użytkownik, Gatekeeper, aktualizacja przez DMG, zachowane ustawienia i stan autostartu. |
+| T22: stabilność hover | ISL-01/02, D26 | Przejście od krawędzi do treści, ruch wzdłuż granicy i szybkie wyjście/powrót: bez migotania i przedwczesnego zwinięcia. Powtórzyć na ekranie z notchem i bez oraz przy zmianie skali. |
+| T23: fokus wyspy | ISL-02, D26 | Pisać w innej aplikacji podczas hover: fokus pozostaje. Kliknąć wyszukiwarkę, pisać, otworzyć menu wpisu; panel pozostaje otwarty. Skrót/pasek menu umożliwiają obsługę klawiaturą; Escape zamyka i oddaje fokus. |
+| T24: schowek w wyspie | CLP-01/02, D26 | Tekst krótki/długi/wielowierszowy i obraz: czytelne wpisy, wyszukiwanie, jedna akcja przywrócenia i „Skopiowano”. Zgodność z historią okna/launchera, bez duplikatu i symulowania ⌘V. |
+| T25: kompaktowe media | MUS-01, D26 | Music/Spotify osobno i równocześnie: poprawny wybór automatyczny, utrzymanie ostatniego źródła przy dwóch grających i ręczna zmiana w panelu. Długi tytuł i brak okładki nie zasłaniają przycisków; podstawowe akcje działają. |
+| T26: praca prezentacji i animacje | ISL-01/02, MUS-01, D26 | Otwieranie/zamykanie, zmiana sekcji, pełny ekran i blokada zatrzymują niewidoczne animacje/renderowanie postępu; powrót pokazuje aktualny stan. Powtarzane otwarcia nie mnożą timerów/obserwatorów; Reduce Motion respektowane. Koszt potwierdzony profilem, bez zatrzymywania wspólnych usług. |
 
 ## Strategia testów
 
@@ -115,3 +142,17 @@ Nie robić testu akceptacyjnego samego poboru W z odczytu aplikacji, która mier
 ## Definicja ukończenia fazy
 
 Kod i istotne testy przechodzą; scenariusze przypisane do fazy mają wynik; pozostałe ograniczenia są jawne i zgodne z zakresem. Dokumentacja, tłumaczenia i release notes odpowiadają rzeczywistemu buildowi. Brak sekretów i danych użytkownika w artefaktach. Nie oznaczać fazy jako ukończonej samym przygotowaniem dokumentacji.
+
+
+### Krok 4 - Apple Music, 2026-10-13
+
+Zgodnie z decyzją właściciela aktualny zakres obejmuje tylko Apple Music. Wdrożono sekcję Muzyka: tytuł, wykonawca, album, lokalna okładka lub placeholder, postęp i czas w sekundach, poprzedni/odtwórz-pauza/następny. Obsługiwane są brak procesu, brak utworu, wymagana zgoda, odmowa, timeout i błąd polecenia. Przycisk Połącz Apple Music uruchamia standardową zgodę Automatyzacji; pasywny odczyt nie wywołuje promptu ani nie uruchamia Music.
+
+128 testów Core przeszło. Testy GUI pokrywają podstawowe akcje, odmowę zgody i zatrzymanie pracy po zmianie sekcji/zamknięciu. Lokalny słownik Music 1.7 i dostęp z podpisanej instalacji zostały sprawdzone; odczyt rzeczywistego stanu bez bieżącego utworu działa. Po uruchomieniu utworu przez właściciela potwierdzono prawdziwe metadane, okładkę, czas trwania i aktualizację postępu. Dodatkowy odbiór na prawdziwym Music potwierdził pauzę/wznowienie, następny/poprzedni oraz zmianę i przywrócenie okładki. Poprzedni zachowuje natywną semantykę: po kilku sekundach najpierw restart utworu, kolejne szybkie kliknięcie cofa w kolejce. [Raport](reports/etap-3d-apple-music.md).
+
+T17/T25 dla Spotify, równoczesne źródła, automatyczny wybór oraz ręczny przełącznik odtwarzacza zostają odłożone do instalacji Spotify przez właściciela. Dostępność, pełna macierz ekranów/sesji i pomiar Instruments pozostają w odbiorze 3C/3D.
+
+
+### Odbiór poziomej półki schowka
+
+Aktualizacja 2026-10-13: poziome kafelki i wspólny szeroki układ Muzyki zastępują pionową listę w wyspie. Odbiór obejmuje geometrię 560 × 350, hover pomiędzy notchem a bokami panelu, poziome rozmieszczenie, klawiaturę, wyszukiwanie/przywracanie/usuwanie i wygaszanie pracy po ukryciu, także z Reduce Motion. [Raport](reports/etap-3c-wyspa-poziomy-schowek.md).

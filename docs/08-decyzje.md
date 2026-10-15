@@ -1,6 +1,6 @@
 # Rejestr decyzji i drzewo projektu
 
-Wszystkie decyzje produktowe poniżej zatwierdzone w wywiadzie i końcowym podsumowaniu. Rozwiązania implementacyjne zapisane w pozostałych dokumentach są decyzjami inżynierskimi; nie są przypisywane użytkownikowi jako dosłowne odpowiedzi.
+Decyzje produktowe poniżej zatwierdzono w wywiadzie, końcowym podsumowaniu lub późniejszych doprecyzowaniach właściciela wskazanych w kolumnie źródła. Rozwiązania implementacyjne zapisane w pozostałych dokumentach są decyzjami inżynierskimi; nie są przypisywane użytkownikowi jako dosłowne odpowiedzi.
 
 ## Drzewo decyzji
 
@@ -53,6 +53,9 @@ flowchart TD
 | D23 | Główny kod projektu jest objęty GNU AGPL v3.0 only, aby umożliwić integrację kodu na zgodnej licencji i zachować copyleft dla modyfikacji. | Zmiana właściciela z 2026-09-19 |
 | D24 | Docelowo jedna aplikacja obejmuje prywatny schowek i pełny moduł wyszukiwania aplikacji/komend na bazie TinyCast, z paletą zgodną z przesłaną referencją. Wspólna architektura obsługuje oba scenariusze integracji; najpierw wdrażamy scenariusz 1, a następnie rozwijamy go w kierunku scenariusza 2 bez wymiany wyszukiwarki ani magazynu schowka. | Doprecyzowanie właściciela z 2026-09-20; [scenariusze](12-scenariusze-integracji-tinycast.md) |
 | D25 | Etap 2 nadal obejmuje czujniki temperatury i RPM. Rozszerzony etap 3 realizujemy w kolejności: prywatny schowek, pełny launcher, wyspa i muzyka. | Doprecyzowanie właściciela z 2026-09-20; [plan etapów](06-plan-i-testy.md) |
+| D26 | Pierwsza wersja wyspy uwzględnia pięć priorytetów: stabilny hover, przewidywalny fokus, czytelny schowek, kompaktowy odtwarzacz z wyborem źródła w panelu oraz animacje ograniczone do potrzebnych momentów, z zatrzymaniem niewidocznej pracy prezentacji. Panel i schowek w 3C, media w 3D; pusty stan zwinięty i wspólne usługi pozostają podstawą. | Polecenie właściciela z 2026-10-12 po analizie NotchNook, Alcove i Atoll; [plan i kryteria odbioru](06-plan-i-testy.md#plan-wyspy-3c-i-integracji-muzyki-3d) |
+| D27 | Rozwinięta wyspa ma czarne, nieprzezroczyste tło, częściowo pokrywa się z obszarem notcha i łączy się z górną krawędzią. Kontrolki leżą poniżej kamery, dolne rogi są zaokrąglone. To wyjątek od materiału Liquid Glass dla powierzchni wyspy. | Referencja obrazowa i doprecyzowanie właściciela z 2026-10-13 podczas wdrożenia kroków 1–2 |
+| D28 | Podmiany aplikacji zachowują dane, bundle ID, ścieżkę w /Applications i tę samą tożsamość podpisującą certyfikatem. Instalowane buildy nie używają podpisu ad hoc; instalator odrzuca zmianę designated requirement. Jednorazowa migracja z ad hoc jest jawna i może wymagać odnowienia zgód Scrolla. | Polecenie właściciela z 2026-10-13 po utracie zgód przy podmianach; [proces instalacji](07-wydania.md#lokalne-podmiany-w-applications--zachowanie-tożsamości) |
 
 ## Decyzje inżynierskie
 
@@ -89,3 +92,18 @@ Zmianę produktową zapisać jako nową decyzję z przyczyną, wpływem na fazę
 - macOS 26+ oznacza domyślne użycie natywnego Liquid Glass w nawigacji i akcjach. Nie dodajemy przełącznika ani fallbacku dla starszego macOS; respektujemy systemowe ustawienia dostępności. Szczegółowy dobór miejsc jest w dokumencie interfejsu.
 
 Uzupełnienie implementacyjne kroku 6 (2026-09-08): na prośbę właściciela funkcja ma zastąpić automatyczne rozróżnianie Scroll Reversera bez wyboru modelu. Zaadaptowano jego klasyfikację dotyku i mostek zdarzeń z zachowaniem Apache-2.0/NOTICE. Główny kod jest obecnie objęty GNU AGPL v3.0 only. Pasywna obserwacja gestów wymaga Monitorowania wprowadzania obok Dostępności. Szczegóły i wyniki: [raport kroku 6](reports/etap-1-krok-6.md).
+
+
+## D29 - Apple Music przed Spotify (2026-10-13)
+
+Właściciel zatwierdził implementację kroku 4 wyłącznie dla zainstalowanego Apple Music. Integrację Spotify oraz wybór między odtwarzaczami rozpoczynamy po jego instalacji i sygnale właściciela. Lokalna aktualizacja zachowuje ten sam certyfikat i dane aplikacji.
+
+
+## D30 - domyślne ustawienia i pojedynczy autostart (2026-10-14)
+
+Na polecenie właściciela: historia schowka włączona, skrót launchera włączony jako Option+Q, interwał 2 s, adaptacja do niskiego poboru energii włączona i wyspa włączona. Zapisane wybory są nadal odtwarzane; zmiana fabrycznych wartości nie resetuje danych. Z panelu paska menu usunięto Otwórz wyspę; pozostają menu Widok, ustawienia i hover.
+
+
+## D31 - wyłącznie Liquid Glass w wyspie (2026-10-15)
+
+Końcowe polecenie właściciela zastępuje wcześniejszy wybór dwóch wariantów oraz wymóg czarnego panelu D27: jedynym tłem obu sekcji i animacji zamykania jest natywny Liquid Glass, zależny od ustawień systemowych. Nie ma przełącznika tła ani własnego poziomu przezroczystości. Dawne pole background jest ignorowane przy odczycie preferencji; pozostałe ustawienia i dane pozostają zachowane.

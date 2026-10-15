@@ -24,8 +24,8 @@ Nie dodawać Sparkle, chmurowej bazy, SDK telemetrii ani Spotify Web API do pocz
 | SensorService | Faza 2: temperatura i wentylatory, wspólne adaptery sprzętu. |
 | ClipboardService / Repository | Rozszerzony etap 3: jeden prywatny magazyn tekstów i obrazów, obserwacja, filtrowanie, szyfrowanie, retencja, wyszukiwanie w RAM i przywracanie. |
 | LauncherService / PaletteCoordinator | Rozszerzony etap 3: wspólna paleta aplikacji, plików i komend, dopasowanie przybliżone, aliasy, ulubione, skróty i wykonanie przez istniejące usługi. |
-| IslandCoordinator | Rozszerzony etap 3: ekran, geometria, hover, fokus, skrót, pełny ekran; konsumuje wspólny ClipboardService. |
-| MusicService / PlayerAdapters | Rozszerzony etap 3: osobne adaptery Apple Music i Spotify, używane przez wyspę i pełne okno. |
+| IslandCoordinator | 3C kroki 1–3: ekran, geometria, zdarzenia myszy, anulowalne terminy hover, fokus, skrót, pełny ekran i zawieszenie sesji. IslandClipboardModel prezentuje wspólny ClipboardService bez własnego magazynu ani pollera. |
+| MusicService / PlayerAdapters | Wdrożone: MusicService i AppleMusicAdapter dla sekcji Muzyka w wyspie. Publiczne Apple Events na osobnym actorze, odczyty tylko przy widocznej sekcji. Adapter Spotify i pełne okno pozostają planowane. |
 | Diagnostics | Lokalne, zredagowane błędy techniczne i świadomy eksport. |
 
 ~~~mermaid
@@ -170,3 +170,10 @@ docs/
 ~~~
 
 Istnieją App/, Features/Overview, Network, Settings, Resources, lokalny Core i MacManagerUITests. Pozostałe katalogi i funkcje dodajemy w przypisanych krokach i fazach. Test doubles dla zegara, adapterów, pasteboardu, repozytorium i HTTP umożliwiają sprawdzenie awarii bez prawdziwych danych użytkownika.
+
+
+### Apple Music - cykl pracy
+
+`MusicService` należy do `AppState`; wyspa steruje jego widocznością. Jedna pętla odczytu działa co sekundę podczas odtwarzania i co trzy sekundy przy pauzie lub niedostępności. `MusicController` obserwuje uruchomienie/zamknięcie Music i powiadomienia zmiany odtwarzania, odświeżając wyłącznie aktywną sekcję. `AppleMusicAdapter` serializuje zdarzenia poza MainActor i adresuje istniejący PID; nie uruchamia odtwarzacza automatycznie. Timeout pojedynczego zdarzenia wynosi 2 s.
+
+Po przejściu do Schowka lub zamknięciu wyspy usługa anuluje pętlę i akcje, czyści metadane oraz okładkę, a token generacji odrzuca spóźnione odpowiedzi. Rozpoczęte synchroniczne Apple Event może dokończyć się do timeoutu; nowa praca nie jest wtedy zlecana. Adapter zwalnia cache po zakończeniu trwającego wywołania. Okładka pochodzi wyłącznie z Music, jest pomniejszana do 256 px i nie jest zapisywana na dysku. [Raport wdrożenia](reports/etap-3d-apple-music.md).
