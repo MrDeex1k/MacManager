@@ -84,7 +84,7 @@ The list keeps short previews; full content and image thumbnails load on demand 
 
 ### Local launcher
 
-Open the launcher with `Control-Option-Space`, from the View menu or through Settings. Search installed applications and Mac Manager sections, select with arrow keys and press Enter to open. Escape clears the query first, then closes the palette. The launcher works with the main window closed and does not change Dock visibility.
+Open the launcher with `Option-Q`, from the View menu or through Settings. Search installed applications and Mac Manager sections, select with arrow keys and press Enter to open. Escape clears the query first, then closes the palette. The launcher works with the main window closed and does not change Dock visibility.
 
 Queries stay in memory. Application discovery is limited to standard application folders and known embedded tools. No Accessibility permission is required for the global shortcut. Configure or disable it in Settings, including Option + a letter or Space; a failed replacement keeps the previous active binding. Right-click an application or command to set an alias, favorite, visibility or its own shortcut. Edit/reset saved entries in Settings.
 
@@ -98,7 +98,7 @@ The application catalog is cached across openings, results remain visible while 
 
 | Shortcut | Destination |
 | --- | --- |
-| `Control-Option-Space` | Launcher (configurable in Settings) |
+| `Option-Q` | Launcher (configurable in Settings) |
 | `Command-1` | Overview |
 | `Command-2` | Network |
 | `Command-,` | Settings |

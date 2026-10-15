@@ -114,3 +114,28 @@ import Testing
 
     #expect(PreferencesStore(defaults: defaults).attemptedLaunchAtLoginDefault)
 }
+
+@MainActor @Test func requestedFactoryDefaultsAndSavedChoicesArePreserved() throws {
+    let suite = "MacManagerCoreTests.\(UUID().uuidString)"
+    let defaults = try #require(UserDefaults(suiteName: suite))
+    defer { defaults.removePersistentDomain(forName: suite) }
+    let fresh = PreferencesStore(defaults: defaults)
+    #expect(fresh.clipboard.enabled)
+    #expect(fresh.launcherShortcut.enabled)
+    #expect(fresh.launcherShortcut.keyCode == 12)
+    #expect(fresh.launcherShortcut.modifiers == 2048)
+    #expect(fresh.samplingInterval == .two)
+    #expect(fresh.adaptsToLowPower)
+    #expect(fresh.island.enabled)
+    fresh.clipboard.enabled = false
+    fresh.launcherShortcut.enabled = false
+    fresh.launcherShortcut.keyCode = 49
+    fresh.launcherShortcut.modifiers = 6144
+    fresh.adaptsToLowPower = false
+    fresh.island.enabled = false
+    let restored = PreferencesStore(defaults: defaults)
+    #expect(!restored.clipboard.enabled)
+    #expect(restored.launcherShortcut == fresh.launcherShortcut)
+    #expect(!restored.adaptsToLowPower)
+    #expect(!restored.island.enabled)
+}

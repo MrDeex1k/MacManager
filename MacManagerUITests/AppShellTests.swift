@@ -875,7 +875,7 @@ final class AppShellTests: XCTestCase {
         app.windows["main"].buttons["_XCUI:CloseWindow"].click()
         let finder = XCUIApplication(bundleIdentifier: "com.apple.finder")
         finder.activate()
-        finder.typeKey(" ", modifierFlags: [.control, .option])
+        finder.typeKey("q", modifierFlags: [.option])
         let field = app.textFields["launcher.search"]
         XCTAssertTrue(field.waitForExistence(timeout: 5))
         XCTAssertFalse(app.windows["main"].exists)
@@ -889,7 +889,7 @@ final class AppShellTests: XCTestCase {
         XCTAssertFalse(field.exists)
         if !wasRunning { calculator.terminate() }
         finder.activate()
-        finder.typeKey(" ", modifierFlags: [.control, .option])
+        finder.typeKey("q", modifierFlags: [.option])
         XCTAssertTrue(field.waitForExistence(timeout: 5))
         field.typeText("settings")
         let settings = app.buttons["launcher.result.command:settings"]
