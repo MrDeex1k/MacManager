@@ -58,7 +58,7 @@ Identyfikacja aplikacji źródłowej jest best effort: aktywna aplikacja może n
 
 ## Muzyka i wyspa
 
-[ScriptingBridge](https://developer.apple.com/documentation/scriptingbridge/sbapplication) umożliwia wymianę Apple Events ze skryptowalnymi aplikacjami. Przed implementacją odczytać słowniki aktualnie zainstalowanych Music i Spotify, zweryfikować nazwy komend, jednostki czasu, okładki i timeouty. W tym opracowaniu nie potwierdzono lokalnych słowników tych aplikacji.
+[ScriptingBridge](https://developer.apple.com/documentation/scriptingbridge/sbapplication) umożliwia wymianę Apple Events ze skryptowalnymi aplikacjami. Przed implementacją odczytać słowniki aktualnie zainstalowanych Music i Spotify, zweryfikować nazwy komend, jednostki czasu, okładki i timeouty. 2026-10-13: odczytano lokalny słownik Music 1.7 (build 1.7.0). Adapter używa bezpośrednio publicznych Apple Events, czasu w sekundach i lokalnej okładki. Podpisana aplikacja uzyskała zgodę Automatyzacji i odczytała stan bez bieżącego utworu. Spotify pozostaje odłożone do czasu instalacji przez właściciela. [Zakres weryfikacji Apple Music](reports/etap-3d-apple-music.md).
 
 Nie zakładamy, że MusicKit steruje odtwarzaniem innej aplikacji ani że MPNowPlayingInfoCenter odczyta globalny stan odtwarzaczy. Prywatne MediaRemote nie jest podstawą architektury. Bezpośrednia integracja Spotify Web API nie jest potrzebna do przyjętego zakresu.
 
