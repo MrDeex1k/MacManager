@@ -65,3 +65,14 @@ Lokalne buildy Debug i Release używają `dev.macmanager.MacManager.Development`
 Użytkownik instaluje aplikację w `/Applications`, włącza przewijanie i nadaje wskazane zgody: Dostępność (w nowszym systemie Sterowanie urządzeniami i dostęp do danych) oraz Monitorowanie wprowadzania. Aplikacja pokazuje oba stany niezależnie i sprawdza je ponownie po powrocie. Przy nieaktualnym wpisie pomoc wskazuje rzeczywistą kopię w Finderze i opisuje ponowne dodanie tylko tej aplikacji oraz restart. Aplikacja nie kasuje samodzielnie zgód systemowych.
 
 Przed publicznym wydaniem sprawdzić nadanie zgód na czystym profilu i zachowanie zgód po aktualizacji między dwoma podpisanymi wydaniami. Testy z atrapą sterownika nie zastępują tej próby.
+
+### Lokalne podmiany w /Applications - zachowanie tożsamości
+
+Ustalenie właściciela z 2026-10-13: każda podmiana zachowuje dane, bundle ID, ścieżkę instalacji i tę samą tożsamość podpisującą. Instalowanych buildów nie podpisujemy ad hoc (`codesign --sign -`): ich wymaganie tożsamości może zależeć od hasha kodu i zmieniać się przy każdej kompilacji, co powoduje ponowny odbiór zgód Scrolla.
+
+Do lokalnych podmian używać `scripts/install-local-app.py --source PATH --identity CERTIFICATE`. Certyfikat Developer ID Application lub Apple Development musi pozostać ten sam między instalacjami; preferujemy Developer ID Application. Parametry certyfikatu są konfiguracją hosta, nie sekretem zapisanym w repozytorium. Skrypt podpisuje kopię staging z Hardened Runtime i entitlements projektu (`MacManager/MacManager.entitlements`, opcjonalnie `--entitlements`); gdy pliku projektu nie ma, zachowuje entitlements źródła, sprawdza zgodność bundle ID i designated requirement z obecną instalacją, zamyka jej proces, zachowuje poprzedni pakiet w Koszu i uruchamia nowy z tej samej ścieżki. Zmiana tożsamości jest błędem, bez fallbacku do ad hoc.
+
+Jednorazowe przejście istniejącej instalacji ad hoc na stały certyfikat wymaga jawnego `--adopt-certificate`. Nie da się zachować hash-dependent podpisu starego kodu dla zmienionego buildu; ta migracja może wymagać ponownego nadania zgód przez użytkownika. Skrypt nie resetuje TCC ani nie modyfikuje UserDefaults, Keychain lub Application Support. Publiczny identyfikator i developerski pozostają osobnymi domenami; podmiana nie przełącza ich automatycznie. Podpis certyfikatem nie oznacza notaryzacji publicznego wydania.
+
+
+Integracja Music wymaga `com.apple.security.automation.apple-events` oraz lokalizowanego `NSAppleEventsUsageDescription`. Dodanie tego uprawnienia nie zmienia certyfikatu, bundle ID ani designated requirement, ale zgoda na sterowanie Music jest nową zgodą macOS, niezależną od zgód Scrolla. Sprawdzić entitlement w gotowej kopii `/Applications`, także po buildzie z `CODE_SIGNING_ALLOWED=NO`.
