@@ -20,7 +20,7 @@ Kompozycja: ciemna powierzchnia robocza, typografia systemowa i jeden akcent. Se
 | Akcje panelu paska menu | Dwie równe kontrolki .glass do otwarcia okna i zakończenia aplikacji. | 1, integracja systemowa |
 | Metryki, adresy, wykresy i opisy | Czytelna powierzchnia treści; szkło w kontrolkach, bez rozmywania samych danych. | 1 |
 | Panel paska menu | Systemowe materiały panelu i szklane akcje; bez nakładania kilku warstw szkła. | 1, integracja systemowa |
-| Rozwinięta wyspa | Materiał panelu i grupy akcji; dobór kontrastu na rzeczywistym tle. Zwinięty stan nadal pusty. | 3 |
+| Rozwinięta wyspa | Natywny Liquid Glass bez wyboru tła; jasna treść i kontrolki poniżej obszaru kamery. Zwinięty stan nadal pusty. | 3 |
 
 ## Pasek menu i Dock
 
@@ -55,6 +55,8 @@ Przy pierwszym włączeniu funkcji wyjaśniamy potrzebę Dostępności do zmiany
 
 Własny panel przy górnej krawędzi, nie systemowa funkcja Dynamic Island ani modyfikacja sprzętowego notcha. Stan zwinięty nie zawiera okładki, tekstu, metryk ani podglądu schowka.
 
+Górna część panelu dochodzi do krawędzi ekranu i obejmuje wysokość wcięcia; kontrolki zaczynają się poniżej safe area kamery. Kształt ma wklęsłe przejścia do górnej krawędzi oraz zaokrąglone dolne rogi. Od 2026-10-15 (D31, końcowe doprecyzowanie właściciela) jedynym tłem jest natywny Liquid Glass. Zastępuje wcześniejszy czarny wariant D27. Na ekranie bez notcha panel jest zakotwiczony w środku górnej krawędzi.
+
 Wybór ekranu jest automatyczny: aktywny wbudowany ekran MacBooka ma pierwszeństwo. Przy zamkniętej klapie albo na Macu stacjonarnym używamy głównego ekranu. Brak dowolnego wyboru monitora i brak duplikacji na wszystkich ekranach. Zmiana konfiguracji ekranów przelicza geometrię bez pozostawiania panelu poza ekranem.
 
 Obszar aktywacji leży przy notchu; na ekranie bez notcha w środku górnej krawędzi. Fizycznie zasłonięty obszar nie zawiera interaktywnych kontrolek. Należy uwzględnić skalowanie, safe area i pasek menu.
@@ -72,15 +74,31 @@ stateDiagram-v2
 
 Decyzje inżynierskie do strojenia prototypem: otwarcie po 150 ms, zamknięcie po 350 ms od opuszczenia całego panelu. Nie zamykać podczas pisania w wyszukiwarce, obsługi skrótem ani interakcji z kontrolką. Escape zamyka i oddaje fokus. Sam hover nie kradnie fokusu bieżącej aplikacji; pole wyszukiwania może otrzymać fokus po świadomej interakcji.
 
+Stabilny hover: obszar aktywacji i rozwinięty panel tworzą ciągły obszar interakcji. Przejście kursora od górnej krawędzi do treści nie zwija panelu. Powrót kursora przed upływem zwłoki anuluje zamknięcie; ruch przy granicy nie powoduje naprzemiennego otwierania i zamykania. Opóźnienia 150/350 ms są wartościami początkowymi do walidacji P07.
+
+Fokus: kliknięcie wyszukiwarki świadomie przenosi fokus do pola; otwarcie z klawiatury umożliwia nawigację bez użycia myszy. Escape zamyka panel i przywraca fokus poprzedniej aplikacji, jeśli jest nadal dostępna. Samo najechanie nie aktywuje pola ani nie przechwytuje pisania w poprzedniej aplikacji.
+
 Domyślnie ukryta nad aplikacją pełnoekranową na swoim ekranie; opcja pokazywania dotyczy zwykłych Spaces pełnoekranowych. Nie deklarujemy nakładania nad ekranem logowania, blokadą ani chronionymi powierzchniami systemu.
 
 Po rozwinięciu dwie sekcje: Schowek i Muzyka. Nie pokazujemy automatycznego toastu z kopiowaną treścią. Ukryta/zwinięta wyspa nie wykonuje ciągłych animacji.
 
+Animacje służą otwarciu, zamknięciu i zmianie sekcji oraz natywnej informacji zwrotnej kontrolek. Bez ciągłej wizualizacji audio. Renderowanie postępu muzyki działa tylko przy widocznej sekcji Muzyka; po zmianie sekcji, zwinięciu lub ukryciu zatrzymujemy zadania prezentacji. Nie zatrzymuje to wspólnych usług schowka ani wymaganej obsługi odtwarzaczy. Ponowne otwarcie pokazuje aktualny stan bez nadrabiania niewidocznych klatek. Przejścia respektują Reduce Motion.
+
+Implementacja kroku 5: okno zachowuje stałą geometrię. Maska Core Animation odsłania panel od górnej krawędzi przez 220 ms i zwija go przez 150 ms; przejścia są skończone i nie wymagają timera odświeżającego każdą klatkę ani ciągłego przeliczania układu SwiftUI. Reduce Motion zastępuje zmianę geometrii zanikiem przez 100 ms. Zaznaczenie wpisu i „Skopiowano” zmieniają się łagodnie przez 120 ms, z wyłączeniem tych efektów przy Reduce Motion. Przy zamykaniu prywatna zawartość i zadania prezentacji są usuwane natychmiast; zwija się tylko sylwetka z wybranym tłem, a po przejściu host jest zwalniany. Blokada, sleep, wyłączenie funkcji, niedostępny pełny ekran i zmiana geometrii zamykają panel natychmiast. Muzyka oraz przejścia między sekcjami pozostają częścią integracji 3D.
+
 ## Schowek i muzyka
 
-Schowek: lista najnowszych wpisów, miniatury, fragmenty tekstu, wyszukiwanie tekstowe, przywrócenie wpisu, usunięcie, pauza. Kliknięcie przywraca wpis do systemowego schowka i daje krótki komunikat „Skopiowano”. Nie wysyła ⌘V do innej aplikacji. Czyszczenie całej historii wymaga potwierdzenia w UI.
+Stan wdrożenia 2026-10-13: sekcja Muzyka obsługuje Apple Music. Oznaczenie źródła jest stałe; Spotify, przełącznik źródeł i automatyczny wybór są zakresem przyszłego rozszerzenia po instalacji Spotify przez właściciela. [Raport Apple Music](reports/etap-3d-apple-music.md).
+
+Schowek w wyspie: pozioma półka najnowszych wpisów, miniatury, fragmenty tekstu, wyszukiwanie tekstowe, przywrócenie wpisu, usunięcie, pauza. Kliknięcie przywraca wpis do systemowego schowka i daje krótki komunikat „Skopiowano”. Nie wysyła ⌘V do innej aplikacji. Czyszczenie całej historii wymaga potwierdzenia w UI.
+
+W wyspie miniatury pozwalają rozpoznać obraz, a fragmenty tekstu zachowują czytelność także dla długich i wielowierszowych wpisów. Przywrócenie wymaga jednej akcji na wpisie; potwierdzenie „Skopiowano” jest jednoznaczne i nie powtarza jego treści. Wyszukiwanie korzysta ze wspólnej usługi i ochrony przed użyciem nieaktualnego wyniku; miniatury dekodujemy tylko dla widocznych wpisów.
+
+Aktualizacja układu 2026-10-15: panel Schowka ma 560 punktów szerokości i wysokość równą obszarowi kamery/paska menu plus 304 punkty treści i odstępów. Zastępuje poprzednie 375 punktów. Na węższym ekranie szerokość maleje. Nagłówek zawiera kompaktowe zakładki i zamknięcie. Pod wyszukiwaniem pozioma półka pokazuje około trzech kafelków i fragment kolejnego, z większymi miniaturami lub fragmentem tekstu, typem i godziną. Usuwanie jest w menu kontekstowym. Strzałki lewo/prawo zmieniają zaznaczenie, gdy pole wyszukiwania jest puste lub nie ma fokusu; przy wpisanym zapytaniu pozostają edycją kursora. Góra/dół nadal zmienia zaznaczenie, Enter przywraca wybrany wpis, Escape zamyka panel. Przycisk przy polu czyści zapytanie. Stopka pokazuje stan nagrywania i włączenie/pauzę/wznowienie; po przywróceniu przez dwie sekundy pokazuje „Skopiowano”. Oczekujące przywracanie jest anulowane po zamknięciu lub zmianie zapytania. Kopiowanie nie zamyka automatycznie wyspy i nie wykonuje wklejania do innej aplikacji.
 
 Muzyka: lokalne źródło Apple Music albo Spotify; tytuł, wykonawca, okładka, postęp i podstawowe przyciski. Postęp służy do podglądu, bez wymagania przewijania utworu. Jeśli gra jedno źródło, wybieramy je automatycznie; przy dwóch grających utrzymujemy ostatni wybór, umożliwiając zmianę. Nie uruchamiamy odtwarzacza przez samo odpytywanie.
+
+Kompaktowy odtwarzacz pokazuje okładkę, tytuł, wykonawcę, postęp oraz przyciski poprzedni, odtwórz/pauza i następny. Bieżące źródło jest czytelnie oznaczone, a wybór Music/Spotify dostępny bezpośrednio w panelu, bez otwierania ustawień. Długie tytuły nie wypychają kontrolek poza panel i nie uruchamiają ciągłego przewijania tekstu.
 
 Brak okładki nie blokuje odtwarzania: neutralny placeholder. Brak odtwarzacza i odmowa Automatyzacji mają osobne komunikaty.
 
@@ -89,3 +107,19 @@ Brak okładki nie blokuje odtwarzania: neutralny placeholder. Brak odtwarzacza i
 PL/EN w String Catalog, bez sklejania przetłumaczonych fragmentów i bez hardkodowania formatów liczb. VoiceOver opisuje wartości, jednostki i przyciski. Stanów nie kodujemy wyłącznie kolorem. Uwzględniamy Reduce Motion, Reduce Transparency oraz Increase Contrast, nawet przy wymuszonym ciemnym motywie.
 
 Wyspa ma alternatywną drogę otwarcia z paska menu; użytkownik klawiatury nie musi najpierw najechać kursorem ani przypisywać skrótu. Szczegóły schowka są także w pełnym oknie.
+
+
+Układ Muzyki w szerokiej wyspie: trzy kolumny - okładka, metadane oraz sterowanie z postępem i czasem pod przyciskami. Dolne akcje pozostają w rogach. Muzyka ma 250 punktów wysokości, Schowek wysokość obszaru kamery/paska menu + 304 punkty; oba mają 560 punktów szerokości i przyłączenie do fizycznej górnej krawędzi. Wysokość zmienia się po wyborze sekcji w animacji 280 ms z łagodnym startem i końcem; fizyczna górna krawędź pozostaje nieruchoma. Geometrię prowadzi CADisplayLink zsynchronizowany z ekranem wyspy, z preferowaną maksymalną częstotliwością tego ekranu, bez pętli czasowej i wymuszania dodatkowego layoutu co klatkę. Sterownik jest usuwany po przejściu lub jego anulowaniu. Szybkie przełączenie startuje od aktualnej ramki, a zamknięcie anuluje przejście. Treść wygasa przez 75 ms przed wymianą sekcji, a następnie pojawia się przez 140 ms, począwszy od pierwszej klatki CADisplayLink, bez dodatkowej pauzy 160 ms. Wewnętrzny układ sekcji jest od razu liczony dla docelowej wysokości; zewnętrzne okno płynnie odsłania go podczas zmiany rozmiaru. Schowek korzysta z podglądów w pamięci i ustawia zaznaczenie przed zamontowaniem widoku. Suwak ma niezależne sprężyste podświetlenie. Reduce Motion ustawia wysokość i treść natychmiast. Dwa równe segmenty suwaka na szerokość nagłówka mają natywny Liquid Glass i przesuwane podświetlenie, z Reduce Motion. Praca ukrytej sekcji pozostaje wygaszona.
+
+
+Boczne odstępy zawartości obu sekcji wynoszą 30 punktów, zgodnie z ostatnim doprecyzowaniem właściciela.
+
+
+Podczas zmiany wysokości root przyjmuje chwilowy rozmiar hosta i wyrównuje treść do góry. Duża zawartość Schowka może być chwilowo przycięta od dołu; nagłówek i górna krawędź nie przesuwają się. Pośrednie ramki są wyrównane do pikseli ekranu, a aktualizacje geometrii nie uruchamiają dodatkowych animacji warstw.
+
+
+### Tło wyspy
+
+Jedynym tłem jest natywny SwiftUI glassEffect, delegujący wygląd i adaptację przezroczystości do macOS, w tym systemowych ustawień dostępności. Ustawienia nie oferują wyboru materiału ani suwaka intensywności. Glass obowiązuje w obu sekcjach i podczas końcowej animacji zamykania. Przestarzała zapisana wartość tła jest ignorowana bez resetowania pozostałych preferencji. Panel nie dodaje własnego cienia okna, a materiał jest przycięty do sylwetki wyspy, aby uniknąć podwójnego konturu podczas zmiany wysokości.
+
+Kompaktowy Schowek: odstępy głównego stosu 8 pt, półka ma stałe 160 pt i nie rozciąga pustej przestrzeni nad i pod kartami 140 pt. Stopka oddzielona jest od półki odstępem 6 pt; dolny padding wynosi 12 pt. Boczny padding pozostaje 30 pt. Status ma jasny, półgruby tekst na kapsule oraz ikonę i kolor rozróżniające zapisywanie, pauzę, wyłączenie, blokadę, problem uprawnień i potwierdzenie kopiowania.

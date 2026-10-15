@@ -34,6 +34,8 @@ final class AppState {
     let updates: UpdateService
     let updateController: UpdateController
     let launcher: LauncherController
+    let island: IslandCoordinator
+    let music: MusicService
     let clipboardController: ClipboardController
     var clipboard: ClipboardService { clipboardController.service }
     let diagnostics: DiagnosticsStore
@@ -59,6 +61,8 @@ final class AppState {
                 defaults.removePersistentDomain(forName: "dev.macmanager.MacManager.UITests")
             }
             preferences = PreferencesStore(defaults: defaults)
+            island = IslandCoordinator(preferences: preferences)
+            music = MusicService(adapter: FixtureAppleMusicAdapter(arguments: ProcessInfo.processInfo.arguments))
             launcher = LauncherController(preferences: preferences, testing: true)
             clipboardController = ClipboardController(preferences: preferences, testing: true)
             scroll = ScrollService(enabled: preferences.reverseMouseScroll, driver: TestScrollDriver())
@@ -88,6 +92,7 @@ final class AppState {
                 loginItem,
                 clipboardController,
                 launcher,
+                island,
                 ScrollController(service: scroll, diagnostics: diagnostics)
             ]
             if !updateOffline { participants.append(updateController) }
@@ -104,6 +109,8 @@ final class AppState {
         }
         #endif
         preferences = PreferencesStore()
+        island = IslandCoordinator(preferences: preferences)
+        music = MusicService(adapter: AppleMusicAdapter())
         launcher = LauncherController(preferences: preferences)
         clipboardController = ClipboardController(preferences: preferences)
         scroll = ScrollService(enabled: preferences.reverseMouseScroll, driver: ScrollDriver())
@@ -126,7 +133,9 @@ final class AppState {
             loginItem,
             clipboardController,
             launcher,
+            island,
             ScrollController(service: scroll, diagnostics: diagnostics),
+            MusicController(service: music),
             NetworkController(service: network, diagnostics: diagnostics, energy: energy),
             MetricsController(service: metrics, diagnostics: diagnostics, energy: energy),
             updateController
@@ -155,6 +164,8 @@ final class AppState {
     }
 
     private func connectLauncher() {
+        island.connectClipboard(clipboard)
+        island.connectMusic(music)
         launcher.clipboard = clipboard
         launcher.navigate = { [weak self] section in
             guard let self, let section = AppSection(rawValue: section) else { return }

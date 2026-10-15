@@ -55,6 +55,8 @@ struct SettingsView: View {
             Divider()
             LauncherSettingsView()
             Divider()
+            IslandSettingsView()
+            Divider()
             LaunchAtLoginSettingsView()
             Divider()
             UpdateSettingsView()
