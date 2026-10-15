@@ -239,17 +239,20 @@ public final class ClipboardService {
     }
 
     public func restore(_ id: UUID) async {
-        guard running, !suspended else { return }
+        guard running, !suspended, !Task.isCancelled else { return }
         let token = generation
         do {
             let content = try await repository.restore(id, preferences: preferences, now: now())
-            guard running, !suspended, token == generation else { return }
+            guard running, !suspended, token == generation, !Task.isCancelled,
+                  entries.contains(where: { $0.id == id }) else { return }
             try pasteboard.restore(content)
             lastChangeCount = pasteboard.changeCount
             restoredID = id
             failure = nil
         } catch {
-            if token == generation { failure = error as? ClipboardFailure ?? .storage }
+            if token == generation, !Task.isCancelled, !(error is CancellationError) {
+                failure = error as? ClipboardFailure ?? .storage
+            }
         }
     }
 
