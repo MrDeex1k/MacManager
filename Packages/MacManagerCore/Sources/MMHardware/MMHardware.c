@@ -106,13 +106,6 @@ int32_t mm_gpu_read_cached(uint32_t *service, double *percent) {
     return status;
 }
 
-int32_t mm_gpu_read(double *percent) {
-    uint32_t service = 0;
-    int32_t status = mm_gpu_read_cached(&service, percent);
-    mm_gpu_close(service);
-    return status;
-}
-
 // Undocumented, read-only AppleSMC user-client ABI.
 typedef struct {
     uint8_t major, minor, build, reserved;
@@ -151,19 +144,6 @@ static int32_t mm_smc_call(io_connect_t connection, MMTransaction *request,
     if (status != KERN_SUCCESS) return status;
     if (length != sizeof(*response)) return kIOReturnUnderrun;
     if (response->result != 0) return kIOReturnNotFound;
-    return 0;
-}
-
-int32_t mm_power_read(double *watts) {
-    if (!watts) return kIOReturnBadArgument;
-    *watts = NAN;
-    uint32_t connection = 0;
-    int32_t status = mm_smc_open(&connection);
-    if (status) return status;
-    status = mm_smc_read_number(connection, 0x50535452, watts); // PSTR
-    mm_smc_close(connection);
-    if (status) return status;
-    if (*watts < 0) { *watts = NAN; return kIOReturnBadArgument; }
     return 0;
 }
 

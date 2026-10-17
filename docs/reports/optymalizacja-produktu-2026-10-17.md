@@ -51,3 +51,9 @@ AppDependencies składa jeden wspólny zestaw usług i uczestników cyklu życia
 ## Etap 9 - odpowiedzialności platformy
 
 Panele AppKit wyspy i launchera mają osobne pliki i własną obsługę klawiatury. IslandWindowGeometry odpowiada za obszar aktywacji i metadane pełnego ekranu. LauncherIconCache i LauncherItemShortcuts przejmują zasoby systemowe. Koordynatory zachowują przepływ prezentacji, fokus i politykę personalizacji; animacje nadal należą do IslandTransitionHost. Build aplikacji przeszedł.
+
+## Etap 10 - transport i usunięcia
+
+BoundedHTTPClient wspólnie obsługuje ephemeral session, brak cookies/cache, odmowę przekierowań, timeout i limit strumienia. Interpretacja statusów i błędów pozostaje w klientach. Usunięto nieużywane mm_gpu_read/mm_power_read, cryptoCodes, normalize/abbreviate. mm_smc_key_at pozostaje dla prototypu Stage2. 153 testy Core oraz build aplikacji przeszły; test transportu używa syntetycznego URLProtocol.
+
+Scenariusze UI schowka i czterech sekcji wyspy przeszły. Test personalizacji przeszedł zapis aliasu, ulubionych i konfliktu, ale nie otworzył okna przy końcowym Ctrl+Option+N: scenariusz nie ustawia takiego modyfikatora (domyślnie Option). Zostanie doprecyzowany przy końcowej weryfikacji.
