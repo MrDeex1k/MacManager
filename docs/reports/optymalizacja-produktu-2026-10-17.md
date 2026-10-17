@@ -21,3 +21,9 @@ Zestaw logiki: 148 testów, bez błędów; integracje systemowe jawnie pominięt
 ## Etap 2 - ustawienia wyspy
 
 Obserwacja ponownie uzbraja watchPreferences, które stosuje ustawienia dokładnie raz. Usunięto dodatkowe wywołanie applyPreferences z callbacku. Bazowy build testów UI i 149 testów Core (z integracjami systemowymi) przeszły; wcześniejsze błędy pasteboardu/Keychain/backup wynikały z ograniczonego środowiska wykonania.
+
+## Etap 3 - obrazy
+
+ImageThumbnail centralizuje ograniczone skalowanie i kodowanie PNG. Music i Podcasts używają identycznych limitów jak wcześniej; schowek zachowuje osobną walidację oryginału. Test wymiarów, błędnych danych i budżetów przeszedł.
+
+Bazowy ranking Release, mediana/P95 w ms: 200 wpisów 0,094/0,103; 1000 wpisów 0,446/0,479; 5000 wpisów 2,631/3,804. Syntetyczny katalog, jedna seria pomiarowa.
