@@ -4,7 +4,16 @@ import Observation
 import QuartzCore
 import SwiftUI
 
-enum IslandSection: Hashable { case clipboard, music }
+extension IslandSection {
+    var titleKey: String {
+        switch self {
+        case .clipboard: "island.clipboard.tab"
+        case .music: "music.title"
+        case .podcast: "podcast.title"
+        case .spotify: "spotify.title"
+        }
+    }
+}
 
 @MainActor @Observable
 final class IslandCoordinator: ApplicationLifecycleParticipant {
@@ -15,6 +24,8 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
     private(set) var shortcutFailed = false
     private(set) var clipboardModel: IslandClipboardModel?
     private(set) var music: MusicService?
+    private(set) var podcasts: MusicService?
+    private var activePlayer: MusicService? { section == .music ? music : section == .podcast ? podcasts : nil }
     private(set) var section: IslandSection = .clipboard
     private(set) var displayedSection: IslandSection = .clipboard
     private(set) var sectionOpacity = 1.0
@@ -25,8 +36,12 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
     @ObservationIgnored private var sectionRevealDelay: Double = 0
     #endif
     func connectMusic(_ service: MusicService) { music = service }
+    func connectPodcasts(_ service: MusicService) { podcasts = service }
+    var availableSections: [IslandSection] {
+        IslandSection.allCases.filter { preferences.island.sections.contains($0) }
+    }
     func selectSection(_ value: IslandSection) {
-        guard value != section else { return }
+        guard preferences.island.enabled, preferences.island.sections.contains(value), value != section else { return }
         section = value
         cancelSectionChange()
         guard visible else { displayedSection = value; return }
@@ -44,11 +59,11 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
         sectionGeneration += 1; sectionTask?.cancel(); sectionTask = nil
     }
     private func renderSelectedSection() {
-        clipboardModel?.reset(); music?.setVisible(false)
+        clipboardModel?.reset(); music?.setVisible(false); podcasts?.setVisible(false)
         panel?.makeFirstResponder(nil)
         // Prepare in-memory entries/selection before mounting the clipboard subtree.
         if section == .clipboard { clipboardModel?.activate() }
-        else { music?.setVisible(true) }
+        else { activePlayer?.setVisible(true) }
         #if DEBUG
         sectionPreparedAt = CACurrentMediaTime()
         #endif
@@ -70,6 +85,15 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
     var debugMusicState: String {
         "visible=\(music?.visible == true ? 1 : 0);work=\(music?.hasPendingWork == true ? 1 : 0);artwork=\(music?.snapshot.artwork == nil ? 0 : 1)"
     }
+    var debugPodcastsState: String {
+        "visible=\(podcasts?.visible == true ? 1 : 0);work=\(podcasts?.hasPendingWork == true ? 1 : 0);artwork=\(podcasts?.snapshot.artwork == nil ? 0 : 1)"
+    }
+    #if DEBUG
+    func setSessionSuspendedForTesting(_ value: Bool) {
+        guard ProcessInfo.processInfo.arguments.contains("--ui-testing") else { return }
+        if value { suspend("test-session") } else { resume("test-session") }
+    }
+    #endif
     var query: String {
         get { clipboardModel?.query ?? "" }
         set { clipboardModel?.query = newValue }
@@ -178,6 +202,13 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
 
     private func applyPreferences() {
         if preferences.island.enabled {
+            if !preferences.island.sections.contains(section), let first = availableSections.first {
+                cancelSectionChange()
+                section = first
+                sectionOpacity = 1
+                if visible { renderSelectedSection() }
+                else { displayedSection = first }
+            }
             shortcutFailed = !hotKey.register(preferences.island.shortcut)
         } else { hotKey.stop(); shortcutFailed = false; dismiss(restoreFocus: true, animated: false) }
         if let panel { panel.title = strings("island.title") }
@@ -236,7 +267,7 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
     }
     var displayedSectionHeight: CGFloat { sectionHeight(displayedSection, width: panelFrame.width) }
     private func sectionHeight(_ section: IslandSection, width: CGFloat) -> CGFloat {
-        if section == .music { return 250 }
+        if section != .clipboard { return 250 }
         #if DEBUG
         // Reproduce the constrained layout encountered while expanding from Music.
         if ProcessInfo.processInfo.arguments.contains("--ui-testing"),
@@ -358,19 +389,28 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
             finishClosing()
             cancelSectionChange(); displayedSection = section; sectionOpacity = 1
             if section == .clipboard { clipboardModel?.activate() }
-            else { music?.setVisible(true) }
+            else { activePlayer?.setVisible(true) }
+            if let screen {
+                let height = sectionHeight(width: panelFrame.width)
+                panelFrame.origin.y = screen.frame.maxY - height
+                panelFrame.size.height = height
+            }
             let panel = panel ?? IslandPanel()
             self.panel = panel
             panel.title = strings("island.title")
+            panel.onSectionSelect = { [weak self] index in
+                guard IslandSection.allCases.indices.contains(index) else { return }
+                self?.selectSection(IslandSection.allCases[index])
+            }
             panel.onEscape = { [weak self] in self?.dismiss(restoreFocus: true) }
             panel.onMove = { [weak self] delta in if self?.section == .clipboard { self?.clipboardModel?.move(delta) } }
             panel.onSubmit = { [weak self] in
                 if self?.section == .clipboard { self?.clipboardModel?.restoreSelected() }
-                else { self?.music?.perform(.playPause) }
+                else { self?.activePlayer?.perform(.playPause) }
             }
             panel.onSpace = { [weak self] in
-                guard let self, self.section == .music else { return false }
-                self.music?.perform(.playPause); return true
+                guard let self, let player = self.activePlayer else { return false }
+                player.perform(.playPause); return true
             }
             panel.onKeyChange = { [weak self] held in
                 guard let self, self.visible else { return }
@@ -448,7 +488,7 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
         visible = false; menuTracking = false
         cancelSectionChange(); sectionOpacity = 1; displayedSection = section
         clipboardModel?.reset()
-        music?.setVisible(false)
+        music?.setVisible(false); podcasts?.setVisible(false)
         panel?.makeFirstResponder(nil)
         panel?.ignoresMouseEvents = true
         if animated, let transitionHost {
@@ -464,6 +504,7 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
 }
 
 @MainActor final class IslandPanel: NSPanel {
+    var onSectionSelect: ((Int) -> Void)?
     var onEscape: (() -> Void)?
     var onKeyChange: ((Bool) -> Void)?
     var onMove: ((Int) -> Void)?
@@ -490,6 +531,12 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
     override func becomeKey() { super.becomeKey(); onKeyChange?(true) }
     override func resignKey() { super.resignKey(); onKeyChange?(false) }
     override func sendEvent(_ event: NSEvent) {
+        if event.type == .keyDown, (firstResponder as? NSTextView)?.hasMarkedText() != true,
+           event.modifierFlags.intersection([.command, .control, .option, .shift]) == .option,
+           let index = [UInt16(18), 19, 20, 21].firstIndex(of: event.keyCode) {
+            // Local panel handling also works while the native search editor owns focus.
+            onSectionSelect?(index); return
+        }
         if event.type == .keyDown, (firstResponder as? NSTextView)?.hasMarkedText() != true,
            event.modifierFlags.intersection([.command, .control, .option, .shift]).isEmpty {
             switch event.keyCode {

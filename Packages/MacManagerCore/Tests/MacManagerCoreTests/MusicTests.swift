@@ -74,3 +74,19 @@ private actor TestMusicAdapter: MusicPlayerAdapter {
     let start = MusicSnapshot(duration: 60, position: -3)
     #expect(start.position == 0)
 }
+
+@Test @MainActor func independentPlayersStopReadsWhenSwitchingSources() async {
+    let musicAdapter = TestMusicAdapter(), podcastAdapter = TestMusicAdapter()
+    let music = MusicService(adapter: musicAdapter), podcast = MusicService(adapter: podcastAdapter)
+    music.setVisible(true)
+    #expect(await waitUntil { music.snapshot.availability == .ready })
+    #expect(await podcastAdapter.reads == 0)
+    music.setVisible(false); podcast.setVisible(true)
+    #expect(await waitUntil { podcast.snapshot.availability == .ready })
+    let musicReads = await musicAdapter.reads
+    try? await Task.sleep(for: .milliseconds(1100))
+    #expect(await musicAdapter.reads == musicReads)
+    #expect(!music.hasPendingWork && music.snapshot.title.isEmpty)
+    podcast.setVisible(false)
+    #expect(!podcast.hasPendingWork && podcast.snapshot.artwork == nil)
+}

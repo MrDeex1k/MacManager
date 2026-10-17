@@ -5,33 +5,43 @@ import SwiftUI
 struct IslandMusicView: View {
     let service: MusicService
     let strings: AppStrings
+    var isPodcast = false
+    private var prefix: String { isPodcast ? "podcast" : "music" }
+    private var bundleID: String { isPodcast ? "com.apple.podcasts" : "com.apple.Music" }
+    private func identifier(_ key: String) -> String { isPodcast ? key.replacingOccurrences(of: "music.", with: "podcast.") : key }
     private var snapshot: MusicSnapshot { service.snapshot }
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .center, spacing: 14) {
-                MusicArtworkView(snapshot: snapshot).frame(width: 80, height: 80)
+                MusicArtworkView(snapshot: snapshot, symbol: isPodcast ? "podcasts" : "music.note").frame(width: 80, height: 80)
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(snapshot.title.isEmpty ? strings("music.noTrack") : snapshot.title)
-                        .font(.headline).lineLimit(2).accessibilityIdentifier("music.track")
+                    Text(snapshot.title.isEmpty ? strings(isPodcast ? "podcast.noEpisode" : "music.noTrack") : snapshot.title)
+                        .font(.headline).lineLimit(2).accessibilityIdentifier(prefix + ".track")
                     if snapshot.availability == .ready {
-                        Text(snapshot.artist.isEmpty ? strings("music.unknownArtist") : snapshot.artist)
-                            .font(.callout).foregroundStyle(.secondary).lineLimit(1)
+                        if !isPodcast || !snapshot.artist.isEmpty {
+                            Text(snapshot.artist.isEmpty ? strings("music.unknownArtist") : snapshot.artist)
+                                .font(.callout).foregroundStyle(.secondary).lineLimit(1)
+                        }
                         if !snapshot.album.isEmpty { Text(snapshot.album).font(.caption).foregroundStyle(.secondary).lineLimit(1) }
                     } else {
-                        Text(strings("music.status.\(snapshot.availability.rawValue)"))
+                        Text(strings("\(prefix).status.\(snapshot.availability.rawValue)"))
                             .font(.caption).foregroundStyle(.secondary).lineLimit(3)
-                            .accessibilityIdentifier("music.status")
+                            .accessibilityIdentifier(prefix + ".status")
                     }
-                    Text("Apple Music").font(.caption2).foregroundStyle(AppTheme.accent)
+                    if service.commandFailed {
+                        Text(strings("media.commandFailed")).font(.caption2).foregroundStyle(.orange)
+                            .lineLimit(2).accessibilityIdentifier(prefix + ".commandFailed")
+                    }
+                    Text(isPodcast ? "Apple Podcasts" : "Apple Music").font(.caption2).foregroundStyle(AppTheme.accent)
                 }.frame(maxWidth: .infinity, alignment: .leading)
                 VStack(spacing: 10) {
                     HStack(spacing: 0) {
-                        control("backward.end.fill", label: "music.previous", command: .previous)
+                        control(isPodcast ? "gobackward" : "backward.end.fill", label: "music.previous", command: .previous)
                         Spacer(minLength: 0)
                         control(snapshot.playback == .playing ? "pause.fill" : "play.fill",
                                 label: snapshot.playback == .playing ? "music.pause" : "music.play", command: .playPause)
                         Spacer(minLength: 0)
-                        control("forward.end.fill", label: "music.next", command: .next)
+                        control(isPodcast ? "goforward" : "forward.end.fill", label: "music.next", command: .next)
                     }.font(.title2)
                     if let duration = snapshot.duration, let position = snapshot.position {
                         ProgressView(value: position, total: duration).tint(.white)
@@ -39,12 +49,28 @@ struct IslandMusicView: View {
                             .accessibilityValue("\(time(position)) / \(time(duration))")
                         HStack { Text(time(position)); Spacer(); Text("−" + time(max(0, duration - position))) }
                             .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                    } else if isPodcast, let fraction = snapshot.progressFraction {
+                        ProgressView(value: fraction).tint(.white)
+                            .accessibilityLabel(strings("music.progress"))
+                            .accessibilityValue(Text(fraction, format: .percent.precision(.fractionLength(0))))
+                        Text(fraction, format: .percent.precision(.fractionLength(0)))
+                            .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
                     }
                 }.frame(width: 234)
             }
             Spacer(minLength: 0)
             HStack {
-                if snapshot.availability == .notRunning {
+                if isPodcast {
+                    Button(strings("podcast.open")) {
+                        if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) {
+                            NSWorkspace.shared.openApplication(at: url, configuration: .init())
+                        }
+                    }.accessibilityIdentifier("podcast.open")
+                    if snapshot.availability == .accessibilityRequired {
+                        Button(strings("podcast.connect")) { service.requestAccess() }
+                            .accessibilityIdentifier("podcast.connect")
+                    }
+                } else if snapshot.availability == .notRunning {
                     Button(strings("music.open")) {
                         if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.Music") {
                             NSWorkspace.shared.openApplication(at: url, configuration: .init())
@@ -60,7 +86,7 @@ struct IslandMusicView: View {
                 }
                 Spacer()
                 if service.busy { ProgressView().controlSize(.small) }
-                else { Button(strings("music.refresh")) { service.refresh() }.accessibilityIdentifier("music.refresh") }
+                else { Button(strings("music.refresh")) { service.refresh() }.accessibilityIdentifier(prefix + ".refresh") }
             }
             .font(.callout)
             .buttonStyle(.bordered)
@@ -70,8 +96,10 @@ struct IslandMusicView: View {
     }
     private func control(_ symbol: String, label: String, command: MusicCommand) -> some View {
         Button { service.perform(command) } label: { Image(systemName: symbol).frame(width: 36, height: 32) }
-            .buttonStyle(.plain).accessibilityLabel(strings(label)).accessibilityIdentifier(label)
-            .disabled(service.busy || snapshot.availability != .ready || (command != .playPause && snapshot.trackID == nil))
+            .buttonStyle(.plain)
+            .accessibilityLabel(isPodcast ? ((command == .previous ? snapshot.previousLabel : command == .next ? snapshot.nextLabel : nil) ?? strings(identifier(label))) : strings(label))
+            .accessibilityIdentifier(identifier(label))
+            .disabled(service.busy || snapshot.availability != .ready || ((isPodcast || command != .playPause) && snapshot.trackID == nil))
     }
     private func time(_ value: Double) -> String {
         let seconds = Int(min(max(0, value), 86_400 * 365))
@@ -81,12 +109,13 @@ struct IslandMusicView: View {
 
 private struct MusicArtworkView: View {
     let snapshot: MusicSnapshot
+    let symbol: String
     @State private var image: NSImage?
     private struct Request: Hashable { let id: String?; let hasArtwork: Bool }
     var body: some View {
         Group {
             if let image { Image(nsImage: image).resizable().scaledToFit() }
-            else { Image(systemName: "music.note").font(.system(size: 32)).frame(maxWidth: .infinity, maxHeight: .infinity).background(.white.opacity(0.08)) }
+            else { Image(systemName: symbol).font(.system(size: 32)).frame(maxWidth: .infinity, maxHeight: .infinity).background(.white.opacity(0.08)) }
         }
         .clipShape(RoundedRectangle(cornerRadius: 10))
         .accessibilityHidden(true)

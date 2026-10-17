@@ -1,7 +1,7 @@
 import Foundation
 import Observation
 
-public enum MusicAvailability: String, Sendable { case idle, ready, notRunning, needsPermission, denied, timedOut, unavailable }
+public enum MusicAvailability: String, Sendable { case idle, ready, notRunning, needsPermission, denied, timedOut, unavailable, accessibilityRequired, windowRequired }
 public enum MusicPlayback: Equatable, Sendable { case stopped, paused, playing }
 public enum MusicCommand: Equatable, Sendable { case playPause, previous, next }
 
@@ -14,15 +14,21 @@ public struct MusicSnapshot: Sendable {
     public var album: String
     public var duration: Double?
     public var position: Double?
+    public var progressFraction: Double?
+    public var previousLabel: String?
+    public var nextLabel: String?
     public var artwork: Data?
     public init(availability: MusicAvailability = .idle, playback: MusicPlayback = .stopped,
                 trackID: String? = nil, title: String = "", artist: String = "", album: String = "",
-                duration: Double? = nil, position: Double? = nil, artwork: Data? = nil) {
+                duration: Double? = nil, position: Double? = nil, artwork: Data? = nil,
+                progressFraction: Double? = nil, previousLabel: String? = nil, nextLabel: String? = nil) {
         self.availability = availability; self.playback = playback; self.trackID = trackID
         self.title = title; self.artist = artist; self.album = album
         let validDuration = duration.flatMap { $0.isFinite && $0 > 0 ? $0 : nil }
         self.duration = validDuration
         self.position = position.flatMap { $0.isFinite ? max(0, min($0, validDuration ?? $0)) : nil }
+        self.progressFraction = progressFraction.flatMap { $0.isFinite ? min(1, max(0, $0)) : nil }
+        self.previousLabel = previousLabel; self.nextLabel = nextLabel
         self.artwork = artwork
     }
 }

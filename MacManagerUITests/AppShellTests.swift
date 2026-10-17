@@ -3,6 +3,132 @@ import XCTest
 
 final class AppShellTests: XCTestCase {
     @MainActor
+    func testIslandSectionPreferencesAndAutomaticRestore() throws {
+        let app = launch(reset: true)
+        defer { app.terminate() }
+        app.typeKey(",", modifierFlags: .command)
+        XCTAssertFalse(app.checkBoxes["island.enabled"].exists)
+        element("navigation.island", in: app).click()
+        XCTAssertTrue(element("settings.island.content", in: app).waitForExistence(timeout: 3))
+        for name in ["clipboard", "music", "podcast"] {
+            let toggle = app.checkBoxes["island.enabled." + name]
+            XCTAssertTrue(toggle.waitForExistence(timeout: 3))
+            revealIslandToggle(toggle, in: app)
+            toggle.click()
+            XCTAssertEqual(switchValue(toggle), 0)
+        }
+        app.menuBars.menuBarItems["View"].click(); app.menuItems["Open Island"].click()
+        XCTAssertTrue(app.buttons["island.section.spotify"].waitForExistence(timeout: 3))
+        XCTAssertTrue(element("spotify.deferred", in: app).waitForExistence(timeout: 3))
+        for name in ["clipboard", "music", "podcast"] {
+            XCTAssertFalse(app.buttons["island.section." + name].exists)
+        }
+        app.buttons["island.close"].click()
+        element("navigation.island", in: app).click()
+        let spotify = app.checkBoxes["island.enabled.spotify"]
+        revealIslandToggle(spotify, in: app)
+        XCTAssertTrue(spotify.isHittable)
+        XCTAssertEqual(switchValue(spotify), 1)
+        spotify.click()
+        XCTAssertEqual(switchValue(spotify), 0)
+        XCTAssertEqual(switchValue(app.checkBoxes["island.enabled"]), 0)
+        app.menuBars.menuBarItems["View"].click()
+        XCTAssertFalse(app.menuItems["Open Island"].isEnabled)
+        app.typeKey(.escape, modifierFlags: [])
+        let master = app.checkBoxes["island.enabled"]
+        revealIslandToggle(master, in: app); master.click()
+        for name in ["clipboard", "music", "podcast", "spotify"] {
+            XCTAssertEqual(switchValue(app.checkBoxes["island.enabled." + name]), 1)
+        }
+        app.menuBars.menuBarItems["View"].click(); app.menuItems["Open Island"].click()
+        for name in ["clipboard", "music", "podcast", "spotify"] {
+            XCTAssertTrue(app.buttons["island.section." + name].waitForExistence(timeout: 3))
+        }
+        app.buttons["island.close"].click()
+    }
+
+    @MainActor
+    func testFourIslandSectionsAndPodcastControls() throws {
+        let app = launch(reset: true, clipboardFixture: true)
+        defer { app.terminate() }
+        element("navigation.island", in: app).click()
+        let podcastWork = element("island.debug.podcasts", in: app)
+        app.menuBars.menuBarItems["View"].click(); app.menuItems["Open Island"].click()
+        let identifiers = ["clipboard", "music", "podcast", "spotify"]
+        for name in identifiers {
+            let button = app.buttons["island.section." + name]
+            XCTAssertTrue(button.waitForExistence(timeout: 3))
+            XCTAssertTrue(button.isHittable)
+            XCTAssertGreaterThan(button.frame.width, 70)
+            XCTAssertFalse(button.label.isEmpty)
+        }
+        app.typeKey("3", modifierFlags: .option)
+        XCTAssertTrue(app.staticTexts["Test episode"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["island.section.podcast"].isSelected)
+        app.buttons["podcast.play"].click()
+        XCTAssertTrue(app.buttons["podcast.pause"].waitForExistence(timeout: 3))
+        app.buttons["podcast.next"].click()
+        XCTAssertTrue(app.staticTexts["2:30"].waitForExistence(timeout: 3))
+        app.buttons["podcast.previous"].click()
+        XCTAssertTrue(app.staticTexts["2:15"].waitForExistence(timeout: 3))
+        app.typeKey(" ", modifierFlags: [])
+        XCTAssertTrue(app.buttons["podcast.play"].waitForExistence(timeout: 3))
+        let proof = XCTAttachment(screenshot: element("island.panel", in: app).screenshot())
+        proof.name = "Four sections and Podcasts player"; proof.lifetime = .keepAlways; add(proof)
+        app.typeKey("4", modifierFlags: .option)
+        XCTAssertTrue(element("spotify.deferred", in: app).waitForExistence(timeout: 3))
+        let idle = NSPredicate(format: "label == %@ OR value == %@", "visible=0;work=0;artwork=0", "visible=0;work=0;artwork=0")
+        XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: idle, object: podcastWork)], timeout: 3), .completed)
+        app.typeKey("2", modifierFlags: .option)
+        XCTAssertTrue(app.staticTexts["Test song 1"].waitForExistence(timeout: 3))
+        app.typeKey("1", modifierFlags: .option)
+        XCTAssertTrue(app.textFields["island.search"].waitForExistence(timeout: 3))
+        app.buttons["island.close"].click()
+    }
+
+    @MainActor
+    func testPodcastPermissionAndUnavailableWindowStates() throws {
+        let app = launch(reset: true, podcastAccessRequired: true)
+        defer { app.terminate() }
+        app.menuBars.menuBarItems["View"].click(); app.menuItems["Open Island"].click()
+        app.buttons["island.section.podcast"].click()
+        XCTAssertTrue(app.buttons["podcast.connect"].waitForExistence(timeout: 3))
+        XCTAssertFalse(app.buttons["podcast.play"].isEnabled)
+        app.buttons["podcast.connect"].click() // Fixture, never changes real TCC.
+        XCTAssertTrue(app.staticTexts["Test episode"].waitForExistence(timeout: 3))
+        app.terminate()
+        app.launchArguments.append("--podcast-window-required")
+        app.launchArguments.removeAll { $0 == "--podcast-access-required" }
+        app.launch(); app.activate()
+        app.menuBars.menuBarItems["View"].click(); app.menuItems["Open Island"].click()
+        app.buttons["island.section.podcast"].click()
+        XCTAssertTrue(app.staticTexts["podcast.status"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["podcast.open"].isHittable)
+        XCTAssertFalse(app.buttons["podcast.play"].isEnabled)
+    }
+
+    @MainActor
+    func testIslandSessionSuspensionStopsPlayersAndAllowsReopen() throws {
+        let app = launch(reset: true)
+        defer { app.terminate() }
+        element("navigation.island", in: app).click()
+        let podcastWork = element("island.debug.podcasts", in: app)
+        app.menuBars.menuBarItems["View"].click(); app.menuItems["Open Island"].click()
+        app.buttons["island.section.podcast"].click()
+        XCTAssertTrue(app.staticTexts["Test episode"].waitForExistence(timeout: 3))
+        app.menuBars.menuBarItems["View"].click(); app.menuItems["Suspend Island Session"].click()
+        XCTAssertTrue(element("island.panel", in: app).waitForNonExistence(timeout: 3))
+        let idle = NSPredicate(format: "label == %@ OR value == %@", "visible=0;work=0;artwork=0", "visible=0;work=0;artwork=0")
+        XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: idle, object: podcastWork)], timeout: 3), .completed)
+        app.menuBars.menuBarItems["View"].click(); app.menuItems["Open Island"].click()
+        XCTAssertFalse(element("island.panel", in: app).exists)
+        app.menuBars.menuBarItems["View"].click(); app.menuItems["Resume Island Session"].click()
+        app.menuBars.menuBarItems["View"].click(); app.menuItems["Open Island"].click()
+        XCTAssertTrue(app.staticTexts["Test episode"].waitForExistence(timeout: 3))
+        app.buttons["island.close"].click()
+    }
+
+    @MainActor
     private var expectedClipboardIslandHeight: CGFloat {
         let screen = NSScreen.screens.first { candidate in
             guard let id = candidate.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber else { return false }
@@ -15,7 +141,7 @@ final class AppShellTests: XCTestCase {
     func testIslandGlassSectionResizeAndClose() throws {
         let app = launch(reset: true, clipboardFixture: true, islandClipboardFixture: true, islandDenseClipboardFixture: true)
         defer { app.terminate() }
-        app.typeKey(",", modifierFlags: .command)
+        element("navigation.island", in: app).click()
         XCTAssertFalse(app.popUpButtons["island.background"].exists)
         let timing = element("island.debug.animation", in: app)
         app.menuBars.menuBarItems["View"].click()
@@ -110,7 +236,7 @@ final class AppShellTests: XCTestCase {
     private func checkMusicSectionResize(reduceMotion: Bool) throws {
         let app = launch(reset: true, islandReduceMotion: reduceMotion)
         defer { app.terminate() }
-        app.typeKey(",", modifierFlags: .command)
+        element("navigation.island", in: app).click()
         let debug = element("island.debug.music", in: app)
         app.menuBars.menuBarItems["View"].click()
         app.menuItems["Open Island"].click()
@@ -162,7 +288,7 @@ final class AppShellTests: XCTestCase {
     private func checkIslandHiddenPresentation(reduceMotion: Bool) throws {
         let app = launch(reset: true, clipboardFixture: true, islandReduceMotion: reduceMotion)
         defer { app.terminate() }
-        app.typeKey(",", modifierFlags: .command)
+        element("navigation.island", in: app).click()
         let state = element("island.debug.presentation", in: app)
         let idle = NSPredicate(format: "label == %@ OR value == %@",
             "hidden;host=0;work=0;active=0;transition=0;history=2",
@@ -1040,6 +1166,7 @@ final class AppShellTests: XCTestCase {
         islandReduceMotion: Bool = false,
         islandConstrainedLayout: Bool = false,
         musicDenied: Bool = false,
+        podcastAccessRequired: Bool = false,
         launcherLiveTesting: Bool = false,
         scrollPermission: Bool = false,
         inputMonitoringRequired: Bool = false,
@@ -1060,6 +1187,7 @@ final class AppShellTests: XCTestCase {
         if islandReduceMotion { app.launchArguments.append("--island-reduce-motion") }
         if islandConstrainedLayout { app.launchArguments.append("--island-constrained-layout") }
         if musicDenied { app.launchArguments.append("--music-denied") }
+        if podcastAccessRequired { app.launchArguments.append("--podcast-access-required") }
         if scrollPermission { app.launchArguments.append("--scroll-permission-granted") }
         if inputMonitoringRequired { app.launchArguments.append("--scroll-input-monitoring-required") }
         if loginItemRequiresApproval { app.launchArguments.append("--login-item-requires-approval") }
@@ -1112,6 +1240,19 @@ final class AppShellTests: XCTestCase {
         if let number = element.value as? NSNumber { return number.intValue }
         if let text = element.value as? String { return Int(text) }
         return nil
+    }
+
+    @MainActor
+    private func revealIslandToggle(_ target: XCUIElement, in app: XCUIApplication) {
+        let scroll = app.scrollViews["main.detailScroll"]
+        for _ in 0..<15 {
+            let frame = target.frame
+            let viewport = scroll.frame
+            if frame.minY > viewport.minY + 15 && frame.maxY < viewport.maxY - 15 { break }
+            scroll.hover()
+            scroll.scroll(byDeltaX: 0, deltaY: frame.minY < viewport.minY + 15 ? 220 : -220)
+        }
+        XCTAssertTrue(target.isHittable)
     }
 
     @MainActor

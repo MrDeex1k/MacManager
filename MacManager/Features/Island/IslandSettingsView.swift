@@ -1,6 +1,17 @@
 import MacManagerCore
 import SwiftUI
 
+struct IslandSettingsPage: View {
+    @Environment(AppState.self) private var state
+    var body: some View {
+        VStack(alignment: .leading, spacing: 28) {
+            PageHeading(title: state.strings("nav.island"), subtitle: state.strings("settings.island.subtitle"))
+                .accessibilityIdentifier("settings.island.content")
+            Surface { IslandSettingsView() }
+        }
+    }
+}
+
 struct IslandSettingsView: View {
     @Environment(AppState.self) private var state
     @State private var shortcut = IslandPreferences().shortcut
@@ -16,7 +27,22 @@ struct IslandSettingsView: View {
             }
             Toggle(state.strings("island.enabled"), isOn: $preferences.island.enabled)
                 .accessibilityIdentifier("island.enabled")
+            Text(state.strings("island.sections.title")).font(.subheadline.weight(.semibold))
+            ForEach(IslandSection.allCases, id: \.self) { section in
+                Toggle(state.strings(section.titleKey), isOn: Binding(
+                    get: { preferences.island.sections.contains(section) },
+                    set: { enabled in
+                        var island = preferences.island
+                        island.setSection(section, enabled: enabled)
+                        preferences.island = island
+                    }
+                ))
+                .accessibilityIdentifier("island.enabled." + section.rawValue)
+            }
+            Text(state.strings("island.sections.help"))
+                .font(.caption).foregroundStyle(.secondary)
             Toggle(state.strings("island.fullScreen"), isOn: $preferences.island.showsInFullScreen)
+                .accessibilityIdentifier("island.fullScreen")
             Toggle(state.strings("launcher.shortcut.enabled"), isOn: $shortcut.enabled)
                 .accessibilityIdentifier("island.shortcut.enabled")
             HStack {
@@ -40,6 +66,8 @@ struct IslandSettingsView: View {
                     .accessibilityIdentifier("island.debug.presentation")
                 Text(state.island.debugMusicState)
                     .accessibilityIdentifier("island.debug.music")
+                Text(state.island.debugPodcastsState)
+                    .accessibilityIdentifier("island.debug.podcasts")
                 Text(state.island.debugAnimationState)
                     .accessibilityIdentifier("island.debug.animation")
             }

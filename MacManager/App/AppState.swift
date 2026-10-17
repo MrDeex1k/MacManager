@@ -4,7 +4,7 @@ import MacManagerCore
 import Observation
 
 enum AppSection: String, CaseIterable, Identifiable {
-    case overview, sensors, network, clipboard, scroll, dock, settings
+    case overview, sensors, network, clipboard, scroll, dock, island, settings
     var id: String { rawValue }
     var titleKey: String { "nav.\(rawValue)" }
     var symbol: String {
@@ -15,6 +15,7 @@ enum AppSection: String, CaseIterable, Identifiable {
         case .clipboard: "clipboard"
         case .scroll: "computermouse"
         case .dock: "dock.rectangle"
+        case .island: "capsule"
         case .settings: "slider.horizontal.3"
         }
     }
@@ -36,6 +37,7 @@ final class AppState {
     let launcher: LauncherController
     let island: IslandCoordinator
     let music: MusicService
+    let podcasts: MusicService
     let clipboardController: ClipboardController
     var clipboard: ClipboardService { clipboardController.service }
     let diagnostics: DiagnosticsStore
@@ -63,6 +65,7 @@ final class AppState {
             preferences = PreferencesStore(defaults: defaults)
             island = IslandCoordinator(preferences: preferences)
             music = MusicService(adapter: FixtureAppleMusicAdapter(arguments: ProcessInfo.processInfo.arguments))
+            podcasts = MusicService(adapter: FixturePodcastsAdapter(arguments: ProcessInfo.processInfo.arguments))
             launcher = LauncherController(preferences: preferences, testing: true)
             clipboardController = ClipboardController(preferences: preferences, testing: true)
             scroll = ScrollService(enabled: preferences.reverseMouseScroll, driver: TestScrollDriver())
@@ -111,6 +114,7 @@ final class AppState {
         preferences = PreferencesStore()
         island = IslandCoordinator(preferences: preferences)
         music = MusicService(adapter: AppleMusicAdapter())
+        podcasts = MusicService(adapter: ApplePodcastsAdapter())
         launcher = LauncherController(preferences: preferences)
         clipboardController = ClipboardController(preferences: preferences)
         scroll = ScrollService(enabled: preferences.reverseMouseScroll, driver: ScrollDriver())
@@ -136,6 +140,7 @@ final class AppState {
             island,
             ScrollController(service: scroll, diagnostics: diagnostics),
             MusicController(service: music),
+            MusicController(service: podcasts, bundleID: "com.apple.podcasts"),
             NetworkController(service: network, diagnostics: diagnostics, energy: energy),
             MetricsController(service: metrics, diagnostics: diagnostics, energy: energy),
             updateController
@@ -166,6 +171,7 @@ final class AppState {
     private func connectLauncher() {
         island.connectClipboard(clipboard)
         island.connectMusic(music)
+        island.connectPodcasts(podcasts)
         launcher.clipboard = clipboard
         launcher.navigate = { [weak self] section in
             guard let self, let section = AppSection(rawValue: section) else { return }

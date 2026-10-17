@@ -25,7 +25,7 @@ Nie dodawać Sparkle, chmurowej bazy, SDK telemetrii ani Spotify Web API do pocz
 | ClipboardService / Repository | Rozszerzony etap 3: jeden prywatny magazyn tekstów i obrazów, obserwacja, filtrowanie, szyfrowanie, retencja, wyszukiwanie w RAM i przywracanie. |
 | LauncherService / PaletteCoordinator | Rozszerzony etap 3: wspólna paleta aplikacji, plików i komend, dopasowanie przybliżone, aliasy, ulubione, skróty i wykonanie przez istniejące usługi. |
 | IslandCoordinator | 3C kroki 1–3: ekran, geometria, zdarzenia myszy, anulowalne terminy hover, fokus, skrót, pełny ekran i zawieszenie sesji. IslandClipboardModel prezentuje wspólny ClipboardService bez własnego magazynu ani pollera. |
-| MusicService / PlayerAdapters | Wdrożone: MusicService i AppleMusicAdapter dla sekcji Muzyka w wyspie. Publiczne Apple Events na osobnym actorze, odczyty tylko przy widocznej sekcji. Adapter Spotify i pełne okno pozostają planowane. |
+| MusicService / PlayerAdapters | Wdrożone: osobne MusicService dla Muzyki i Podcastów, z AppleMusicAdapter oraz ApplePodcastsAdapter. Publiczne Apple Events na osobnym actorze, odczyty tylko przy widocznej sekcji. Adapter Spotify i pełne okno pozostają planowane. |
 | Diagnostics | Lokalne, zredagowane błędy techniczne i świadomy eksport. |
 
 ~~~mermaid
@@ -177,3 +177,8 @@ Istnieją App/, Features/Overview, Network, Settings, Resources, lokalny Core i 
 `MusicService` należy do `AppState`; wyspa steruje jego widocznością. Jedna pętla odczytu działa co sekundę podczas odtwarzania i co trzy sekundy przy pauzie lub niedostępności. `MusicController` obserwuje uruchomienie/zamknięcie Music i powiadomienia zmiany odtwarzania, odświeżając wyłącznie aktywną sekcję. `AppleMusicAdapter` serializuje zdarzenia poza MainActor i adresuje istniejący PID; nie uruchamia odtwarzacza automatycznie. Timeout pojedynczego zdarzenia wynosi 2 s.
 
 Po przejściu do Schowka lub zamknięciu wyspy usługa anuluje pętlę i akcje, czyści metadane oraz okładkę, a token generacji odrzuca spóźnione odpowiedzi. Rozpoczęte synchroniczne Apple Event może dokończyć się do timeoutu; nowa praca nie jest wtedy zlecana. Adapter zwalnia cache po zakończeniu trwającego wywołania. Okładka pochodzi wyłącznie z Music, jest pomniejszana do 256 px i nie jest zapisywana na dysku. [Raport wdrożenia](reports/etap-3d-apple-music.md).
+
+
+Apple Podcasts nie udostępnia słownika Apple Events analogicznego do Music. ApplePodcastsAdapter odczytuje ograniczone poddrzewo miniPlayer/nowPlaying przez publiczne AXUIElement i wykonuje AXPress na kontrolkach Podcasts. Nie używa prywatnego MediaRemote, globalnych skrótów ani bazy biblioteki. Wywołania biegną na actorze, mają ograniczenia czasu/liczby elementów i sprawdzają anulowanie. Nie przechowuje elementów AX ani okładek pomiędzy odczytami. MusicController jest konfigurowany identyfikatorem źródła; aktywacja/zamknięcie procesu odświeża tylko widoczną usługę. Wymiana sekcji i zamknięcie zatrzymują oba czytniki, po czym uruchamiany jest wyłącznie wybrany.
+
+IslandPreferences przechowuje zbiór IslandSection. Brak pola w starym zapisie oznacza wszystkie sekcje; migracja nie resetuje pozostałych ustawień. Pusty zbiór wymusza enabled=false, a jawne enabled=true przy pustym zbiorze przywraca komplet. Przyciski sekcji aktualizują całą wartość preferencji, zachowując tę zależność w jednym zapisie.

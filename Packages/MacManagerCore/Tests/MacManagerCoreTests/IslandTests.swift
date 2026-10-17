@@ -86,4 +86,39 @@ struct IslandTests {
         #expect(saved["background"] == nil)
     }
 
+    @Test func sectionSelectionDisablesAndRestoresIsland() throws {
+        var preferences = IslandPreferences()
+        for section in IslandSection.allCases { preferences.setSection(section, enabled: false) }
+        #expect(preferences.sections.isEmpty && !preferences.enabled)
+        let restored = try JSONDecoder().decode(IslandPreferences.self, from: JSONEncoder().encode(preferences))
+        #expect(restored == preferences)
+        preferences.enabled = true
+        #expect(preferences.sections == Set(IslandSection.allCases))
+        preferences.sections = []
+        preferences.setSection(.spotify, enabled: true)
+        #expect(preferences.enabled && preferences.sections == [.spotify])
+        preferences.enabled = false
+        preferences.enabled = true
+        #expect(preferences.sections == [.spotify])
+    }
+    @Test func legacyIslandSettingsKeepChoicesAndEnableAllSections() throws {
+        let data = Data(#"{"enabled":false,"showsInFullScreen":true}"#.utf8)
+        let preferences = try JSONDecoder().decode(IslandPreferences.self, from: data)
+        #expect(!preferences.enabled && preferences.showsInFullScreen)
+        #expect(preferences.sections == Set(IslandSection.allCases))
+        let empty = try JSONDecoder().decode(IslandPreferences.self, from: Data(#"{"enabled":true,"sections":[]}"#.utf8))
+        #expect(!empty.enabled && empty.sections.isEmpty)
+    }
+    @Test @MainActor func selectedSectionsPersistWithoutResettingOtherSettings() {
+        let suite = "IslandSections." + UUID().uuidString
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let store = PreferencesStore(defaults: defaults)
+        store.island.showsInFullScreen = true
+        store.island.sections = [.spotify]
+        let restored = PreferencesStore(defaults: defaults)
+        #expect(restored.island.sections == [.spotify] && restored.island.enabled)
+        #expect(restored.island.showsInFullScreen)
+    }
+
 }

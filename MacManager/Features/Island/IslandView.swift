@@ -10,8 +10,12 @@ struct IslandView: View {
         VStack(alignment: .leading, spacing: coordinator.displayedSection == .clipboard ? 8 : 12) {
             HStack(spacing: 12) {
                 HStack(spacing: 0) {
-                    sectionButton(.clipboard, title: coordinator.strings("island.clipboard.tab"))
-                    sectionButton(.music, title: coordinator.strings("music.title"))
+                    ForEach(coordinator.availableSections, id: \.self) { section in
+                        let index = IslandSection.allCases.firstIndex(of: section)!
+                        sectionButton(section, title: coordinator.strings(section.titleKey))
+                            .keyboardShortcut(KeyEquivalent(Character(String(index + 1))), modifiers: .option)
+                            .help(coordinator.strings(section.titleKey) + " (⌥" + String(index + 1) + ")")
+                    }
                 }
                 .padding(3)
                 .glassEffect(.regular.interactive(), in: .capsule)
@@ -43,8 +47,17 @@ struct IslandView: View {
               if let model = coordinator.clipboardModel {
                 IslandClipboardContent(model: model, strings: coordinator.strings)
               }
-            } else if let music = coordinator.music {
+            } else if coordinator.displayedSection == .music, let music = coordinator.music {
                 IslandMusicView(service: music, strings: coordinator.strings)
+            } else if coordinator.displayedSection == .podcast, let podcasts = coordinator.podcasts {
+                IslandMusicView(service: podcasts, strings: coordinator.strings, isPodcast: true)
+            } else if coordinator.displayedSection == .spotify {
+                VStack(alignment: .leading, spacing: 12) {
+                    Label("Spotify", systemImage: "music.note").font(.headline)
+                    Text(coordinator.strings("spotify.deferred"))
+                        .font(.callout).foregroundStyle(.secondary)
+                    Spacer(minLength: 0)
+                }.accessibilityIdentifier("spotify.deferred")
             }
             }
             .opacity(coordinator.sectionOpacity)
@@ -74,7 +87,7 @@ struct IslandView: View {
                 .contentShape(Capsule())
         }
         .buttonStyle(.plain)
-        .accessibilityIdentifier(section == .music ? "island.section.music" : "island.section.clipboard")
+        .accessibilityIdentifier("island.section." + section.rawValue)
         .accessibilityAddTraits(coordinator.section == section ? .isSelected : [])
     }
 

@@ -113,3 +113,6 @@ Dopracowano rytm przełączania sekcji: niezależny suwak, wygaszenie starej tre
 2026-10-15, powrót do Schowka: usunięto dodatkową pauzę 160 ms przed pokazywaniem zawartości. Karty i stopka od początku dostają docelowy układ, a pierwsze zaznaczenie jest przygotowane przed montowaniem widoku. Pięć testów GUI, w tym trzy cykle z pełną historią 50 syntetycznych wpisów i obrazem, przeszło. [Pomiar i zakres odbioru](reports/wyspa-powrot-schowek-2026-10-15.md).
 
 2026-10-15, zwarty Schowek: stała półka 160 pt, odstęp od filtra 8 pt i od stopki 6 pt zastępują rozciąganie pustej przestrzeni. Wysokość panelu jest teraz sumą obszaru kamery/paska menu i 304 pt. Status jest jasną kapsułą z ikoną stanu, z zachowaniem dotychczasowych komunikatów i akcji.
+
+
+2026-10-17: dodano cztery sekcje wyspy, osobne przełączniki ich widoczności i integrację Apple Podcasts przez publiczną Dostępność. Pusty wybór wyłącza wyspę, a jej ponowne włączenie przywraca komplet. Spotify pozostaje odłożone. Granice adaptera Podcastów (dostępne okno, brak pikseli okładki) i zakres testów: [raport](reports/wyspa-podcast-sekcje-2026-10-17.md).
