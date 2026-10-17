@@ -208,6 +208,26 @@ private func clipboardDirectory() -> URL {
     func copy(_ text: String) { self.text = text; changeCount += 1 }
 }
 
+@MainActor @Test func clipboardCancelledRestoreDoesNotWriteOrDuplicate() async throws {
+    let directory = clipboardDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let mock = ClipboardMock()
+    let repo = ClipboardRepository(directory: directory, keys: ClipboardTestKey())
+    var settings = ClipboardPreferences(); settings.enabled = true
+    let service = ClipboardService(preferences: settings, pasteboard: mock, repository: repo, storageExists: false)
+    await service.start()
+    mock.copy("cancelled restore"); service.poll()
+    #expect(await waitUntil(timeout: .seconds(3)) { service.entries.count == 1 })
+    let id = try #require(service.entries.first?.id)
+    let task = Task { await service.restore(id) }
+    task.cancel()
+    await task.value
+    #expect(mock.restored == nil && service.restoredID == nil && service.failure == nil)
+    await service.restore(id); service.poll()
+    #expect(mock.restored == Data("cancelled restore".utf8) && service.entries.count == 1)
+    service.stop()
+}
+
 @MainActor @Test func clipboardServiceSkipsBaselinePauseDenialAndOwnRestore() async throws {
     let directory = clipboardDirectory()
     defer { try? FileManager.default.removeItem(at: directory) }

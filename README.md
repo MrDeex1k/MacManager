@@ -24,7 +24,7 @@ A native macOS utility for live system monitoring, independent mouse scrolling a
 | --- | --- |
 | **System** | Live CPU, GPU and RAM readings with a persistent 1, 2 or 5 second interval. Five-minute Swift Charts history stays in memory and preserves gaps in unavailable data. |
 | **Sensors** | CPU/GPU temperatures in °C or °F, individual fan RPM and five-minute history. Temperature mapping is currently validated on M4 Pro. Read-only sensors, no fan control. |
-| **Clipboard** | Opt-in local history of text and images, search, preview and restore. Encrypted storage, app exclusions and configurable count, age and size limits. |
+| **Clipboard** | Local history of text and images, search, preview and restore; enabled by default, with capture gated by macOS permission. Encrypted storage, app exclusions and configurable count, age and size limits. |
 | **Launcher** | Local app and command search in a floating Liquid Glass palette. Latest valid app copy per folder, symlinked folders, configurable shortcuts and fuzzy ranking adapted from Tinycast. Search focus returns after result menus and personalization. |
 | **Network** | Primary local and public IPv4 addresses, connection status, manual refresh and copy actions. Independent visibility toggles for both addresses in the menu bar panel, hidden by default and configured in Network. |
 | **Scroll** | Independent vertical and horizontal mouse reversal with automatic mouse/trackpad classification. Trackpad direction and momentum remain intact. No device model lists. |
@@ -40,11 +40,11 @@ A native macOS utility for live system monitoring, independent mouse scrolling a
 | --- | --- | --- |
 | **1 · Mac essentials** | Metrics and five-minute history, network, mouse scroll, menu bar, Dock, launch at login and GitHub release checks. | Steps 1-8 of 9 complete |
 | **2 · Hardware sensors** | Live temperatures and fan RPM, menu bar values and five-minute history. Validated on M4 Pro; broader chip mapping and optimization remain future work. Fans are never controlled. | Complete on reference hardware |
-| **3 · Private tools and notch area** | Private clipboard, full local launcher for apps/files/commands, then hover-operated panel and local Apple Music/Spotify controls. One shared architecture supports both TinyCast integration scenarios. | Clipboard and launcher steps 1-7 implemented |
+| **3 · Private tools and notch area** | Private clipboard, full local launcher for apps/files/commands, hover-operated panel and local Apple Music/Podcasts controls and deferred Spotify integration. One shared architecture supports both TinyCast integration scenarios. | Clipboard, launcher steps 1-7 and island steps 1-5 implemented; Apple Music and window-based Podcasts controls |
 
 The local calculator distinguishes bit and byte transfer rates (`Mbps` vs `MBps`), including binary units. App scanning preserves configured folder priority and updates saved shortcuts to the selected copy.
 
-The collapsed notch-area panel will show nothing. It will use the active built-in MacBook display when available, otherwise the main display.
+The collapsed notch-area panel shows nothing. The expanded panel uses native Liquid Glass with system appearance and accessibility adaptations, and joins the top edge around the camera notch, uses the active built-in MacBook display when available, otherwise the main display, and presents the same clipboard history as the launcher and window. Its 560-point-wide layout uses a compact horizontal clipboard shelf with larger previews, search, click/Enter to restore, context-menu deletion and capture controls. Clipboard height is the camera/menu inset plus 304 points; its status badge uses bright text and an icon. Opening and closing use finite animations with Reduce Motion support; closing releases private content and presentation tasks immediately. The compact 250-point Music tab provides local Apple Music metadata, artwork, progress and playback controls. Switching sections smoothly changes the height while keeping the top edge fixed; Reduce Motion skips this resize animation. Its periodic reads stop when the tab or island is hidden. The selector offers Clipboard, Music, Podcast and Spotify, with per-section visibility switches on the dedicated Island page. Disabling every section turns the island off; turning it back on from that empty selection restores all four. Apple Podcasts uses public Accessibility actions and requires an available player window; it shows real exposed metadata/progress, native skip intervals and artwork from the existing local Podcasts cache, with a visible fallback when unavailable. A one-time folder selection grants read-only access; artwork matching reads the local library without modifying it or searching online. Spotify integration is deferred. See the [scope and verification report](docs/reports/wyspa-podcast-sekcje-2026-10-17.md).
 
 **Next:** Full launcher acceptance, including accessibility, IME/Spaces, folder permissions and end-to-end performance profiling. Public distribution remains pending notarization and DMG acceptance. Installed-app launch at login has been confirmed.
 
@@ -74,7 +74,7 @@ Development builds (Debug and local Release) use the display name **Mac Manager 
 
 ### Clipboard history
 
-Open **Clipboard** and enable history, then grant permanent clipboard access in macOS when requested. Recording starts with new copies; existing clipboard content is not imported. Restore an item and press `Command-V` in the destination app.
+Clipboard history is enabled by default on a fresh installation; a previously saved disabled choice is preserved. Open **Clipboard** and use **Check access** to grant permanent clipboard access in macOS. Capture remains blocked until access is allowed; the application does not request permission automatically. Recording starts with new copies; existing clipboard content is not imported. Restore an item and press `Command-V` in the destination app.
 
 Defaults are **50 items, 7 days and 200 MB**. History settings provide pause/resume, application exclusions and retention controls. Text and normalized PNG images, including thumbnails, are encrypted locally. The encryption key is protected by Secure Enclave with its wrapped representation kept in the nonsynchronizing Keychain. Missing key access never falls back to plaintext. Clearing history leaves the current system clipboard unchanged.
 
@@ -84,7 +84,7 @@ The list keeps short previews; full content and image thumbnails load on demand 
 
 ### Local launcher
 
-Open the launcher with `Control-Option-Space`, from the View menu or through Settings. Search installed applications and Mac Manager sections, select with arrow keys and press Enter to open. Escape clears the query first, then closes the palette. The launcher works with the main window closed and does not change Dock visibility.
+Open the launcher with `Option-Q`, from the View menu or through Settings. Search installed applications and Mac Manager sections, select with arrow keys and press Enter to open. Escape clears the query first, then closes the palette. The launcher works with the main window closed and does not change Dock visibility.
 
 Queries stay in memory. Application discovery is limited to standard application folders and known embedded tools. No Accessibility permission is required for the global shortcut. Configure or disable it in Settings, including Option + a letter or Space; a failed replacement keeps the previous active binding. Right-click an application or command to set an alias, favorite, visibility or its own shortcut. Edit/reset saved entries in Settings.
 
@@ -98,7 +98,7 @@ The application catalog is cached across openings, results remain visible while 
 
 | Shortcut | Destination |
 | --- | --- |
-| `Control-Option-Space` | Launcher (configurable in Settings) |
+| `Option-Q` | Launcher (configurable in Settings) |
 | `Command-1` | Overview |
 | `Command-2` | Network |
 | `Command-,` | Settings |

@@ -63,6 +63,7 @@ struct AppShellView: View {
                     case .clipboard: ClipboardView()
                     case .scroll: ScrollSettingsView()
                     case .dock: DockSettingsView()
+                    case .island: IslandSettingsPage()
                     case .settings: SettingsView()
                     }
                 }

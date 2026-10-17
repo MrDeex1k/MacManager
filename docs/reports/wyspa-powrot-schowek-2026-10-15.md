@@ -1,0 +1,15 @@
+# Powrót z Muzyki do Schowka - 2026-10-15
+
+Wpisy i krótkie podglądy tekstowe są już dostępne w ClipboardService.entries. Samo przełączenie sekcji nie wywołuje ponownego odczytu historii z bazy. Miniatury nadal są pobierane asynchronicznie przez istniejącą usługę i jej ograniczony cache danych; nie wprowadzono utrzymywania całego ukrytego widoku ani dodatkowej kopii historii.
+
+Opóźnienie widocznego Schowka miało także przyczynę w prezentacji: po wygaszeniu starej sekcji i zamontowaniu nowej kod czekał jeszcze 160 ms, a następnie przez kolejne 160 ms pokazywał treść. W tym samym czasie dostępna wysokość zmieniała układ półki i stopki.
+
+Usunięto tę dodatkową pauzę. Po zamontowaniu sekcji pierwszy callback CADisplayLink rozpoczyna 140-ms pojawianie się zawartości, równolegle do 280-ms zmiany wysokości. Przy Reduce Motion zawartość jest widoczna natychmiast. Bez zmiany wysokości treść także jest odsłaniana bez oczekiwania na nieistniejący sterownik klatek. Starsze przejście nie może ponownie odsłonić treści, gdy wybrano już inną sekcję.
+
+Wewnętrzny układ sekcji od początku dostaje docelową wysokość. Zewnętrzna ramka nadal ma minimum zero, zakotwiczenie do góry i rzeczywistą animowaną wysokość okna. Powierzchnia Glass śledzi ramkę okna; nie skacze ani nie zmienia docelowej geometrii. Karty i stopka nie są już reorganizowane dla każdej pośredniej wysokości. Model Schowka ustawia pierwszą zaznaczoną pozycję synchronicznie przed zamontowaniem widoku, bez późniejszego przeskoku zaznaczenia i przewinięcia.
+
+Test powtarzanego przełączania rozszerzono do pełnej domyślnej historii 50 syntetycznych wpisów, w tym obrazu i długich podglądów tekstu. Zbiera pomiary w obu kierunkach, sprawdza nieruchomą górną krawędź, końcowe wysokości oraz dostępność pierwszej karty w granicach panelu. Diagnostyka revealMs mierzy czas od przygotowania modelu/zmiany poddrzewa do rozpoczęcia pokazywania treści; nie mierzy pierwszego piksela zaprezentowanego przez GPU.
+
+Pięć testów GUI przeszło: stabilny nagłówek przy ograniczonej wysokości, trzy pełne cykle z historią 50 wpisów, zamykanie/ponowne otwieranie, Reduce Motion oraz wyszukiwanie/przywracanie/usuwanie tekstu i obrazu. Powrót do Schowka rozpoczynał pokazywanie treści po 42,87 / 40,16 / 35,92 ms od przygotowania widoku. P95 czasu aktualizacji geometrii wyniosło 0,76 / 0,81 / 0,72 ms, a częstotliwość callbacków 107,6 / 111,7 / 112,0/s. To krótkie pomiary Debug z pełniejszą historią i obrazem, więc nie są bezpośrednio porównywalne z wcześniejszym pomiarem dwóch kart tekstowych; nie mierzą FPS prezentacji GPU. Sterownik po każdej próbie był zatrzymany. Zrzut po trzecim powrocie pokazuje kompletną półkę wraz z miniaturą obrazu i obramowaniami. Release przeszedł.
+
+Wersję podmieniono i uruchomiono w /Applications/MacManager.app, zachowując certyfikat Developer ID, bundle ID i designated requirement. Podpis po instalacji jest poprawny i działa jeden proces z docelowej instalacji. Instalator nie modyfikował UserDefaults, Keychain, Application Support ani TCC.

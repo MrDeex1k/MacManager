@@ -26,6 +26,12 @@ public final class PreferencesStore {
 
     @ObservationIgnored private let defaults: UserDefaults
 
+    public var island: IslandPreferences {
+        didSet {
+            if let data = try? JSONEncoder().encode(island) { defaults.set(data, forKey: "preferences.island") }
+        }
+    }
+
     public var launcher: LauncherPreferences {
         didSet {
             if let data = try? JSONEncoder().encode(launcher) { defaults.set(data, forKey: "preferences.launcher") }
@@ -118,6 +124,9 @@ public final class PreferencesStore {
 
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        island = defaults.data(forKey: "preferences.island")
+            .flatMap { try? JSONDecoder().decode(IslandPreferences.self, from: $0) }
+            .flatMap { $0.isValid ? $0 : nil } ?? IslandPreferences()
         adaptsToLowPower = Self.bool(defaults, forKey: "preferences.adaptsToLowPower", default: true)
         launcher = defaults.data(forKey: "preferences.launcher")
             .flatMap { try? JSONDecoder().decode(LauncherPreferences.self, from: $0) } ?? LauncherPreferences()

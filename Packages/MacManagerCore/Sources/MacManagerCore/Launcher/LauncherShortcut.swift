@@ -2,8 +2,8 @@ import Foundation
 
 public struct LauncherShortcut: Codable, Equatable, Sendable {
     public var enabled = true
-    public var keyCode: UInt32 = 49
-    public var modifiers: UInt32 = 6144 // Control + Option (Carbon flags).
+    public var keyCode: UInt32 = 12 // Q.
+    public var modifiers: UInt32 = 2048 // Option (Carbon flags).
     public init() {}
     public static let modifierChoices: [(String, UInt32)] = [("⌥", 2048), ("⌃⌥", 6144), ("⌘⇧", 768), ("⌘⌥", 2304), ("⌃⇧", 4608)]
     public static let keys: [(String, UInt32)] = [

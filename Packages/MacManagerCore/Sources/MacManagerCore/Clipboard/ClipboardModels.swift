@@ -3,7 +3,7 @@ import Foundation
 public enum ClipboardKind: String, Codable, Sendable { case text, image }
 
 public struct ClipboardPreferences: Codable, Equatable, Sendable {
-    public var enabled = false
+    public var enabled = true
     public var paused = false
     public var maximumCount = 50
     public var maximumDays = 7

@@ -44,6 +44,8 @@ Obrazy normalizować do PNG z miniaturą, bez OCR i automatycznego otwierania ze
 
 ## Przechwycenie i przywracanie
 
+Historia jest domyślnie włączona w preferencjach nowej instalacji, zgodnie z decyzją właściciela z 2026-10-14. Zapisany wybór wyłączenia pozostaje zachowany. Samo ustawienie nie udziela zgody na schowek i nie wyświetla automatycznego promptu: przechwytywanie wymaga dostępu dozwolonego przez macOS, a sprawdzenie/uzyskanie zgody uruchamia użytkownik. Zastana treść nie jest importowana.
+
 1. Przy aktywnej funkcji sprawdzać licznik zmian; interwał 500 ms, niezależna od metryk.
 2. Sprawdzić dostęp i oznaczenia przed pobraniem payloadu. Ponownie sprawdzić changeCount po odczycie; przy zmianie odrzucić niespójny snapshot.
 3. Pominąć wpisy poufne, tymczasowe, automatycznie generowane i pochodzące z wykluczonych aplikacji.
@@ -88,7 +90,7 @@ Nie prosić profilaktycznie o Full Disk Access, Screen Recording ani Input Monit
 | Strona GitHub Release | Otwierana w przeglądarce po kliknięciu. | Wyłącznie świadoma akcja. |
 | Muzyka | Apple Events lokalnie; odtwarzacze mają własne połączenia. | Wybrane źródło i jego zgoda. |
 
-Okładki: preferowany lokalny obraz udostępniony przez odtwarzacz. Jeśli adapter zwróci jedynie zewnętrzny URL, w początkowym zakresie używamy placeholdera. Pobieranie okładek z sieci wymagałoby jawnego rozszerzenia tej tabeli; nie wysyłamy tytułów utworów do serwisu wyszukiwania okładek.
+Okładki: preferowany lokalny obraz udostępniony przez odtwarzacz. Apple Podcasts dodatkowo korzysta z istniejącego lokalnego cache okładek i biblioteki MTLibrary.sqlite otwartej wyłącznie do odczytu, tylko do jednoznacznego dopasowania bieżącego odcinka. Wymaga jednorazowego udostępnienia konkretnego folderu danych Podcastów przez systemowy NSOpenPanel. Zapamiętany security-scoped bookmark ma prawa wyłącznie do odczytu; zakres jest otwierany tylko na czas odczytu. Nie zmienia plików źródła, nie skanuje nagrań audio ani nie prosi o Pełny dostęp do dysku. Brak dostępu lub zgodnego schematu daje symbol zastępczy. Miniatura jest przechowywana w RAM i zwalniana po ukryciu sekcji. Jeśli adapter zwróci jedynie zewnętrzny URL, w początkowym zakresie używamy placeholdera. Pobieranie okładek z sieci wymagałoby jawnego rozszerzenia tej tabeli; nie wysyłamy tytułów utworów do serwisu wyszukiwania okładek.
 
 
 Krok 6 obserwuje wyłącznie zdarzenia scrolla oraz pasywne gesty dotykowe. Klasyfikator przechowuje w RAM liczbę dotknięć, czas i ostatnie rozpoznane źródło; nie zapisuje pozycji palców, identyfikatorów urządzeń, klawiszy ani treści aplikacji. Stan jest usuwany przy zatrzymaniu. Prototyp diagnostyczny zwraca wyłącznie zagregowane liczniki.
