@@ -369,8 +369,10 @@ private func launcherEntry(_ id: String, _ title: String, alternate: [String] = 
     for query in ["2+3*4", "500 Mbps in MBps", "1,5 + 2", "tomorrow", "255 to hex"] {
         #expect(try await worker.result(query, context: context) == LocalCalculator.result(query, context: context))
     }
-    let task = Task { try await worker.result("2+2", context: context) }
-    task.cancel()
+    let task = Task {
+        withUnsafeCurrentTask { $0?.cancel() }
+        return try await worker.result("2+2", context: context)
+    }
     await #expect(throws: CancellationError.self) { try await task.value }
 }
 
