@@ -1,0 +1,19 @@
+# Optymalizacja produktu - 2026-10-17
+
+Branch: `perf/product-optimization`. Kolejność commitów odpowiada etapom: 1, 2, 3, 4, 6, 5, 7, 8, 9, 10, 11, 12. Docelowa integracja przez squash.
+
+## Etap 1 - punkt odniesienia
+
+Testy UI podzielone według funkcji, ze wspólną bazą AppUITestSupport. Testy wymagające pasteboardu, Keychain i atrybutów backupu mają jawny warunek `MM_SYSTEM_TESTS=1`. Brak konfiguracji Spotlight jest raportowany jako pominięcie zamiast pozornego sukcesu.
+
+Uruchomienia:
+
+```sh
+swift test --package-path Packages/MacManagerCore
+MM_SYSTEM_TESTS=1 swift test --package-path Packages/MacManagerCore
+MM_LAUNCHER_TEST_ROOT="$PWD" swift test --package-path Packages/MacManagerCore --filter launcherSpotlightSearchesOnlyExplicitRepositoryFixture
+MM_BENCHMARKS=1 swift test -c release --package-path Packages/MacManagerCore --filter launcherRankingBenchmark
+xcodebuild -project MacManager.xcodeproj -scheme MacManager -configuration Debug build-for-testing
+```
+
+Zestaw logiki: 148 testów, bez błędów; integracje systemowe jawnie pominięte przy braku flag. Benchmark używa syntetycznych katalogów 200/1000/5000 wpisów i 180 zapytań na katalog. Nie mierzy czasu do pierwszej klatki UI. Czasy UI, pamięć i animacje wymagają odrębnej sesji profilowania, dlatego nie są przedstawiane jako zmierzone.

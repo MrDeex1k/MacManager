@@ -164,8 +164,8 @@ private func launcherEntry(_ id: String, _ title: String, alternate: [String] = 
     #expect(model.results.isEmpty && model.query.isEmpty)
 }
 
-@Test func launcherSpotlightSearchesOnlyExplicitRepositoryFixture() async throws {
-    guard let path = ProcessInfo.processInfo.environment["MM_LAUNCHER_TEST_ROOT"] else { return }
+@Test(.enabled(if: ProcessInfo.processInfo.environment["MM_LAUNCHER_TEST_ROOT"] != nil, "Requires MM_LAUNCHER_TEST_ROOT pointing to an indexed repository")) func launcherSpotlightSearchesOnlyExplicitRepositoryFixture() async throws {
+    let path = try #require(ProcessInfo.processInfo.environment["MM_LAUNCHER_TEST_ROOT"])
     let root = URL(fileURLWithPath: path)
     let search = LauncherFileSearch()
     let results = try await search.search("README.md", roots: [root], filter: .all)
