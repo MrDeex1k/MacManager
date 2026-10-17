@@ -17,3 +17,7 @@ xcodebuild -project MacManager.xcodeproj -scheme MacManager -configuration Debug
 ```
 
 Zestaw logiki: 148 testów, bez błędów; integracje systemowe jawnie pominięte przy braku flag. Benchmark używa syntetycznych katalogów 200/1000/5000 wpisów i 180 zapytań na katalog. Nie mierzy czasu do pierwszej klatki UI. Czasy UI, pamięć i animacje wymagają odrębnej sesji profilowania, dlatego nie są przedstawiane jako zmierzone.
+
+## Etap 2 - ustawienia wyspy
+
+Obserwacja ponownie uzbraja watchPreferences, które stosuje ustawienia dokładnie raz. Usunięto dodatkowe wywołanie applyPreferences z callbacku. Bazowy build testów UI i 149 testów Core (z integracjami systemowymi) przeszły; wcześniejsze błędy pasteboardu/Keychain/backup wynikały z ograniczonego środowiska wykonania.

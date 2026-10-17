@@ -194,7 +194,7 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
         } onChange: { [weak self] in
             Task { @MainActor [weak self] in
                 guard let self, self.running else { return }
-                self.applyPreferences(); self.watchPreferences()
+                self.watchPreferences()
             }
         }
         applyPreferences()
