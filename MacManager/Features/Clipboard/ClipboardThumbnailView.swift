@@ -6,16 +6,18 @@ import SwiftUI
 struct ClipboardThumbnailView: View {
     let service: ClipboardService
     let id: UUID
+    let kind: ClipboardKind
+    private struct Request: Equatable { let id: UUID; let kind: ClipboardKind; let suspended: Bool }
     @State private var image: NSImage?
     var body: some View {
         Group {
             if let image { Image(nsImage: image).resizable().scaledToFit() }
-            else { Image(systemName: service.entries.first(where: { $0.id == id })?.record.kind == .image ? "photo" : "doc.plaintext")
+            else { Image(systemName: kind == .image ? "photo" : "doc.plaintext")
                     .font(.title2).foregroundStyle(AppTheme.accent) }
         }
-        .task(id: service.revision) {
+        .task(id: Request(id: id, kind: kind, suspended: service.suspended)) {
             image = nil
-            guard let data = await service.thumbnail(id), !Task.isCancelled, !service.suspended else { return }
+            guard kind == .image, !service.suspended, let data = await service.thumbnail(id), !Task.isCancelled, !service.suspended else { return }
             image = NSImage(data: data)
         }
         .onDisappear { image = nil }

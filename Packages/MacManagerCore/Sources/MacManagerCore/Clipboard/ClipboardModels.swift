@@ -60,12 +60,11 @@ public struct ClipboardEntry: Identifiable, Equatable, Sendable {
     public var id: UUID { record.id }
     public let record: ClipboardRecord
     public let text: String?
-    public let thumbnail: Data?
     public let sourceBundleID: String?
     public let damaged: Bool
 
-    public init(record: ClipboardRecord, text: String?, thumbnail: Data?, sourceBundleID: String?, damaged: Bool = false) {
-        self.record = record; self.text = text; self.thumbnail = thumbnail
+    public init(record: ClipboardRecord, text: String?, sourceBundleID: String?, damaged: Bool = false) {
+        self.record = record; self.text = text
         self.sourceBundleID = sourceBundleID; self.damaged = damaged
     }
 }

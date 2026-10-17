@@ -186,7 +186,7 @@ struct ClipboardView: View {
 
     private func row(_ entry: ClipboardEntry) -> some View {
         HStack(spacing: 18) {
-            ClipboardThumbnailView(service: service, id: entry.id)
+            ClipboardThumbnailView(service: service, id: entry.id, kind: entry.record.kind)
                 .frame(width: 52, height: 52)
             Button { selected = entry } label: {
                 VStack(alignment: .leading, spacing: 6) {

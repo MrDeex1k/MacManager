@@ -27,3 +27,7 @@ Obserwacja ponownie uzbraja watchPreferences, które stosuje ustawienia dokładn
 ImageThumbnail centralizuje ograniczone skalowanie i kodowanie PNG. Music i Podcasts używają identycznych limitów jak wcześniej; schowek zachowuje osobną walidację oryginału. Test wymiarów, błędnych danych i budżetów przeszedł.
 
 Bazowy ranking Release, mediana/P95 w ms: 200 wpisów 0,094/0,103; 1000 wpisów 0,446/0,479; 5000 wpisów 2,631/3,804. Syntetyczny katalog, jedna seria pomiarowa.
+
+## Etap 4 - miniatury schowka
+
+Zadanie widoku jest identyfikowane wpisem, typem i stanem zawieszenia, zamiast rewizją całej historii. Teksty nie odpytują repozytorium o miniatury. Usunięto puste pole ClipboardEntry.thumbnail; zaszyfrowany Preview i odczyt wersji 1/2 pozostają zgodne. 25 testów schowka i obrazów, łącznie z integracjami systemowymi, przeszło.

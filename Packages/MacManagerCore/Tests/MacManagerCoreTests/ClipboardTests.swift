@@ -432,7 +432,7 @@ private func clipboardDirectory() -> URL {
     try await repo.insert(.init(kind: .image, data: Data([1, 2]), thumbnail: Data([3, 4])),
                           preferences: .init(), now: now.addingTimeInterval(1))
     let entries = try await repo.load(preferences: .init(), now: now).entries
-    #expect(entries.allSatisfy { $0.thumbnail == nil && ($0.text?.count ?? 0) <= 300 })
+    #expect(entries.allSatisfy { ($0.text?.count ?? 0) <= 300 })
     #expect(await repo.cachedBytes == 0)
     let matches = try await repo.search("hidden-tail", entries: entries, preferences: .init(), now: now, limit: 40)
     #expect(matches.map(\.id) == [id] && matches.first?.text?.contains("hidden-tail") == false)

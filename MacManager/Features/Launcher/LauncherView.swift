@@ -98,7 +98,7 @@ struct LauncherView: View {
     }
     @ViewBuilder private func icon(_ entry: LauncherEntry) -> some View {
         if case .clipboard(let id) = entry.action, let service = controller.clipboard {
-            ClipboardThumbnailView(service: service, id: id)
+            ClipboardThumbnailView(service: service, id: id, kind: entry.symbol == "photo" ? .image : .text)
         } else if case .application(let url) = entry.action {
             Image(nsImage: controller.applicationIcon(at: url)).resizable().scaledToFit()
         } else {
