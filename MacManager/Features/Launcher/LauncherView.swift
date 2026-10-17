@@ -98,7 +98,7 @@ struct LauncherView: View {
     }
     @ViewBuilder private func icon(_ entry: LauncherEntry) -> some View {
         if case .clipboard(let id) = entry.action, let service = controller.clipboard {
-            ClipboardThumbnailView(service: service, id: id)
+            ClipboardThumbnailView(service: service, id: id, kind: entry.symbol == "photo" ? .image : .text)
         } else if case .application(let url) = entry.action {
             Image(nsImage: controller.applicationIcon(at: url)).resizable().scaledToFit()
         } else {
@@ -182,28 +182,26 @@ private struct LauncherRowMenu: NSViewRepresentable {
         weak var controller: LauncherController?
         var entry: LauncherEntry?
         private var action: (() -> Void)?
-        private var monitor: Any?
+        private weak var menuMonitor: LauncherRowMenuMonitor?
         override func hitTest(_ point: NSPoint) -> NSView? { nil }
         override func viewDidMoveToWindow() {
             super.viewDidMoveToWindow()
             removeMonitor()
-            guard window != nil else { return }
-            monitor = NSEvent.addLocalMonitorForEvents(matching: [.rightMouseDown, .leftMouseDown]) { [weak self] event in
-                guard event.type == .rightMouseDown || event.modifierFlags.contains(.control) else { return event }
-                guard let self, event.window === self.window,
-                      self.visibleRect.contains(self.convert(event.locationInWindow, from: nil)),
-                      let controller = self.controller, let entry = self.entry,
-                      controller.visible, controller.model.resultsAreCurrent else { return event }
+            guard let panel = window as? LauncherPanel else { return }
+            menuMonitor = panel.rowMenus
+            panel.rowMenus.add(self) { [weak self] event in
+                guard let self, let controller = self.controller, let entry = self.entry,
+                      controller.visible, controller.model.resultsAreCurrent else { return false }
                 let isFile: Bool
                 if case .file = entry.action { isFile = true } else { isFile = false }
-                guard controller.canCustomize(entry) || isFile else { return event }
+                guard controller.canCustomize(entry) || isFile else { return false }
                 self.rightMouseDown(with: event)
-                return nil
+                return true
             }
         }
         func removeMonitor() {
-            if let monitor { NSEvent.removeMonitor(monitor) }
-            monitor = nil
+            menuMonitor?.remove(self)
+            menuMonitor = nil
         }
         override func rightMouseDown(with event: NSEvent) {
             guard let controller, let entry, controller.model.resultsAreCurrent else { return }

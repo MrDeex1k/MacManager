@@ -70,7 +70,7 @@ struct SensorsHistoryView: View {
         }
         .chartXScale(domain: -MetricsHistory.duration...0)
         .chartYScale(domain: lower...upper)
-        .chartXAxis { timeAxis }
+        .chartXAxis { HistoryTimeAxis.content(strings: state.strings, locale: state.preferences.locale) }
         .chartYAxis {
             AxisMarks(position: .leading) { mark in
                 AxisGridLine().foregroundStyle(.primary.opacity(0.08))
@@ -104,7 +104,7 @@ struct SensorsHistoryView: View {
         }
         .chartXScale(domain: -MetricsHistory.duration...0)
         .chartYScale(domain: 0...upper)
-        .chartXAxis { timeAxis }
+        .chartXAxis { HistoryTimeAxis.content(strings: state.strings, locale: state.preferences.locale) }
         .chartYAxis {
             AxisMarks(position: .leading) { mark in
                 AxisGridLine().foregroundStyle(.primary.opacity(0.08))
@@ -122,32 +122,9 @@ struct SensorsHistoryView: View {
         .overlay { emptyState(isEmpty: samples.isEmpty) }
     }
 
-    private var timeAxis: some AxisContent {
-        AxisMarks(values: [-300.0, -240, -180, -120, -60, 0]) { mark in
-            AxisGridLine().foregroundStyle(.primary.opacity(0.06))
-            AxisValueLabel(anchor: mark.as(Double.self) == 0 ? .topTrailing : .topLeading) {
-                if let seconds = mark.as(Double.self) {
-                    Text(seconds == 0 ? state.strings("history.now") : String(
-                        format: state.strings("history.minutesAgo"),
-                        locale: state.preferences.locale,
-                        Int64(-seconds / 60)
-                    ))
-                }
-            }
-        }
-    }
-
     private func emptyState(isEmpty: Bool) -> some View {
-        Group {
-            if isEmpty {
-                Text(state.strings("history.empty"))
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .accessibilityIdentifier("sensors.history.empty")
-            }
-        }
+        HistoryChartEmptyState(isEmpty: isEmpty, text: state.strings("history.empty"),
+                               identifier: "sensors.history.empty")
     }
 
     private func fanName(_ index: Int) -> String {

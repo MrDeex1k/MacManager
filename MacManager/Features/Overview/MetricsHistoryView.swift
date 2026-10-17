@@ -72,16 +72,7 @@ struct MetricsHistoryView: View {
             }
             .chartXScale(domain: -MetricsHistory.duration...0)
             .chartYScale(domain: 0...upperBound)
-            .chartXAxis {
-                AxisMarks(values: [-300.0, -240, -180, -120, -60, 0]) { axis in
-                    AxisGridLine().foregroundStyle(.primary.opacity(0.06))
-                    AxisValueLabel(anchor: axis.as(Double.self) == 0 ? .topTrailing : .topLeading) {
-                        if let seconds = axis.as(Double.self) {
-                            Text(relativeTimeLabel(seconds))
-                        }
-                    }
-                }
-            }
+            .chartXAxis { HistoryTimeAxis.content(strings: state.strings, locale: state.preferences.locale) }
             .chartYAxis {
                 AxisMarks(position: .leading) { axis in
                     AxisGridLine().foregroundStyle(.primary.opacity(0.08))
@@ -97,13 +88,9 @@ struct MetricsHistoryView: View {
             .accessibilityLabel(title(selected) + ". " + state.strings("history.title"))
             .accessibilityIdentifier("history.chart")
             .overlay {
-                if samples.isEmpty {
-                    Text(state.strings(selected == .power ? "history.power.empty" : "history.empty"))
-                        .font(.callout).foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .accessibilityIdentifier("history.empty")
-                }
+                HistoryChartEmptyState(isEmpty: samples.isEmpty,
+                    text: state.strings(selected == .power ? "history.power.empty" : "history.empty"),
+                    identifier: "history.empty")
             }
             if let minimum = samples.map(\.value).min(), let maximum = samples.map(\.value).max() {
                 HStack {
@@ -119,12 +106,4 @@ struct MetricsHistoryView: View {
         }
     }
 
-    private func relativeTimeLabel(_ seconds: Double) -> String {
-        guard seconds != 0 else { return state.strings("history.now") }
-        return String(
-            format: state.strings("history.minutesAgo"),
-            locale: state.preferences.locale,
-            Int64(-seconds / 60)
-        )
-    }
 }

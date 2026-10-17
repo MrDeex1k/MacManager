@@ -65,17 +65,17 @@ public actor ClipboardRepository {
         let entries = try records.map { record -> ClipboardEntry in
             try Task.checkCancellation()
             if let entry = reusable[record.id], entry.record == record, !entry.damaged {
-                return ClipboardEntry(record: record, text: compactText(entry.text), thumbnail: nil,
+                return ClipboardEntry(record: record, text: compactText(entry.text),
                                       sourceBundleID: entry.sourceBundleID)
             }
             do {
                 let data = try decrypt(record.id, role: "preview", key: key, maximumBytes: 7_000_000)
                 let preview = try JSONDecoder().decode(Preview.self, from: data)
                 guard preview.version == 1 || preview.version == 2 else { throw ClipboardFailure.damagedEntry }
-                return ClipboardEntry(record: record, text: compactText(preview.text), thumbnail: nil,
+                return ClipboardEntry(record: record, text: compactText(preview.text),
                                       sourceBundleID: preview.sourceBundleID)
             } catch {
-                return ClipboardEntry(record: record, text: nil, thumbnail: nil, sourceBundleID: nil, damaged: true)
+                return ClipboardEntry(record: record, text: nil, sourceBundleID: nil, damaged: true)
             }
         }
         return ClipboardLibrary(entries: entries, databaseBytes: databaseBytes)
@@ -121,7 +121,7 @@ public actor ClipboardRepository {
         }
         removed.formUnion(try prune(preferences: preferences, now: now))
         let record = ClipboardRecord(id: id, kind: content.kind, capturedAt: now, storedBytes: bytes)
-        let entry = ClipboardEntry(record: record, text: compactText(preview.text), thumbnail: nil,
+        let entry = ClipboardEntry(record: record, text: compactText(preview.text),
                                    sourceBundleID: preview.sourceBundleID)
         return ClipboardMutation(inserted: removed.contains(id) ? nil : entry, removed: removed, databaseBytes: databaseBytes)
     }

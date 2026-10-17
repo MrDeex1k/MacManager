@@ -5,20 +5,20 @@ import SwiftUI
 struct IslandMusicView: View {
     let service: MusicService
     let strings: AppStrings
-    var isPodcast = false
-    private var prefix: String { isPodcast ? "podcast" : "music" }
-    private var bundleID: String { isPodcast ? "com.apple.podcasts" : "com.apple.Music" }
-    private func identifier(_ key: String) -> String { isPodcast ? key.replacingOccurrences(of: "music.", with: "podcast.") : key }
+    var source: MediaSource = .music
+    private var prefix: String { source.rawValue }
+    private var bundleID: String { source.bundleID }
+    private func identifier(_ key: String) -> String { source.identifier(key) }
     private var snapshot: MusicSnapshot { service.snapshot }
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .center, spacing: 14) {
-                MusicArtworkView(snapshot: snapshot, symbol: isPodcast ? "dot.radiowaves.left.and.right" : "music.note").frame(width: 80, height: 80)
+                MusicArtworkView(snapshot: snapshot, symbol: source.artworkSymbol).frame(width: 80, height: 80)
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(snapshot.title.isEmpty ? strings(isPodcast ? "podcast.noEpisode" : "music.noTrack") : snapshot.title)
+                    Text(snapshot.title.isEmpty ? strings(source.emptyTitleKey) : snapshot.title)
                         .font(.headline).lineLimit(2).accessibilityIdentifier(prefix + ".track")
                     if snapshot.availability == .ready {
-                        if !isPodcast || !snapshot.artist.isEmpty {
+                        if source.showsUnknownArtist || !snapshot.artist.isEmpty {
                             Text(snapshot.artist.isEmpty ? strings("music.unknownArtist") : snapshot.artist)
                                 .font(.callout).foregroundStyle(.secondary).lineLimit(1)
                         }
@@ -32,16 +32,16 @@ struct IslandMusicView: View {
                         Text(strings("media.commandFailed")).font(.caption2).foregroundStyle(.orange)
                             .lineLimit(2).accessibilityIdentifier(prefix + ".commandFailed")
                     }
-                    Text(isPodcast ? "Apple Podcasts" : "Apple Music").font(.caption2).foregroundStyle(AppTheme.accent)
+                    Text(source.productName).font(.caption2).foregroundStyle(AppTheme.accent)
                 }.frame(maxWidth: .infinity, alignment: .leading)
                 VStack(spacing: 10) {
                     HStack(spacing: 0) {
-                        control(isPodcast ? "gobackward" : "backward.end.fill", label: "music.previous", command: .previous)
+                        control(source.previousSymbol, label: "music.previous", command: .previous)
                         Spacer(minLength: 0)
                         control(snapshot.playback == .playing ? "pause.fill" : "play.fill",
                                 label: snapshot.playback == .playing ? "music.pause" : "music.play", command: .playPause)
                         Spacer(minLength: 0)
-                        control(isPodcast ? "goforward" : "forward.end.fill", label: "music.next", command: .next)
+                        control(source.nextSymbol, label: "music.next", command: .next)
                     }.font(.title2)
                     if let duration = snapshot.duration, let position = snapshot.position {
                         ProgressView(value: position, total: duration).tint(.white)
@@ -49,7 +49,7 @@ struct IslandMusicView: View {
                             .accessibilityValue("\(time(position)) / \(time(duration))")
                         HStack { Text(time(position)); Spacer(); Text("−" + time(max(0, duration - position))) }
                             .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
-                    } else if isPodcast, let fraction = snapshot.progressFraction {
+                    } else if source.supportsFractionProgress, let fraction = snapshot.progressFraction {
                         ProgressView(value: fraction).tint(.white)
                             .accessibilityLabel(strings("music.progress"))
                             .accessibilityValue(Text(fraction, format: .percent.precision(.fractionLength(0))))
@@ -65,13 +65,11 @@ struct IslandMusicView: View {
                         NSWorkspace.shared.openApplication(at: url, configuration: .init())
                     }
                 }.accessibilityIdentifier(prefix + ".open")
-                if isPodcast && snapshot.availability == .accessibilityRequired {
-                    Button(strings("podcast.connect")) { service.requestAccess() }
-                        .accessibilityIdentifier("podcast.connect")
-                } else if !isPodcast && snapshot.availability == .needsPermission {
-                    Button(strings("music.connect")) { service.requestAccess() }
-                        .accessibilityIdentifier("music.connect")
-                } else if !isPodcast && snapshot.availability == .denied {
+                if snapshot.availability == source.connectionAvailability {
+                    Button(strings(prefix + ".connect")) { service.requestAccess() }
+                        .accessibilityIdentifier(prefix + ".connect")
+
+                } else if source.supportsAutomationRecovery && snapshot.availability == .denied {
                     Button(strings("music.permissions")) {
                         if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Automation") { NSWorkspace.shared.open(url) }
                     }.accessibilityIdentifier("music.permissions")
@@ -89,9 +87,9 @@ struct IslandMusicView: View {
     private func control(_ symbol: String, label: String, command: MusicCommand) -> some View {
         Button { service.perform(command) } label: { Image(systemName: symbol).frame(width: 36, height: 32) }
             .buttonStyle(.plain)
-            .accessibilityLabel(isPodcast ? ((command == .previous ? snapshot.previousLabel : command == .next ? snapshot.nextLabel : nil) ?? strings(identifier(label))) : strings(label))
+            .accessibilityLabel(source.requiresTrackForPlayPause ? ((command == .previous ? snapshot.previousLabel : command == .next ? snapshot.nextLabel : nil) ?? strings(identifier(label))) : strings(label))
             .accessibilityIdentifier(identifier(label))
-            .disabled(service.busy || snapshot.availability != .ready || ((isPodcast || command != .playPause) && snapshot.trackID == nil))
+            .disabled(service.busy || snapshot.availability != .ready || ((source.requiresTrackForPlayPause || command != .playPause) && snapshot.trackID == nil))
     }
     private func time(_ value: Double) -> String {
         let seconds = Int(min(max(0, value), 86_400 * 365))

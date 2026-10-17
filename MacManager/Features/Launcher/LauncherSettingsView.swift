@@ -14,21 +14,7 @@ struct LauncherSettingsView: View {
                 Button(state.strings("launcher.open")) { state.launcher.show() }
                     .buttonStyle(.glass).accessibilityIdentifier("launcher.open")
             }
-            Toggle(state.strings("launcher.shortcut.enabled"), isOn: $draft.enabled)
-                .accessibilityIdentifier("launcher.shortcut.enabled")
-            HStack {
-                Text(state.strings("launcher.shortcut"))
-                Spacer()
-                Picker(state.strings("launcher.modifiers"), selection: $draft.modifiers) {
-                    ForEach(LauncherShortcut.modifierChoices, id: \.1) { Text($0.0).tag($0.1) }
-                }.labelsHidden().fixedSize().accessibilityIdentifier("launcher.modifiers")
-                Picker(state.strings("launcher.key"), selection: $draft.keyCode) {
-                    ForEach(LauncherShortcut.keys, id: \.1) { key in
-                        Text(key.1 == 49 ? state.strings("launcher.space") : key.0).tag(key.1)
-                    }
-                }.labelsHidden().fixedSize().accessibilityIdentifier("launcher.key")
-            }
-            .disabled(!draft.enabled)
+            ShortcutEditor(shortcut: $draft, strings: state.strings)
             Toggle(state.strings("launcher.files.enabled"), isOn: Binding(
                 get: { state.launcher.options.filesEnabled },
                 set: { value in var options = state.launcher.options; options.filesEnabled = value; state.launcher.updateOptions(options) }))

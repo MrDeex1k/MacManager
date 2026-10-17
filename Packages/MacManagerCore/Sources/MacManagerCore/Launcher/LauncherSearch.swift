@@ -45,12 +45,14 @@ public actor LauncherSearchEngine {
     private var source: [LauncherEntry] = []
     private var customizations: [String: LauncherCustomization] = [:]
     private var index: [IndexedEntry] = []
+    private var indexedRevision: UInt64?
 
     public init() {}
-    public func search(_ query: String, entries: [LauncherEntry], limit: Int = 40, preferences: LauncherPreferences = .init()) throws -> [LauncherEntry] {
+    public func search(_ query: String, entries: [LauncherEntry], limit: Int = 40, preferences: LauncherPreferences = .init(), catalogRevision: UInt64? = nil) throws -> [LauncherEntry] {
         let interval = signposter.beginInterval("Rank", id: signposter.makeSignpostID())
         defer { signposter.endInterval("Rank", interval) }
-        if source != entries || customizations != preferences.items {
+        let changed = catalogRevision.map { $0 != indexedRevision } ?? (source != entries || customizations != preferences.items)
+        if changed {
             var prepared: [IndexedEntry] = []
             var seen = Set<String>()
             for entry in entries {
@@ -62,22 +64,54 @@ public actor LauncherSearchEngine {
                 if let alias = custom?.alias, !alias.isEmpty { fields.append(.name(alias)) }
                 prepared.append(IndexedEntry(entry: entry, fields: fields, favorite: custom?.favorite == true))
             }
-            source = entries; customizations = preferences.items; index = prepared
+            source = entries; customizations = preferences.items; index = prepared; indexedRevision = catalogRevision
         }
         let folded = FuzzyMatch.Query(String(query.prefix(256)).trimmingCharacters(in: .whitespacesAndNewlines))
-        var ranked: [(LauncherEntry, Int)] = []
+        let count = max(0, limit)
+        guard count > 0 else { return [] }
+        var best: [(LauncherEntry, Int)] = []
+        let locale = Locale(identifier: "en_US_POSIX")
+        func better(_ lhs: (LauncherEntry, Int), _ rhs: (LauncherEntry, Int)) -> Bool {
+            if lhs.1 != rhs.1 { return lhs.1 > rhs.1 }
+            let comparison = lhs.0.title.compare(rhs.0.title, options: [.caseInsensitive, .diacriticInsensitive], locale: locale)
+            return comparison == .orderedSame ? lhs.0.id < rhs.0.id : comparison == .orderedAscending
+        }
+        // Small catalogs favor the simpler full sort; heap overhead outweighs its savings there.
+        if index.count <= 512 || count >= index.count {
+            for item in index {
+                try Task.checkCancellation()
+                guard let score = SearchRelevance.quality(folded, fields: item.fields) else { continue }
+                best.append((item.entry, score + (item.favorite ? 1_000_000 : 0)))
+            }
+            return best.sorted(by: better).prefix(count).map(\.0)
+        }
+        // Root is the worst retained result. Memory and final sorting are bounded by limit.
         for item in index {
             try Task.checkCancellation()
             guard let score = SearchRelevance.quality(folded, fields: item.fields) else { continue }
-            ranked.append((item.entry, score + (item.favorite ? 1_000_000 : 0)))
+            let candidate = (item.entry, score + (item.favorite ? 1_000_000 : 0))
+            if best.count < count {
+                best.append(candidate)
+                var child = best.count - 1
+                while child > 0 {
+                    let parent = (child - 1) / 2
+                    guard better(best[parent], best[child]) else { break }
+                    best.swapAt(parent, child); child = parent
+                }
+            } else if better(candidate, best[0]) {
+                best[0] = candidate
+                var parent = 0
+                while parent * 2 + 1 < best.count {
+                    var child = parent * 2 + 1
+                    if child + 1 < best.count, better(best[child], best[child + 1]) { child += 1 }
+                    guard better(best[parent], best[child]) else { break }
+                    best.swapAt(parent, child); parent = child
+                }
+            }
         }
-        let locale = Locale(identifier: "en_US_POSIX")
-        return ranked.sorted {
-            if $0.1 != $1.1 { return $0.1 > $1.1 }
-            let comparison = $0.0.title.compare($1.0.title, options: [.caseInsensitive, .diacriticInsensitive], locale: locale)
-            return comparison == .orderedSame ? $0.0.id < $1.0.id : comparison == .orderedAscending
-        }.prefix(max(0, limit)).map(\.0)
+        return best.sorted(by: better).map(\.0)
     }
+
 }
 
 @MainActor @Observable
@@ -97,7 +131,8 @@ public final class LauncherSearchModel {
     @ObservationIgnored private let engine = LauncherSearchEngine()
     @ObservationIgnored private let signposter = OSSignposter(subsystem: "dev.macmanager.MacManager", category: "launcher")
     @ObservationIgnored private var providerFailed = false
-    @ObservationIgnored private var catalog: [LauncherEntry] = []
+    @ObservationIgnored private var catalogRevision: UInt64 = 0
+    @ObservationIgnored private var catalog: [LauncherEntry] = [] { didSet { if catalog != oldValue { catalogRevision &+= 1 } } }
     @ObservationIgnored private var providerEntries: [LauncherEntry] = []
     @ObservationIgnored private var catalogLanguage: String?
     @ObservationIgnored private var loadedAt: ContinuousClock.Instant?
@@ -105,7 +140,7 @@ public final class LauncherSearchModel {
     @ObservationIgnored private var loadTask: Task<Void, Never>?
     @ObservationIgnored private var generation = 0
     @ObservationIgnored private var searchGeneration = 0
-    public var preferences = LauncherPreferences()
+    public var preferences = LauncherPreferences() { didSet { if preferences != oldValue { catalogRevision &+= 1 } } }
     public var onlyAdditionalResults = false {
         didSet {
             if oldValue != onlyAdditionalResults { cancelSearch(clear: true) }
@@ -174,12 +209,13 @@ public final class LauncherSearchModel {
         let previous = selectedID
         let privateMode = onlyAdditionalResults
         let catalog = privateMode ? [] : catalog, query = query, preferences = preferences, additionalResults = additionalResults
+        let revision = privateMode ? nil : Optional(catalogRevision)
         let interval = signposter.beginInterval("Search", id: signposter.makeSignpostID())
         let signposter = signposter
         searchTask = Task { [weak self, engine] in
             defer { signposter.endInterval("Search", interval) }
             do {
-                let matches = try await engine.search(query, entries: catalog, preferences: preferences)
+                let matches = try await engine.search(query, entries: catalog, preferences: preferences, catalogRevision: revision)
                 guard let self, token == self.searchGeneration, !Task.isCancelled else { return }
                 // Keep the existing rows until their replacement is ready, but never execute them.
                 if !privateMode && (!matches.isEmpty || additionalResults == nil) {

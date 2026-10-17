@@ -1,9 +1,7 @@
 import AppKit
 import ApplicationServices
 import Foundation
-import ImageIO
 import MacManagerCore
-import UniformTypeIdentifiers
 
 /// Public Apple Events, serialized away from MainActor. Targets an existing PID, never launches Music.
 actor AppleMusicAdapter: MusicPlayerAdapter {
@@ -104,7 +102,7 @@ actor AppleMusicAdapter: MusicPlayerAdapter {
                 if metadata.artwork == nil, ProcessInfo.processInfo.systemUptime - artworkAttempt >= 15 {
                     artworkAttempt = ProcessInfo.processInfo.systemUptime
                     let raw = try? get(target, property("pRaw", of: artwork(track))).data
-                    metadata.artwork = raw.flatMap(Self.thumbnail)
+                    metadata.artwork = raw.flatMap { ImageThumbnail.png($0) }
                     self.cachedTrack = metadata
                 }
             }
@@ -117,7 +115,7 @@ actor AppleMusicAdapter: MusicPlayerAdapter {
                 artworkAttempt = ProcessInfo.processInfo.systemUptime
                 metadata = MusicSnapshot(availability: .ready, trackID: id.isEmpty ? title : id,
                     title: title, artist: artist, album: album, duration: duration,
-                    artwork: raw.flatMap(Self.thumbnail))
+                    artwork: raw.flatMap { ImageThumbnail.png($0) })
                 cachedTrack = metadata
             }
             let position = try get(target, property("pPos")).doubleValue
@@ -128,18 +126,5 @@ actor AppleMusicAdapter: MusicPlayerAdapter {
                 title: metadata.title, artist: metadata.artist, album: metadata.album,
                 duration: metadata.duration, position: position, artwork: metadata.artwork)
         } catch { return MusicSnapshot(availability: availability(error)) }
-    }
-    private static func thumbnail(_ data: Data) -> Data? {
-        guard data.count <= 8_000_000, let source = CGImageSourceCreateWithData(data as CFData, nil),
-              let image = CGImageSourceCreateThumbnailAtIndex(source, 0, [
-                kCGImageSourceCreateThumbnailFromImageAlways: true,
-                kCGImageSourceThumbnailMaxPixelSize: 256,
-                kCGImageSourceCreateThumbnailWithTransform: true
-              ] as CFDictionary) else { return nil }
-        let output = NSMutableData()
-        guard let destination = CGImageDestinationCreateWithData(output, UTType.png.identifier as CFString, 1, nil) else { return nil }
-        CGImageDestinationAddImage(destination, image, nil)
-        guard CGImageDestinationFinalize(destination), output.length <= 1_000_000 else { return nil }
-        return output as Data
     }
 }

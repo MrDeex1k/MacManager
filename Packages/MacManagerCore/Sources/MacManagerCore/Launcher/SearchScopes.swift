@@ -23,20 +23,8 @@ enum SearchScopes {
         "~/Applications"
     ]
 
-    /// Tilde-abbreviated and unslashed, so a settings backup stays portable across machines.
-    static func abbreviate(_ path: String) -> String {
-        let trimmed = trimTrailingSlash(path)
-        return (trimmed as NSString).abbreviatingWithTildeInPath
-    }
-
     static func expand(_ path: String) -> String {
         (trimTrailingSlash(path) as NSString).expandingTildeInPath
-    }
-
-    /// Abbreviates every path and drops duplicates, preserving order.
-    static func normalize(_ paths: [String]) -> [String] {
-        var seen = Set<String>()
-        return paths.map(abbreviate).filter { !$0.isEmpty && seen.insert($0).inserted }
     }
 
     /// Where a bundle ships its own apps: Xcode keeps Instruments and Simulator there.
@@ -44,78 +32,95 @@ enum SearchScopes {
         "Contents/Applications", "Contents/Developer/Applications"
     ]
 
-    /// Every `.app` the scopes point at. One subfolder deep; deeper nesting needs its own scope.
-    static func appBundles(in scopes: [String]) -> [URL] {
-        let fm = FileManager.default
-        var result: [URL] = []
-        for scope in scopes {
-            if Task.isCancelled { return [] }
-            let url = URL(fileURLWithPath: expand(scope))
-            if url.pathExtension == "app" {
-                if fm.fileExists(atPath: url.path) { result.append(contentsOf: withEmbedded(url)) }
-                continue
+    struct BundleRecord { let url: URL; let info: [String: Any]? }
+    static func catalog(in scopes: [String]) -> [BundleRecord] {
+        let scan = Scan()
+        return scan.appBundles(in: scopes).map { BundleRecord(url: $0, info: scan.infoDictionary(for: $0)) }
+    }
+
+    /// Lifetime is one catalog refresh, so updates and retargeted symlinks are read afresh.
+    private final class Scan {
+        private var metadata: [String: [String: Any]] = [:]
+        private var missing: Set<String> = []
+        /// Every `.app` the scopes point at. One subfolder deep; deeper nesting needs its own scope.
+        func appBundles(in scopes: [String]) -> [URL] {
+            let fm = FileManager.default
+            var result: [URL] = []
+            for scope in scopes {
+                if Task.isCancelled { return [] }
+                let url = URL(fileURLWithPath: SearchScopes.expand(scope))
+                if url.pathExtension == "app" {
+                    if fm.fileExists(atPath: url.path) { result.append(contentsOf: withEmbedded(url)) }
+                    continue
+                }
+                result.append(contentsOf: appBundles(under: url, subfolderDepth: 1))
             }
-            result.append(contentsOf: appBundles(under: url, subfolderDepth: 1))
+            var seen = Set<String>()
+            return result.filter { seen.insert($0.standardizedFileURL.path).inserted }
         }
-        var seen = Set<String>()
-        return result.filter { seen.insert($0.standardizedFileURL.path).inserted }
-    }
 
-    /// An `.app` is never descended into beyond its embedded-app folders.
-    private static func appBundles(under url: URL, subfolderDepth: Int, includeEmbedded: Bool = true, ancestors: Set<String> = []) -> [URL] {
-        if Task.isCancelled { return [] }
-        let physical = url.resolvingSymlinksInPath().standardizedFileURL
-        var directory: ObjCBool = false
-        guard FileManager.default.fileExists(atPath: physical.path, isDirectory: &directory), directory.boolValue,
-              !ancestors.contains(physical.path) else { return [] }
-        let ancestors = ancestors.union([physical.path])
-        guard
-            let items = try? FileManager.default.contentsOfDirectory(
-                at: physical, includingPropertiesForKeys: [.isDirectoryKey], options: [.skipsHiddenFiles]
-            )
-        else { return [] }
-
-        var result: [URL] = []
-        let logicalItems = items.map { url.appendingPathComponent($0.lastPathComponent, isDirectory: $0.hasDirectoryPath) }
-        for item in newestFirst(logicalItems) {
+        /// An `.app` is never descended into beyond its embedded-app folders.
+        private func appBundles(under url: URL, subfolderDepth: Int, includeEmbedded: Bool = true, ancestors: Set<String> = []) -> [URL] {
             if Task.isCancelled { return [] }
-            if item.pathExtension == "app" {
-                result.append(contentsOf: includeEmbedded ? withEmbedded(item, ancestors: ancestors) : [item])
-            } else if subfolderDepth > 0 {
-                result.append(contentsOf: appBundles(under: item, subfolderDepth: subfolderDepth - 1, includeEmbedded: includeEmbedded, ancestors: ancestors))
+            let physical = url.resolvingSymlinksInPath().standardizedFileURL
+            var directory: ObjCBool = false
+            guard FileManager.default.fileExists(atPath: physical.path, isDirectory: &directory), directory.boolValue,
+                  !ancestors.contains(physical.path) else { return [] }
+            let ancestors = ancestors.union([physical.path])
+            guard
+                let items = try? FileManager.default.contentsOfDirectory(
+                    at: physical, includingPropertiesForKeys: [.isDirectoryKey], options: [.skipsHiddenFiles]
+                )
+            else { return [] }
+
+            var result: [URL] = []
+            let logicalItems = items.map { url.appendingPathComponent($0.lastPathComponent, isDirectory: $0.hasDirectoryPath) }
+            for item in newestFirst(logicalItems) {
+                if Task.isCancelled { return [] }
+                if item.pathExtension == "app" {
+                    result.append(contentsOf: includeEmbedded ? withEmbedded(item, ancestors: ancestors) : [item])
+                } else if subfolderDepth > 0 {
+                    result.append(contentsOf: appBundles(under: item, subfolderDepth: subfolderDepth - 1, includeEmbedded: includeEmbedded, ancestors: ancestors))
+                }
             }
+            return result
         }
-        return result
-    }
 
-    // Read afresh on each catalog scan; Bundle caches Info.plist across symlink retargets.
-    static func infoDictionary(for url: URL) -> [String: Any]? {
-        let physical = url.resolvingSymlinksInPath()
-        guard let data = try? Data(contentsOf: physical.appendingPathComponent("Contents/Info.plist")),
-              let info = try? PropertyListSerialization.propertyList(from: data, options: [], format: nil)
-        else { return nil }
-        return info as? [String: Any]
-    }
+        // Read afresh on each catalog scan; Bundle caches Info.plist across symlink retargets.
+        func infoDictionary(for url: URL) -> [String: Any]? {
+            let physical = url.resolvingSymlinksInPath()
+            let path = physical.path
+            if let info = metadata[path] { return info }
+            if missing.contains(path) { return nil }
+            guard let data = try? Data(contentsOf: physical.appendingPathComponent("Contents/Info.plist")),
+                  let info = try? PropertyListSerialization.propertyList(from: data, options: [], format: nil)
+            else { missing.insert(path); return nil }
+            guard let dictionary = info as? [String: Any] else { missing.insert(path); return nil }
+            metadata[path] = dictionary
+            return dictionary
+        }
 
-    private static func newestFirst(_ items: [URL]) -> [URL] {
-        items.map { url in
-            (url: url, version: url.pathExtension == "app"
-                ? infoDictionary(for: url)?["CFBundleShortVersionString"] as? String ?? "" : "")
-        }.sorted { lhs, rhs in
-            let version = lhs.version.compare(rhs.version, options: .numeric)
-            if version != .orderedSame { return version == .orderedDescending }
-            let name = lhs.url.deletingPathExtension().lastPathComponent.localizedStandardCompare(
-                rhs.url.deletingPathExtension().lastPathComponent)
-            if name != .orderedSame { return name == .orderedAscending }
-            return lhs.url.path < rhs.url.path
-        }.map(\.url)
-    }
+        private func newestFirst(_ items: [URL]) -> [URL] {
+            items.map { url in
+                (url: url, version: url.pathExtension == "app"
+                    ? infoDictionary(for: url)?["CFBundleShortVersionString"] as? String ?? "" : "")
+            }.sorted { lhs, rhs in
+                let version = lhs.version.compare(rhs.version, options: .numeric)
+                if version != .orderedSame { return version == .orderedDescending }
+                let name = lhs.url.deletingPathExtension().lastPathComponent.localizedStandardCompare(
+                    rhs.url.deletingPathExtension().lastPathComponent)
+                if name != .orderedSame { return name == .orderedAscending }
+                return lhs.url.path < rhs.url.path
+            }.map(\.url)
+        }
 
-    private static func withEmbedded(_ app: URL, ancestors: Set<String> = []) -> [URL] {
-        [app]
-            + embeddedAppFolders.flatMap {
-                appBundles(under: app.appendingPathComponent($0), subfolderDepth: 0, includeEmbedded: false, ancestors: ancestors)
-            }
+        private func withEmbedded(_ app: URL, ancestors: Set<String> = []) -> [URL] {
+            [app]
+                + SearchScopes.embeddedAppFolders.flatMap {
+                    appBundles(under: app.appendingPathComponent($0), subfolderDepth: 0, includeEmbedded: false, ancestors: ancestors)
+                }
+        }
+
     }
 
     private static func trimTrailingSlash(_ path: String) -> String {

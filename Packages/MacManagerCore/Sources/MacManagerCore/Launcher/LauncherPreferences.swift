@@ -30,9 +30,21 @@ public struct LauncherPreferences: Codable, Equatable, Sendable {
 }
 
 public enum LocalCalculator {
+    public struct Context: Sendable {
+        public let language: String
+        public let now: Date
+        public var calendar: Calendar
+        public init(language: String, now: Date = Date(), locale: Locale = .current, calendar: Calendar = .current) {
+            self.language = language; self.now = now; self.calendar = calendar
+            self.calendar.locale = Locale(identifier: "\(language)@hours=\(locale.hourCycle.rawValue)")
+        }
+    }
+
     public static func result(_ query: String, language: String, now: Date = Date(), locale: Locale = .current) -> LauncherEntry? {
-        var calendar = Calendar.current
-        calendar.locale = Locale(identifier: "\(language)@hours=\(locale.hourCycle.rawValue)")
+        result(query, context: Context(language: language, now: now, locale: locale))
+    }
+    public static func result(_ query: String, context: Context) -> LauncherEntry? {
+        let language = context.language, now = context.now, calendar = context.calendar
         let format = language == "pl" && query.contains(",")
             ? CalcNumberFormat(decimalSeparator: ",", groupingSeparator: " ") ?? .english : .english
         guard let result = CalcEngine.evaluate(query, now: now, calendar: calendar, format: format),

@@ -7,29 +7,15 @@ struct LauncherCustomizationView: View {
     let close: () -> Void
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
-            Text(draft.entry.title).font(.title2).lineLimit(1)
+            Text(draft.entry.title).accessibilityIdentifier("launcher.customization.title").font(.title2).lineLimit(1)
             TextField(controller.strings("launcher.alias"), text: $draft.alias)
                 .accessibilityIdentifier("launcher.alias")
             Toggle(controller.strings("launcher.favorite"), isOn: $draft.favorite)
             Toggle(controller.strings("launcher.hidden"), isOn: $draft.hidden)
-            Toggle(controller.strings("launcher.shortcut.enabled"), isOn: Binding(
-                get: { draft.shortcut?.enabled == true },
-                set: { enabled in
-                    var value = draft.shortcut ?? LauncherShortcut()
-                    value.enabled = enabled; draft.shortcut = value
-                }))
-            if draft.shortcut?.enabled == true {
-                HStack {
-                    Picker(controller.strings("launcher.modifiers"), selection: Binding(
-                        get: { draft.shortcut?.modifiers ?? 6144 }, set: { draft.shortcut?.modifiers = $0 })) {
-                        ForEach(LauncherShortcut.modifierChoices, id: \.1) { Text($0.0).tag($0.1) }
-                    }
-                    Picker(controller.strings("launcher.key"), selection: Binding(
-                        get: { draft.shortcut?.keyCode ?? 49 }, set: { draft.shortcut?.keyCode = $0 })) {
-                        ForEach(LauncherShortcut.keys, id: \.1) { Text($0.0).tag($0.1) }
-                    }.accessibilityIdentifier("launcher.itemKey")
-                }.labelsHidden()
-            }
+            ShortcutEditor(shortcut: Binding(
+                get: { if let shortcut = draft.shortcut { return shortcut }; var value = LauncherShortcut(); value.enabled = false; return value },
+                set: { draft.shortcut = $0 }), strings: controller.strings,
+                enabledID: "launcher.itemShortcut.enabled", keyID: "launcher.itemKey", compact: true)
             if controller.itemShortcutFailures.contains(draft.entry.id) {
                 Text(controller.strings("launcher.conflict")).foregroundStyle(.orange)
             }

@@ -16,7 +16,7 @@ final class NetworkController: ApplicationLifecycleParticipant {
     private var configurationRouteChanged = false
     private var configurationChange: Task<Void, Never>?
     private var loop: Task<Void, Never>?
-    private var observers: [(NotificationCenter, NSObjectProtocol)] = []
+    private let observers = NotificationTokens()
     private var revision = 0
     private var online = false
     private var suspended = false
@@ -43,18 +43,12 @@ final class NetworkController: ApplicationLifecycleParticipant {
             }
         }
         monitor.start(queue: DispatchQueue(label: "dev.macmanager.network-path"))
-        let center = NSWorkspace.shared.notificationCenter
-        for (name, sleeping) in [(NSWorkspace.willSleepNotification, true), (NSWorkspace.didWakeNotification, false)] {
-            let token = center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
-                Task { @MainActor [weak self] in
-                    guard let self else { return }
-                    self.revision += 1
-                    self.suspended = sleeping; self.lastRead = -.infinity
-                    self.service.setSuspended(sleeping, now: ProcessInfo.processInfo.systemUptime)
-                    self.schedule()
-                }
-            }
-            observers.append((center, token))
+        SystemSessionMonitor.shared.subscribe(in: observers) { [weak self] state in
+            guard let self, self.suspended != state.sleeping else { return }
+            self.revision += 1
+            self.suspended = state.sleeping; self.lastRead = -.infinity
+            self.service.setSuspended(state.sleeping, now: ProcessInfo.processInfo.systemUptime)
+            self.schedule()
         }
         schedule()
     }
@@ -134,7 +128,6 @@ final class NetworkController: ApplicationLifecycleParticipant {
         monitor.cancel()
         configurationChange?.cancel(); configurationChange = nil
         configurationMonitor.stop(); configurationActive = false; configurationRouteChanged = false
-        observers.forEach { center, token in center.removeObserver(token) }
         observers.removeAll()
         suspended = true
         service.setSuspended(true, now: ProcessInfo.processInfo.systemUptime)
