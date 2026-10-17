@@ -60,26 +60,18 @@ struct IslandMusicView: View {
             }
             Spacer(minLength: 0)
             HStack {
-                if isPodcast {
-                    Button(strings("podcast.open")) {
-                        if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) {
-                            NSWorkspace.shared.openApplication(at: url, configuration: .init())
-                        }
-                    }.accessibilityIdentifier("podcast.open")
-                    if snapshot.availability == .accessibilityRequired {
-                        Button(strings("podcast.connect")) { service.requestAccess() }
-                            .accessibilityIdentifier("podcast.connect")
+                Button(strings(prefix + ".open")) {
+                    if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) {
+                        NSWorkspace.shared.openApplication(at: url, configuration: .init())
                     }
-                } else if snapshot.availability == .notRunning {
-                    Button(strings("music.open")) {
-                        if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.Music") {
-                            NSWorkspace.shared.openApplication(at: url, configuration: .init())
-                        }
-                    }.accessibilityIdentifier("music.open")
-                } else if snapshot.availability == .needsPermission {
+                }.accessibilityIdentifier(prefix + ".open")
+                if isPodcast && snapshot.availability == .accessibilityRequired {
+                    Button(strings("podcast.connect")) { service.requestAccess() }
+                        .accessibilityIdentifier("podcast.connect")
+                } else if !isPodcast && snapshot.availability == .needsPermission {
                     Button(strings("music.connect")) { service.requestAccess() }
                         .accessibilityIdentifier("music.connect")
-                } else if snapshot.availability == .denied {
+                } else if !isPodcast && snapshot.availability == .denied {
                     Button(strings("music.permissions")) {
                         if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Automation") { NSWorkspace.shared.open(url) }
                     }.accessibilityIdentifier("music.permissions")

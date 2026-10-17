@@ -135,3 +135,5 @@ Podcast steruje aplikacją Apple Podcasts przez Dostępność. Wymaga dostępneg
 
 
 Ustawienia wyspy mają osobną pozycję „Wyspa” w bocznej nawigacji, obok Docka. Zawiera ona włączanie wyspy, wybór sekcji, zachowanie na pełnym ekranie i skrót. Ogólne „Ustawienia” nie powielają tych kontrolek.
+
+W obu odtwarzaczach dolny lewy przycisk otwarcia aplikacji jest stały: „Otwórz Apple Music” oraz „Otwórz Podcasty”, także gdy źródło jest już uruchomione. „Odśwież” pozostaje w prawym dolnym rogu. Akcje uzyskania zgody/naprawy uprawnień nadal pojawiają się w odpowiednich stanach.
