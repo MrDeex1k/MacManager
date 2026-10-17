@@ -47,3 +47,7 @@ NotificationTokens zwalnia rejestracje przy stop oraz zwolnieniu właściciela. 
 ## Etap 8 - składanie aplikacji i odtwarzacze
 
 AppDependencies składa jeden wspólny zestaw usług i uczestników cyklu życia; fixture podmieniają adaptery graniczne i zachowują izolowane dane. MediaSource opisuje bundle ID, teksty, symbole, powiadomienia i możliwości sterowania. Wyspa utrzymuje rejestr usług według źródła. Build aplikacji i testów UI przeszedł.
+
+## Etap 9 - odpowiedzialności platformy
+
+Panele AppKit wyspy i launchera mają osobne pliki i własną obsługę klawiatury. IslandWindowGeometry odpowiada za obszar aktywacji i metadane pełnego ekranu. LauncherIconCache i LauncherItemShortcuts przejmują zasoby systemowe. Koordynatory zachowują przepływ prezentacji, fokus i politykę personalizacji; animacje nadal należą do IslandTransitionHost. Build aplikacji przeszedł.

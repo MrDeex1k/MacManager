@@ -233,7 +233,7 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
 
     private var available: Bool {
         running && !suspended && preferences.island.enabled && screen != nil &&
-            (preferences.island.showsInFullScreen || !isFullScreenOnTarget())
+            (preferences.island.showsInFullScreen || !IslandWindowGeometry.isFullScreen(on: screen))
     }
 
     private func reposition() {
@@ -244,15 +244,10 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
         } ?? NSScreen.main
         guard let screen else { return }
         let frame = screen.frame
-        let inset = max(screen.safeAreaInsets.top, frame.maxY - screen.visibleFrame.maxY, 24)
-        topInset = inset
-        let notchWidth: CGFloat
-        if let left = screen.auxiliaryTopLeftArea, let right = screen.auxiliaryTopRightArea {
-            notchWidth = max(160, right.minX - left.maxX + 24)
-        } else { notchWidth = 180 }
-        activationFrame = NSRect(x: frame.midX - notchWidth / 2, y: frame.maxY - inset - 12,
-                                 width: notchWidth, height: inset + 12)
-        let width = min(560, frame.width - 32)
+        let geometry = IslandWindowGeometry.activation(on: screen)
+        topInset = geometry.inset
+        activationFrame = geometry.frame
+        let width = geometry.panelWidth
         let height = sectionHeight(width: width)
         panelFrame = NSRect(x: frame.midX - width / 2, y: frame.maxY - height,
                             width: width, height: height)
@@ -322,23 +317,6 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
         panel?.setFrame(frame, display: false)
         transitionHost?.resizeGeometry(size: frame.size, topInset: topInset, collapsedWidth: activationFrame.width)
         CATransaction.commit()
-    }
-
-    /// Window bounds are public metadata; do not request Screen Recording to inspect titles/content.
-    private func isFullScreenOnTarget() -> Bool {
-        guard let screen, let main = NSScreen.screens.first,
-              let pid = NSWorkspace.shared.frontmostApplication?.processIdentifier,
-              let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] else { return false }
-        let target = CGRect(x: screen.frame.minX, y: main.frame.maxY - screen.frame.maxY,
-                            width: screen.frame.width, height: screen.frame.height)
-        return windows.contains { info in
-            guard (info[kCGWindowOwnerPID as String] as? Int) == Int(pid),
-                  (info[kCGWindowLayer as String] as? Int) == 0,
-                  let bounds = info[kCGWindowBounds as String] as? [String: Any],
-                  let rect = CGRect(dictionaryRepresentation: bounds as CFDictionary) else { return false }
-            return abs(rect.minX - target.minX) < 2 && abs(rect.minY - target.minY) < 2 &&
-                rect.width >= target.width - 2 && rect.height >= target.height - 2
-        }
     }
 
     private func handlePointer(_ event: NSEvent) {
@@ -500,63 +478,3 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
     }
 }
 
-@MainActor final class IslandPanel: NSPanel {
-    var onSectionSelect: ((Int) -> Void)?
-    var onEscape: (() -> Void)?
-    var onKeyChange: ((Bool) -> Void)?
-    var onMove: ((Int) -> Void)?
-    var onSubmit: (() -> Void)?
-    var onSpace: (() -> Bool)?
-    init() {
-        super.init(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
-        identifier = .init("island.panel")
-        isFloatingPanel = true
-        // Floating windows sit below the menu bar, which would cover the notch bridge.
-        level = NSWindow.Level(rawValue: NSWindow.Level.statusBar.rawValue + 1)
-        collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-        backgroundColor = .clear; isOpaque = false; hasShadow = false
-        isReleasedWhenClosed = false; hidesOnDeactivate = false
-        appearance = NSAppearance(named: .darkAqua)
-    }
-    override var canBecomeKey: Bool { true }
-    override var canBecomeMain: Bool { false }
-    override func constrainFrameRect(_ frameRect: NSRect, to screen: NSScreen?) -> NSRect {
-        // Our coordinator positions against NSScreen.frame, including the menu/camera strip.
-        // AppKit's default constraint can shift a panel down into visibleFrame on presentation.
-        frameRect
-    }
-    override func becomeKey() { super.becomeKey(); onKeyChange?(true) }
-    override func resignKey() { super.resignKey(); onKeyChange?(false) }
-    override func sendEvent(_ event: NSEvent) {
-        if event.type == .keyDown, (firstResponder as? NSTextView)?.hasMarkedText() != true,
-           event.modifierFlags.intersection([.command, .control, .option, .shift]) == .option,
-           let index = [UInt16(18), 19, 20, 21].firstIndex(of: event.keyCode) {
-            // Local panel handling also works while the native search editor owns focus.
-            onSectionSelect?(index); return
-        }
-        if event.type == .keyDown, (firstResponder as? NSTextView)?.hasMarkedText() != true,
-           event.modifierFlags.intersection([.command, .control, .option, .shift]).isEmpty {
-            switch event.keyCode {
-            case 53: onEscape?(); return
-            case 124:
-                if (firstResponder as? NSTextView)?.string.isEmpty != false { onMove?(1); return }
-            case 123:
-                if (firstResponder as? NSTextView)?.string.isEmpty != false { onMove?(-1); return }
-            case 125: onMove?(1); return
-            case 126: onMove?(-1); return
-            case 36: onSubmit?(); return
-            case 49: if onSpace?() == true { return }
-            default: break
-            }
-        }
-        super.sendEvent(event)
-    }
-    func focusSearch() {
-        func find(_ view: NSView) -> NSTextField? {
-            if let field = view as? NSTextField, field.identifier?.rawValue == "island.search" { return field }
-            return view.subviews.lazy.compactMap(find).first
-        }
-        contentView?.layoutSubtreeIfNeeded()
-        if let field = contentView.flatMap(find) { makeFirstResponder(field) }
-    }
-}
