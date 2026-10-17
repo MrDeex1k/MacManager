@@ -35,3 +35,7 @@ Zadanie widoku jest identyfikowane wpisem, typem i stanem zawieszenia, zamiast r
 ## Etap 6 - komponenty prezentacji
 
 ShortcutEditor obsługuje ustawienia launchera, wyspy i personalizacji. Wspólne elementy Charts odpowiadają za oś względnego czasu i pusty stan; zakresy wartości, serie i jednostki pozostają w widokach. Build aplikacji oraz wszystkich plików testów UI przeszedł.
+
+## Etap 5 - wyszukiwanie schowka
+
+ClipboardSearchModel jest osobnym stanem dla każdej powierzchni, współdzieląc implementację request/revision, anulowania, błędów i publikacji wyników. Okno, wyspa i launcher korzystają z tego modelu z dotychczasowymi limitami. Test odrzucania anulowanego/starego żądania i czyszczenia prywatnych wyników oraz build aplikacji przeszły.

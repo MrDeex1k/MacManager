@@ -523,3 +523,26 @@ func clipboardStorageIsExcludedFromBackup() async throws {
     _ = try await repository.load(preferences: .init(), now: Date())
     #expect(try directory.resourceValues(forKeys: [.isExcludedFromBackupKey]).isExcludedFromBackup == true)
 }
+
+@MainActor @Test func clipboardSearchModelRejectsStaleRequestsAndClearsPrivateResults() async throws {
+    let directory = clipboardDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let repository = ClipboardRepository(directory: directory, keys: ClipboardTestKey())
+    try await repository.insert(.init(kind: .text, data: Data("first result".utf8)), preferences: .init(), now: Date())
+    let service = ClipboardService(preferences: .init(), pasteboard: ClipboardMock(), repository: repository, storageExists: true)
+    await service.start()
+    let model = ClipboardSearchModel()
+    let request = ClipboardSearchModel.Request(query: "first", service: service)
+    #expect(try await model.search(request, service: service).count == 1)
+    #expect(model.completed == request)
+    let cancelled = Task { try await model.search(request, service: service) }
+    cancelled.cancel()
+    await #expect(throws: CancellationError.self) { try await cancelled.value }
+    #expect(model.completed == request, "An already cancelled caller must not reset a newer result")
+    await service.setSuspended(true)
+    #expect(model.entries(for: request, service: service).isEmpty)
+    await #expect(throws: CancellationError.self) { try await model.search(request, service: service) }
+    model.reset()
+    #expect(model.matches.isEmpty && model.completed == nil && !model.hasPendingWork)
+    service.stop()
+}

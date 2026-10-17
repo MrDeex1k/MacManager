@@ -21,6 +21,7 @@ final class LauncherController: ApplicationLifecycleParticipant {
     var focusPresentationID: UUID { presentationID }
     var options: LauncherPreferences { preferences.launcher }
     var showsResults: Bool { clipboardMode || !model.query.isEmpty }
+    @ObservationIgnored private let clipboardSearch = ClipboardSearchModel()
     @ObservationIgnored private let files = LauncherFileSearch()
     @ObservationIgnored private let applicationIcons = NSCache<NSURL, NSImage>()
     var catalogRefreshSeconds: Double = 60 { didSet { model.catalogRefreshSeconds = catalogRefreshSeconds } }
@@ -62,7 +63,7 @@ final class LauncherController: ApplicationLifecycleParticipant {
             guard let self, self.visible else { return [] }
             if self.clipboardMode {
                 guard let clipboard = self.clipboard, !clipboard.suspended else { return [] }
-                let entries = try await clipboard.search(query, limit: 40)
+                let entries = try await self.clipboardSearch.search(.init(query: query, service: clipboard), service: clipboard, limit: 40)
                 try Task.checkCancellation()
                 guard self.visible, self.clipboardMode, !clipboard.suspended else { return [] }
                 return entries.map {
@@ -332,6 +333,7 @@ final class LauncherController: ApplicationLifecycleParticipant {
         panel.setFrame(frame, display: true, animate: false)
     }
     func hide(restoreFocus: Bool = true) {
+        clipboardSearch.reset()
         guard visible else { return }
         visible = false; presentationID = UUID(); executing = false
         rowMenuOpen = false; searchSelection = nil

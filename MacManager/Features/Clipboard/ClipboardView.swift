@@ -8,24 +8,14 @@ struct ClipboardView: View {
     @State private var showingSettings = false
     @State private var confirmingClear = false
     @State private var selected: ClipboardEntry?
-    @State private var filtered: [ClipboardEntry] = []
-    @State private var completedSearch: SearchRequest?
-    @State private var searchFailure: ClipboardFailure?
-
-    private struct SearchRequest: Hashable {
-        let query: String
-        let revision: Int
-        let suspended: Bool
-    }
-    private var searchRequest: SearchRequest {
-        SearchRequest(query: query, revision: service.revision, suspended: service.suspended)
+    @State private var searchState = ClipboardSearchModel()
+    private var searchRequest: ClipboardSearchModel.Request {
+        .init(query: query, service: service)
     }
 
     private var service: ClipboardService { state.clipboard }
     private var visibleEntries: [ClipboardEntry] {
-        guard !service.suspended else { return [] }
-        if query.isEmpty { return service.entries }
-        return completedSearch == searchRequest ? filtered : []
+        searchState.entries(for: searchRequest, service: service)
     }
 
     var body: some View {
@@ -110,9 +100,9 @@ struct ClipboardView: View {
                     .disabled(service.entries.isEmpty && service.failure == nil)
                     .accessibilityIdentifier("clipboard.clear")
                 }
-                if !query.isEmpty && completedSearch != searchRequest {
+                if !query.isEmpty && searchState.completed != searchRequest {
                     ProgressView().frame(maxWidth: .infinity, minHeight: 180)
-                } else if !query.isEmpty, completedSearch == searchRequest, let searchFailure {
+                } else if !query.isEmpty, searchState.completed == searchRequest, let searchFailure = searchState.failure {
                     VStack(spacing: 16) {
                         Label(state.strings("clipboard.error.\(searchFailure.rawValue)"), systemImage: "exclamationmark.triangle")
                             .foregroundStyle(.orange)
@@ -136,28 +126,12 @@ struct ClipboardView: View {
             }
         }
         .task(id: searchRequest) {
-            guard !Task.isCancelled else { return }
             let request = searchRequest
-            searchFailure = nil
-            guard !request.suspended, !request.query.isEmpty else {
-                filtered = []; completedSearch = nil
-                return
-            }
-            do {
-                let matches = try await service.search(request.query)
-                try Task.checkCancellation()
-                guard request == searchRequest else { return }
-                filtered = matches; completedSearch = request
-            } catch is CancellationError {
-                // Cancelled requests must not overwrite a newer request's state.
-            } catch {
-                guard !Task.isCancelled, request == searchRequest else { return }
-                filtered = []
-                searchFailure = error as? ClipboardFailure ?? .storage
-                completedSearch = request
-            }
+            guard !Task.isCancelled else { return }
+            guard !request.suspended, !request.query.isEmpty else { searchState.reset(); return }
+            _ = try? await searchState.search(request, service: service)
         }
-        .onDisappear { filtered = []; completedSearch = nil; searchFailure = nil }
+        .onDisappear { searchState.reset() }
         .sheet(isPresented: $showingSettings) { ClipboardSettingsView().environment(state) }
         .sheet(item: $selected) { entry in
             ClipboardDetailView(service: service, entry: entry, strings: state.strings) { selected = nil }
@@ -166,7 +140,7 @@ struct ClipboardView: View {
             if let selected, !service.entries.contains(where: { $0.id == selected.id }) { self.selected = nil }
         }
         .onChange(of: service.suspended) { _, suspended in
-            if suspended { selected = nil; query = ""; showingSettings = false; filtered = [] }
+            if suspended { selected = nil; query = ""; showingSettings = false; searchState.reset() }
         }
         .alert(state.strings("clipboard.clear.confirm"), isPresented: $confirmingClear) {
             Button(state.strings("clipboard.cancel"), role: .cancel) {}
