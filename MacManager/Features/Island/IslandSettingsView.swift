@@ -73,19 +73,8 @@ struct IslandSettingsView: View {
                     .font(.caption).foregroundStyle(.orange)
             }
             Divider()
-            Toggle(state.strings("launcher.shortcut.enabled"), isOn: $shortcut.enabled)
-                .accessibilityIdentifier("island.shortcut.enabled")
-            HStack {
-                Text(state.strings("launcher.shortcut")); Spacer()
-                Picker(state.strings("launcher.modifiers"), selection: $shortcut.modifiers) {
-                    ForEach(LauncherShortcut.modifierChoices, id: \.1) { Text($0.0).tag($0.1) }
-                }.labelsHidden().fixedSize()
-                Picker(state.strings("launcher.key"), selection: $shortcut.keyCode) {
-                    ForEach(LauncherShortcut.keys, id: \.1) {
-                        Text($0.1 == 49 ? state.strings("launcher.space") : $0.0).tag($0.1)
-                    }
-                }.labelsHidden().fixedSize()
-            }.disabled(!shortcut.enabled)
+            ShortcutEditor(shortcut: $shortcut, strings: state.strings, enabledID: "island.shortcut.enabled",
+                           modifiersID: "island.modifiers", keyID: "island.key")
             if state.island.shortcutFailed {
                 Label(state.strings("launcher.conflict"), systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
                 Button(state.strings("launcher.retry")) { state.island.updateShortcut(shortcut) }

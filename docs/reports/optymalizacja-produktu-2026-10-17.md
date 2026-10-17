@@ -31,3 +31,7 @@ Bazowy ranking Release, mediana/P95 w ms: 200 wpisów 0,094/0,103; 1000 wpisów 
 ## Etap 4 - miniatury schowka
 
 Zadanie widoku jest identyfikowane wpisem, typem i stanem zawieszenia, zamiast rewizją całej historii. Teksty nie odpytują repozytorium o miniatury. Usunięto puste pole ClipboardEntry.thumbnail; zaszyfrowany Preview i odczyt wersji 1/2 pozostają zgodne. 25 testów schowka i obrazów, łącznie z integracjami systemowymi, przeszło.
+
+## Etap 6 - komponenty prezentacji
+
+ShortcutEditor obsługuje ustawienia launchera, wyspy i personalizacji. Wspólne elementy Charts odpowiadają za oś względnego czasu i pusty stan; zakresy wartości, serie i jednostki pozostają w widokach. Build aplikacji oraz wszystkich plików testów UI przeszedł.
