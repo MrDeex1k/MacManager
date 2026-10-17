@@ -39,3 +39,7 @@ ShortcutEditor obsługuje ustawienia launchera, wyspy i personalizacji. Wspólne
 ## Etap 5 - wyszukiwanie schowka
 
 ClipboardSearchModel jest osobnym stanem dla każdej powierzchni, współdzieląc implementację request/revision, anulowania, błędów i publikacji wyników. Okno, wyspa i launcher korzystają z tego modelu z dotychczasowymi limitami. Test odrzucania anulowanego/starego żądania i czyszczenia prywatnych wyników oraz build aplikacji przeszły.
+
+## Etap 7 - sesja i obserwacje
+
+NotificationTokens zwalnia rejestracje przy stop oraz zwolnieniu właściciela. SystemSessionMonitor jest jednym źródłem sleep/lock/inactiveSession dla kontrolerów; polityki nadal rozróżniają pełne zawieszenie od samego snu. Clipboard zachowuje maintenance po wake. Test nakładających się powodów zawieszenia i build aplikacji przeszły.

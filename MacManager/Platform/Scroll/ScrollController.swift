@@ -8,10 +8,7 @@ final class ScrollController: ApplicationLifecycleParticipant {
     private let diagnostics: DiagnosticsStore
     private var running = false
     private var loop: Task<Void, Never>?
-    private var observers: [(NotificationCenter, NSObjectProtocol)] = []
-    private var sleeping = false
-    private var inactiveSession = false
-    private var locked = false
+    private let observers = NotificationTokens()
     private var reportedStatus: ScrollStatus?
 
     init(service: ScrollService, diagnostics: DiagnosticsStore) {
@@ -22,44 +19,9 @@ final class ScrollController: ApplicationLifecycleParticipant {
     func start() {
         guard !running else { return }
         running = true
-        let center = NSWorkspace.shared.notificationCenter
-        for (name, sleeping) in [(NSWorkspace.willSleepNotification, true), (NSWorkspace.didWakeNotification, false)] {
-            let token = center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
-                MainActor.assumeIsolated {
-                    guard let self else { return }
-                    self.sleeping = sleeping
-                    self.service.setSuspended(self.sleeping || self.inactiveSession || self.locked)
-                }
-            }
-            observers.append((center, token))
+        SystemSessionMonitor.shared.subscribe(in: observers) { [weak self] state in
+            self?.service.setSuspended(state.suspended)
         }
-        for (name, inactive) in [(NSWorkspace.sessionDidResignActiveNotification, true),
-                                 (NSWorkspace.sessionDidBecomeActiveNotification, false)] {
-            let token = center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
-                MainActor.assumeIsolated {
-                    guard let self else { return }
-                    self.inactiveSession = inactive
-                    self.service.setSuspended(self.sleeping || self.inactiveSession || self.locked)
-                }
-            }
-            observers.append((center, token))
-        }
-        if let session = CGSessionCopyCurrentDictionary() as? [String: Any] {
-            locked = session["CGSSessionScreenIsLocked"] as? Bool == true
-            inactiveSession = session[kCGSessionOnConsoleKey as String] as? Bool == false
-        }
-        let distributed = DistributedNotificationCenter.default()
-        for (name, locked) in [("com.apple.screenIsLocked", true), ("com.apple.screenIsUnlocked", false)] {
-            let token = distributed.addObserver(forName: .init(name), object: nil, queue: .main) { [weak self] _ in
-                MainActor.assumeIsolated {
-                    guard let self else { return }
-                    self.locked = locked
-                    self.service.setSuspended(self.sleeping || self.inactiveSession || self.locked)
-                }
-            }
-            observers.append((distributed, token))
-        }
-        service.setSuspended(sleeping || inactiveSession || locked)
         service.refresh()
         recordState()
         let appCenter = NotificationCenter.default
@@ -97,7 +59,6 @@ final class ScrollController: ApplicationLifecycleParticipant {
         running = false
         loop?.cancel()
         loop = nil
-        observers.forEach { center, token in center.removeObserver(token) }
         observers.removeAll()
         service.shutdown()
     }

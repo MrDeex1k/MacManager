@@ -10,7 +10,7 @@ final class ClipboardController: ApplicationLifecycleParticipant {
     private var loop: Task<Void, Never>?
     private var maintenance: Task<Void, Never>?
     private var polling: Task<Void, Never>?
-    private var observers: [(NotificationCenter, NSObjectProtocol)] = []
+    private let observers = NotificationTokens()
     private let testing: Bool
     private let fixture: Bool
     private var suspendedReasons: Set<String> = []
@@ -43,17 +43,16 @@ final class ClipboardController: ApplicationLifecycleParticipant {
     func start() {
         guard loop == nil else { return }
         if !testing {
-            let center = NSWorkspace.shared.notificationCenter
-            observe(center, .willSleep, reason: "sleep", suspended: true)
-            observe(center, .didWake, reason: "sleep", suspended: false)
-            observe(center, NSWorkspace.sessionDidResignActiveNotification, reason: "session", suspended: true)
-            observe(center, NSWorkspace.sessionDidBecomeActiveNotification, reason: "session", suspended: false)
-            let distributed = DistributedNotificationCenter.default()
-            observe(distributed, .init("com.apple.screenIsLocked"), reason: "lock", suspended: true)
-            observe(distributed, .init("com.apple.screenIsUnlocked"), reason: "lock", suspended: false)
-            if let session = CGSessionCopyCurrentDictionary() as? [String: Any],
-               session["CGSSessionScreenIsLocked"] as? Bool == true {
-                suspendedReasons.insert("lock")
+            SystemSessionMonitor.shared.subscribe(in: observers) { [weak self] state in
+                guard let self else { return }
+                let wasSleeping = self.suspendedReasons.contains("sleep")
+                self.suspendedReasons = Set(state.reasons.map { $0 == .sleep ? "sleep" : $0 == .lock ? "lock" : "session" })
+                self.scheduleMaintenance()
+                Task { @MainActor [weak self] in
+                    guard let self, self.loop != nil else { return }
+                    if wasSleeping && !state.sleeping { await self.service.maintain() }
+                    await self.service.setSuspended(!self.suspendedReasons.isEmpty)
+                }
             }
         }
         let clockCenter = NotificationCenter.default
@@ -101,7 +100,7 @@ final class ClipboardController: ApplicationLifecycleParticipant {
         loop?.cancel(); loop = nil
         maintenance?.cancel(); maintenance = nil
         polling?.cancel(); polling = nil
-        observers.forEach { $0.0.removeObserver($0.1) }; observers.removeAll()
+        observers.removeAll()
         service.stop()
     }
 
@@ -161,19 +160,7 @@ final class ClipboardController: ApplicationLifecycleParticipant {
         }
     }
 
-    private func observe(_ center: NotificationCenter, _ name: Notification.Name, reason: String, suspended: Bool) {
-        let observer = center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
-            Task { @MainActor [weak self] in
-                guard let self else { return }
-                if suspended { self.suspendedReasons.insert(reason) }
-                else { self.suspendedReasons.remove(reason) }
-                self.scheduleMaintenance()
-                if reason == "sleep", !suspended { await self.service.maintain() }
-                await self.service.setSuspended(!self.suspendedReasons.isEmpty)
-            }
-        }
-        observers.append((center, observer))
-    }
+
 }
 
 private struct EphemeralClipboardKey: ClipboardKeyProviding {
@@ -181,7 +168,3 @@ private struct EphemeralClipboardKey: ClipboardKeyProviding {
     func key(createIfMissing: Bool) throws -> SymmetricKey { value }
 }
 
-private extension Notification.Name {
-    static let willSleep = NSWorkspace.willSleepNotification
-    static let didWake = NSWorkspace.didWakeNotification
-}

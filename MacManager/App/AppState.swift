@@ -91,6 +91,7 @@ final class AppState {
             updates.setOnline(!updateOffline)
             updateController = UpdateController(service: updates, energy: energy)
             var participants: [any ApplicationLifecycleParticipant] = [
+                SystemSessionMonitor.shared,
                 EnergyController(policy: energy),
                 dock,
                 loginItem,
@@ -133,6 +134,7 @@ final class AppState {
         )
         updateController = UpdateController(service: updates, energy: energy)
         lifecycle = ApplicationLifecycleCoordinator(participants: [
+            SystemSessionMonitor.shared,
             EnergyController(policy: energy),
             dock,
             loginItem,

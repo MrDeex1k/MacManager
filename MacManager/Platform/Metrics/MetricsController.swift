@@ -8,7 +8,7 @@ final class MetricsController: ApplicationLifecycleParticipant {
     private let energy: EnergyPolicy?
     private let diagnostics: DiagnosticsStore
     private var loop: Task<Void, Never>?
-    private var observers: [(NotificationCenter, NSObjectProtocol)] = []
+    private let observers = NotificationTokens()
     private var running = false
     private var reportedFailure = false
 
@@ -22,14 +22,10 @@ final class MetricsController: ApplicationLifecycleParticipant {
         guard !running else { return }
         running = true
         service.setSuspended(false)
-        let center = NSWorkspace.shared.notificationCenter
-        for (name, sleeping) in [(NSWorkspace.willSleepNotification, true), (NSWorkspace.didWakeNotification, false)] {
-            let token = center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
-                Task { @MainActor [weak self] in
-                    if self?.energy == nil { self?.service.setSuspended(sleeping) }
-                }
+        if energy == nil {
+            SystemSessionMonitor.shared.subscribe(in: observers) { [weak self] state in
+                self?.service.setSuspended(state.sleeping)
             }
-            observers.append((center, token))
         }
         scheduleSampling()
     }
@@ -69,7 +65,6 @@ final class MetricsController: ApplicationLifecycleParticipant {
         running = false
         loop?.cancel()
         loop = nil
-        observers.forEach { center, token in center.removeObserver(token) }
         observers.removeAll()
         service.setSuspended(true)
     }

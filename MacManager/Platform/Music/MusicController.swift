@@ -4,7 +4,7 @@ import MacManagerCore
 @MainActor final class MusicController: ApplicationLifecycleParticipant {
     private let service: MusicService
     private let bundleID: String
-    private var observers: [(NotificationCenter, NSObjectProtocol)] = []
+    private let observers = NotificationTokens()
     init(service: MusicService, bundleID: String = "com.apple.Music") { self.service = service; self.bundleID = bundleID }
     func start() {
         guard observers.isEmpty else { return }
@@ -26,7 +26,7 @@ import MacManagerCore
         observers.append((center, token))
     }
     func stop() {
-        observers.forEach { $0.0.removeObserver($0.1) }; observers.removeAll()
+        observers.removeAll()
         service.setVisible(false)
     }
 }

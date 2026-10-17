@@ -127,7 +127,7 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
     @ObservationIgnored private var scheduledDeadline: TimeInterval?
     @ObservationIgnored private var generation = 0
     @ObservationIgnored private var monitors: [Any] = []
-    @ObservationIgnored private var observers: [(NotificationCenter, NSObjectProtocol)] = []
+    @ObservationIgnored private let observers = NotificationTokens()
     @ObservationIgnored private let hotKey = LauncherHotKey()
     @ObservationIgnored private var activationFrame = NSRect.zero
     @ObservationIgnored private var panelFrame = NSRect.zero
@@ -157,16 +157,13 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
             if $0.closing { $0.finishClosing() }
             else if $0.visible { $0.settleSectionChange() }
         }
-        observe(workspace, NSWorkspace.willSleepNotification) { $0.suspend("sleep") }
-        observe(workspace, NSWorkspace.sessionDidResignActiveNotification) { $0.suspend("session") }
-        observe(workspace, NSWorkspace.didWakeNotification) { $0.resume("sleep") }
-        observe(workspace, NSWorkspace.sessionDidBecomeActiveNotification) { $0.resume("session") }
         observe(.default, NSMenu.didBeginTrackingNotification) { $0.setMenuTracking(true) }
         observe(.default, NSMenu.didEndTrackingNotification) { $0.setMenuTracking(false) }
-        observe(DistributedNotificationCenter.default(), Notification.Name("com.apple.screenIsLocked")) { $0.suspend("lock") }
-        observe(DistributedNotificationCenter.default(), Notification.Name("com.apple.screenIsUnlocked")) { $0.resume("lock") }
-        if let session = CGSessionCopyCurrentDictionary() as? [String: Any],
-           session["CGSSessionScreenIsLocked"] as? Bool == true { suspensionReasons.insert("lock") }
+        SystemSessionMonitor.shared.subscribe(in: observers) { [weak self] state in
+            guard let self else { return }
+            if state.suspended { self.suspend("system-session") }
+            else if self.suspensionReasons.contains("system-session") { self.resume("system-session") }
+        }
         watchPreferences()
         reposition()
     }
@@ -175,7 +172,7 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
         running = false
         dismiss(restoreFocus: false, animated: false)
         monitors.forEach(NSEvent.removeMonitor); monitors.removeAll()
-        observers.forEach { $0.0.removeObserver($0.1) }; observers.removeAll()
+        observers.removeAll()
         hotKey.stop(); interaction.reset()
     }
 

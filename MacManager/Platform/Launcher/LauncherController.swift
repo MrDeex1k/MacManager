@@ -41,7 +41,7 @@ final class LauncherController: ApplicationLifecycleParticipant {
     @ObservationIgnored private var panel: LauncherPanel?
     @ObservationIgnored private var hosting: NSHostingView<AnyView>?
     @ObservationIgnored private var previousApplication: NSRunningApplication?
-    @ObservationIgnored private var observers: [(NotificationCenter, NSObjectProtocol)] = []
+    @ObservationIgnored private let observers = NotificationTokens()
     @ObservationIgnored private let testing: Bool
     private var usesRealShortcut: Bool { !testing || ProcessInfo.processInfo.arguments.contains("--launcher-live-testing") }
     @ObservationIgnored private var running = false
@@ -83,20 +83,11 @@ final class LauncherController: ApplicationLifecycleParticipant {
         }
         registerItemShortcuts()
         reconcileApplicationShortcuts()
-        let workspace = NSWorkspace.shared.notificationCenter
-        observe(workspace, NSWorkspace.willSleepNotification)
-        observe(workspace, NSWorkspace.sessionDidResignActiveNotification)
-        observe(DistributedNotificationCenter.default(), .init("com.apple.screenIsLocked"))
-    }
-    private func observe(_ center: NotificationCenter, _ name: Notification.Name) {
-        let token = center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
-            MainActor.assumeIsolated {
-                self?.hide(restoreFocus: false)
-                self?.model.cancel()
-                self?.shortcutCleanup?.cancel(); self?.shortcutCleanup = nil
-            }
+        SystemSessionMonitor.shared.subscribe(in: observers) { [weak self] state in
+            guard state.suspended, let self else { return }
+            self.hide(restoreFocus: false); self.model.cancel()
+            self.shortcutCleanup?.cancel(); self.shortcutCleanup = nil
         }
-        observers.append((center, token))
     }
     func stop() {
         running = false; hide(restoreFocus: false); hotKey.stop()
@@ -104,7 +95,7 @@ final class LauncherController: ApplicationLifecycleParticipant {
         applicationIcons.removeAllObjects()
         panel?.contentView = nil; hosting = nil
         itemHotKeys.values.forEach { $0.stop() }; itemHotKeys = [:]
-        observers.forEach { $0.0.removeObserver($0.1) }; observers = []
+        observers.removeAll()
     }
     @discardableResult func updateShortcut(_ value: LauncherShortcut) -> Bool {
         guard value.isValid else { return false }
