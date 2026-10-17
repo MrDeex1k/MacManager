@@ -5096,6 +5096,118 @@
           }
         }
       }
+    },
+    "podcast.artwork.title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Local Podcasts artwork"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lokalne okładki Podcastów"
+          }
+        }
+      }
+    },
+    "podcast.artwork.note": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allow access to the Podcasts folder to show cached artwork without online searches."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Udostępnij folder Podcastów, aby pokazywać lokalne okładki bez wyszukiwania w internecie."
+          }
+        }
+      }
+    },
+    "podcast.artwork.granted": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Folder access saved. Artwork stays on this Mac."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dostęp do folderu zapamiętany. Okładki pozostają na tym Macu."
+          }
+        }
+      }
+    },
+    "podcast.artwork.folder.title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Podcasts artwork access"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dostęp do okładek Podcastów"
+          }
+        }
+      }
+    },
+    "podcast.artwork.folder.message": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Select this Podcasts data folder (243LU875E5.groups.com.apple.podcasts). MacManager only reads metadata and cached artwork."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wybierz ten folder danych Podcastów (243LU875E5.groups.com.apple.podcasts). MacManager tylko odczytuje metadane i zapisane okładki."
+          }
+        }
+      }
+    },
+    "podcast.artwork.folder.choose": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allow folder access"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Udostępnij folder"
+          }
+        }
+      }
+    },
+    "podcast.artwork.failed": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Select the original Podcasts data folder. Access could not be saved."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wybierz oryginalny folder danych Podcastów. Nie udało się zapamiętać dostępu."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

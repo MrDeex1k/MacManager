@@ -15,6 +15,9 @@ struct IslandSettingsPage: View {
 struct IslandSettingsView: View {
     @Environment(AppState.self) private var state
     @State private var shortcut = IslandPreferences().shortcut
+    @State private var artworkConfigured = false
+    @State private var choosingArtworkFolder = false
+    @State private var artworkAccessFailed = false
     var body: some View {
         @Bindable var preferences = state.preferences
         VStack(alignment: .leading, spacing: 14) {
@@ -43,6 +46,33 @@ struct IslandSettingsView: View {
                 .font(.caption).foregroundStyle(.secondary)
             Toggle(state.strings("island.fullScreen"), isOn: $preferences.island.showsInFullScreen)
                 .accessibilityIdentifier("island.fullScreen")
+            Divider()
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(state.strings("podcast.artwork.title")).font(.subheadline.weight(.semibold))
+                    Text(state.strings(artworkConfigured ? "podcast.artwork.granted" : "podcast.artwork.note"))
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                Spacer()
+                Button(state.strings("podcast.artwork.folder.choose")) {
+                    choosingArtworkFolder = true
+                    Task {
+                        let result = await state.podcastArtworkAccess.requestDirectory(strings: state.strings)
+                        artworkConfigured = await state.podcastArtworkAccess.configured
+                        artworkAccessFailed = result == false
+                        choosingArtworkFolder = false
+                        if result == true { state.podcasts.refresh() }
+                    }
+                }
+                .buttonStyle(.bordered)
+                .disabled(choosingArtworkFolder)
+                .accessibilityIdentifier("podcast.artwork.authorize")
+            }
+            if artworkAccessFailed {
+                Label(state.strings("podcast.artwork.failed"), systemImage: "exclamationmark.triangle")
+                    .font(.caption).foregroundStyle(.orange)
+            }
+            Divider()
             Toggle(state.strings("launcher.shortcut.enabled"), isOn: $shortcut.enabled)
                 .accessibilityIdentifier("island.shortcut.enabled")
             HStack {
@@ -75,6 +105,7 @@ struct IslandSettingsView: View {
         }
         .padding(.trailing, 20)
         .onAppear { shortcut = preferences.island.shortcut }
+        .task { artworkConfigured = await state.podcastArtworkAccess.configured }
         .onChange(of: shortcut) { _, value in state.island.updateShortcut(value) }
     }
 }

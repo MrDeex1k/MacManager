@@ -38,6 +38,7 @@ final class AppState {
     let island: IslandCoordinator
     let music: MusicService
     let podcasts: MusicService
+    let podcastArtworkAccess = PodcastArtworkAccess()
     let clipboardController: ClipboardController
     var clipboard: ClipboardService { clipboardController.service }
     let diagnostics: DiagnosticsStore
@@ -114,7 +115,7 @@ final class AppState {
         preferences = PreferencesStore()
         island = IslandCoordinator(preferences: preferences)
         music = MusicService(adapter: AppleMusicAdapter())
-        podcasts = MusicService(adapter: ApplePodcastsAdapter())
+        podcasts = MusicService(adapter: ApplePodcastsAdapter(artworkAccess: podcastArtworkAccess))
         launcher = LauncherController(preferences: preferences)
         clipboardController = ClipboardController(preferences: preferences)
         scroll = ScrollService(enabled: preferences.reverseMouseScroll, driver: ScrollDriver())

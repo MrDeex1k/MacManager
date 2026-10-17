@@ -13,7 +13,7 @@ struct IslandMusicView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .center, spacing: 14) {
-                MusicArtworkView(snapshot: snapshot, symbol: isPodcast ? "podcasts" : "music.note").frame(width: 80, height: 80)
+                MusicArtworkView(snapshot: snapshot, symbol: isPodcast ? "dot.radiowaves.left.and.right" : "music.note").frame(width: 80, height: 80)
                 VStack(alignment: .leading, spacing: 4) {
                     Text(snapshot.title.isEmpty ? strings(isPodcast ? "podcast.noEpisode" : "music.noTrack") : snapshot.title)
                         .font(.headline).lineLimit(2).accessibilityIdentifier(prefix + ".track")

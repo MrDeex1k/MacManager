@@ -35,3 +35,5 @@ W finalnej podpisanej instalacji 0.8.8 (12) potwierdzono odczyt prawdziwego odci
 Release przeszedł. Instalator porównał bundle ID i designated requirement z istniejącą aplikacją, podpisał tym samym certyfikatem 89BB0A8D7F01DE8676FBAE22B17B3D5643F9EC00 i uruchomił /Applications/MacManager.app. UserDefaults, Keychain, Application Support i TCC nie były usuwane ani resetowane. Kontrola końcowa potwierdza pojedynczy proces z /Applications.
 
 Doprecyzowanie nawigacji: Wyspa ma osobną stronę w pasku bocznym, obok Docka. Wszystkie dotychczasowe preferencje i skrót przeniesiono z ogólnych Ustawień; zapisane wartości pozostają bez zmian.
+
+Uzupełnienie w 0.8.9: zamiast stałego placeholdera adapter odczytuje okładkę z lokalnego cache Podcastów i nazwę audycji z jednoznacznego dopasowania biblioteki tylko do odczytu. [Szczegóły poprawki](wyspa-okladki-podcast-2026-10-17.md).

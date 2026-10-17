@@ -1,11 +1,19 @@
 import AppKit
 @preconcurrency import ApplicationServices
 import QuartzCore
+import ImageIO
+import UniformTypeIdentifiers
 import MacManagerCore
 
 /// Public Accessibility actions targeted at Podcasts, never global keys or private MediaRemote.
 /// Reads only a bounded player subtree. A closed/unavailable window is reported explicitly.
 actor ApplePodcastsAdapter: MusicPlayerAdapter {
+    private let artworkAccess: PodcastArtworkAccess
+    init(artworkAccess: PodcastArtworkAccess) { self.artworkAccess = artworkAccess }
+    private var artworkKey: String?
+    private var artworkAttempt: TimeInterval = 0
+    private var cachedEpisode: (title: String, show: String, id: String, artwork: Data?)?
+
     private func attribute(_ element: AXUIElement, _ name: String) -> CFTypeRef? {
         var value: CFTypeRef?
         guard AXUIElementCopyAttributeValue(element, name as CFString, &value) == .success else { return nil }
@@ -83,7 +91,23 @@ actor ApplePodcastsAdapter: MusicPlayerAdapter {
             let maximum = (attribute(slider, kAXMaxValueAttribute) as? NSNumber)?.doubleValue ?? 1
             if maximum > minimum { reading.fraction = (position.doubleValue - minimum) / (maximum - minimum) }
         }
-        return reading.snapshot
+        var snapshot = reading.snapshot
+        let key = reading.title + "\u{1f}" + reading.expandedMetadata
+        let now = ProcessInfo.processInfo.systemUptime
+        if artworkKey != key || (cachedEpisode?.artwork == nil && now - artworkAttempt >= 30) {
+            artworkKey = key; artworkAttempt = now; cachedEpisode = nil
+            if !Task.isCancelled, let local = await artworkAccess.read(title: reading.title, expandedMetadata: reading.expandedMetadata), !Task.isCancelled {
+                cachedEpisode = (local.episodeTitle, local.showTitle, local.episodeID, local.data.flatMap(Self.thumbnail))
+            }
+        }
+        guard !Task.isCancelled else { return MusicSnapshot() }
+        if let cachedEpisode {
+            snapshot.trackID = "podcast-" + cachedEpisode.id
+            snapshot.title = cachedEpisode.title
+            snapshot.artist = cachedEpisode.show
+            snapshot.artwork = cachedEpisode.artwork
+        }
+        return snapshot
     }
     private func transportPrefix(_ player: Player) -> String? {
         for prefix in ["podcasts.miniPlayer.", "podcasts.nowPlaying."] {
@@ -114,5 +138,19 @@ actor ApplePodcastsAdapter: MusicPlayerAdapter {
             return AXIsProcessTrustedWithOptions(options) ? .ready : .accessibilityRequired
         }
     }
-    func releaseArtwork() {} // No retained player elements, artwork cache or hidden observer.
+    func releaseArtwork() { artworkKey = nil; artworkAttempt = 0; cachedEpisode = nil }
+
+    private static func thumbnail(_ data: Data) -> Data? {
+        guard data.count <= 8_000_000, let source = CGImageSourceCreateWithData(data as CFData, nil),
+              let image = CGImageSourceCreateThumbnailAtIndex(source, 0, [
+                kCGImageSourceCreateThumbnailFromImageAlways: true,
+                kCGImageSourceThumbnailMaxPixelSize: 256,
+                kCGImageSourceCreateThumbnailWithTransform: true
+              ] as CFDictionary) else { return nil }
+        let output = NSMutableData()
+        guard let destination = CGImageDestinationCreateWithData(output, UTType.png.identifier as CFString, 1, nil) else { return nil }
+        CGImageDestinationAddImage(destination, image, nil)
+        guard CGImageDestinationFinalize(destination), output.length <= 1_000_000 else { return nil }
+        return output as Data
+    }
 }
