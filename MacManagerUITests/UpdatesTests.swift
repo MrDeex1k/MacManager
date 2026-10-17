@@ -25,6 +25,7 @@ final class UpdatesTests: AppUITestSupport {
 
         let automatic = element("updates.automatic", in: app)
         XCTAssertEqual(switchValue(automatic), 1)
+        scrollTo(automatic, in: app)
         automatic.click()
         XCTAssertEqual(switchValue(automatic), 0)
 

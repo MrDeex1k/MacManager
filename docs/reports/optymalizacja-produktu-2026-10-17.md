@@ -73,3 +73,19 @@ Porównanie syntetycznego rankingu Release (mediana/P95 ms, osobny przebieg bez 
 | 5000 | 2,631 / 3,804 | 1,964 / 2,682 |
 
 Zysk dotyczy głównie dużego katalogu; brak dowodu poprawy małego katalogu i P95 dla 1000 wpisów. Nie jest to pomiar opóźnienia całego interfejsu.
+
+## Etap 12 - monitor wierszy i odbiór
+
+LauncherRowMenuMonitor rejestruje jeden lokalny monitor na panel i utrzymuje słabe referencje do wierszy. Usuwa rejestrację po odłączeniu wierszy lub stop kontrolera. Test personalizacji jawnie wybiera Option+N i wysyła ten sam skrót przy sprawdzaniu akcji globalnej. Końcowy przegląd ograniczył reakcję sieci/updatera/energii do faktycznej zmiany snu i zachował rewizję niezmienionego katalogu przy ponownym otwarciu launchera.
+
+`test-session-monitor.sh` sprawdza rzeczywisty mechanizm NotificationCenter przy użyciu syntetycznych powiadomień wewnątrz procesu. Potwierdza pojedynczą publikację, zachowanie zawieszenia po wake przy nieaktywnej sesji i usunięcie rejestracji przy stop; nie blokuje i nie usypia komputera. Wynik: PASS.
+
+Końcowy zestaw Core Release: 156 testów, w tym systemowy pasteboard, Keychain, backup i faktycznie wykonany Spotlight, PASS. Benchmark jest osobnym, jawnym uruchomieniem (łącznie 157 definicji testów). Build aplikacji Release: PASS. Prototyp czujników Stage2: kompilacja PASS.
+
+Pełny pierwszy przebieg UI: 32/36. Niezmieniona kopia main odtworzyła błąd kontrastu częściowo widocznego nagłówka wentylatorów oraz kliknięcie autostartu poza widocznym obszarem. Audyt kontrastu pozostaje aktywny i nie jest wyciszany. Testy przewijania otrzymały gesty wykonywane wewnątrz przecięcia scroll view z oknem oraz kontrolę kierunku rzeczywistego przesunięcia.
+
+Celowany scenariusz aliasu/ulubionych/konfliktu/globalnego skrótu przeszedł po jawnym wyborze Option+N, weryfikacji tytułu edytowanego wpisu oraz zakończenia zapisu przed dalszym wpisywaniem. Dodatkowy test Core odświeżenia aliasu również przeszedł. Testy współdzielonego schowka wyspy i kalkulatora/schowka launchera przeszły na końcowej wersji.
+
+Końcowy wynik UI po celowanych powtórzeniach: 35/36 scenariuszy zweryfikowanych pozytywnie. Autostart i aktualizacje przeszły po poprawieniu gestów przewijania. Jedyny pozostały błąd to audyt kontrastu nagłówka `Fan speed · last 5 minutes`; niezmieniony main zgłasza ten sam element w tych samych współrzędnych. Nie dodano wyjątku wyciszającego to znalezisko.
+
+Wszystkie 12 etapów wdrożono na jednym branchu w osobnych commitach. Zmiana nie obejmuje integracji Spotify. Przygotowano wspólne granice źródeł, adapterów i prezentacji. Nie wykonano nowego profilu Instruments ani porównania pamięci/czasu pierwszej klatki; podane wyniki wydajności dotyczą wyłącznie syntetycznego silnika rankingu.

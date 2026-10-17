@@ -477,4 +477,3 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
         previousApplication = nil; previousWindow = nil
     }
 }
-

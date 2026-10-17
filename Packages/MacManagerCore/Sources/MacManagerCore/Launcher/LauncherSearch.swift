@@ -132,7 +132,7 @@ public final class LauncherSearchModel {
     @ObservationIgnored private let signposter = OSSignposter(subsystem: "dev.macmanager.MacManager", category: "launcher")
     @ObservationIgnored private var providerFailed = false
     @ObservationIgnored private var catalogRevision: UInt64 = 0
-    @ObservationIgnored private var catalog: [LauncherEntry] = [] { didSet { catalogRevision &+= 1 } }
+    @ObservationIgnored private var catalog: [LauncherEntry] = [] { didSet { if catalog != oldValue { catalogRevision &+= 1 } } }
     @ObservationIgnored private var providerEntries: [LauncherEntry] = []
     @ObservationIgnored private var catalogLanguage: String?
     @ObservationIgnored private var loadedAt: ContinuousClock.Instant?

@@ -44,7 +44,7 @@ final class NetworkController: ApplicationLifecycleParticipant {
         }
         monitor.start(queue: DispatchQueue(label: "dev.macmanager.network-path"))
         SystemSessionMonitor.shared.subscribe(in: observers) { [weak self] state in
-            guard let self else { return }
+            guard let self, self.suspended != state.sleeping else { return }
             self.revision += 1
             self.suspended = state.sleeping; self.lastRead = -.infinity
             self.service.setSuspended(state.sleeping, now: ProcessInfo.processInfo.systemUptime)

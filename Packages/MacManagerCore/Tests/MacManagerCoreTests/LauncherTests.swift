@@ -373,3 +373,21 @@ private func launcherEntry(_ id: String, _ title: String, alternate: [String] = 
     task.cancel()
     await #expect(throws: CancellationError.self) { try await task.value }
 }
+
+@MainActor @Test func launcherPersonalizationInvalidatesSearchIndex() async {
+    let model = LauncherSearchModel()
+    let entry = LauncherEntry(id: "command:network", title: "Network", action: .section("network"))
+    model.load(providers: [], language: "en", commands: [entry])
+    #expect(await waitUntil { !model.isLoading && model.resultsAreCurrent })
+    model.search("network")
+    #expect(await waitUntil { model.resultsAreCurrent && !model.isSearching })
+    var preferences = LauncherPreferences()
+    var customization = LauncherCustomization(entry: entry)
+    customization.alias = "myconnection"; customization.favorite = true
+    preferences.items[entry.id] = customization
+    model.preferences = preferences
+    model.search("myconnection")
+    #expect(await waitUntil { model.resultsAreCurrent && !model.isSearching })
+    #expect(model.results == [entry])
+    model.cancel()
+}

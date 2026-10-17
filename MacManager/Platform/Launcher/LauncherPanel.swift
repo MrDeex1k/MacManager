@@ -4,6 +4,7 @@ import AppKit
 // AGPL-3.0-or-later; used under AGPL-3.0. Source: c5cff8cbb9b7e12ac75c058da9573045c76029b7.
 // Modified 2026-09-23: minimal nonactivating panel, IME-safe navigation, no external event taps.
 @MainActor final class LauncherPanel: NSPanel {
+    let rowMenus = LauncherRowMenuMonitor()
     var navigationEnabled: (() -> Bool)?
     var onTab: (() -> Void)?
     var onEscape: (() -> Void)?

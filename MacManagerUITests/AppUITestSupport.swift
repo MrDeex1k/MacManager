@@ -221,8 +221,18 @@ class AppUITestSupport: XCTestCase {
     @MainActor
     func scrollTo(_ target: XCUIElement, in app: XCUIApplication) {
         let scrollView = app.scrollViews["main.detailScroll"]
-        for _ in 0..<10 where !target.isHittable {
-            scrollView.scroll(byDeltaX: 0, deltaY: -300)
+        let window = app.windows.firstMatch
+        var polarity = 1.0
+        for _ in 0..<15 {
+            let frame = target.frame, windowFrame = window.frame
+            let viewport = scrollView.frame.intersection(windowFrame).insetBy(dx: 8, dy: 12)
+            if target.isHittable && viewport.contains(frame) { return }
+            let point = window.coordinate(withNormalizedOffset: .zero).withOffset(
+                CGVector(dx: viewport.midX - windowFrame.minX, dy: viewport.midY - windowFrame.minY))
+            let distance = abs(frame.midY - viewport.midY)
+            point.hover()
+            point.scroll(byDeltaX: 0, deltaY: (frame.midY > viewport.midY ? 300 : -300) * polarity)
+            if abs(target.frame.midY - viewport.midY) >= distance - 1 { polarity *= -1 }
         }
     }
 
@@ -238,4 +248,5 @@ class AppUITestSupport: XCTestCase {
         let predicate = NSPredicate(format: "exists == %@", NSNumber(value: exists))
         let expectation = XCTNSPredicateExpectation(predicate: predicate, object: element)
         return XCTWaiter.wait(for: [expectation], timeout: 5) == .completed
-    }}
+    }
+}

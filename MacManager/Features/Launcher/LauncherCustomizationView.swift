@@ -7,7 +7,7 @@ struct LauncherCustomizationView: View {
     let close: () -> Void
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
-            Text(draft.entry.title).font(.title2).lineLimit(1)
+            Text(draft.entry.title).accessibilityIdentifier("launcher.customization.title").font(.title2).lineLimit(1)
             TextField(controller.strings("launcher.alias"), text: $draft.alias)
                 .accessibilityIdentifier("launcher.alias")
             Toggle(controller.strings("launcher.favorite"), isOn: $draft.favorite)

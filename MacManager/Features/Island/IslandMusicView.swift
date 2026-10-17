@@ -68,7 +68,7 @@ struct IslandMusicView: View {
                 if snapshot.availability == source.connectionAvailability {
                     Button(strings(prefix + ".connect")) { service.requestAccess() }
                         .accessibilityIdentifier(prefix + ".connect")
-                
+
                 } else if source.supportsAutomationRecovery && snapshot.availability == .denied {
                     Button(strings("music.permissions")) {
                         if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Automation") { NSWorkspace.shared.open(url) }

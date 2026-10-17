@@ -184,4 +184,3 @@ final class AppState {
 
     var strings: AppStrings { AppStrings(languageCode: preferences.language.resolvedCode()) }
 }
-

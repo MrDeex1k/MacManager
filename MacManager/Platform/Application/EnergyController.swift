@@ -10,8 +10,9 @@ final class EnergyController: ApplicationLifecycleParticipant {
         refresh()
         observe(NotificationCenter.default, .NSProcessInfoPowerStateDidChange) { [weak self] in self?.refresh() }
         SystemSessionMonitor.shared.subscribe(in: observers) { [weak self] state in
-            self?.refresh()
-            self?.policy.sleeping = state.sleeping
+            guard let self, self.policy.sleeping != state.sleeping else { return }
+            self.refresh()
+            self.policy.sleeping = state.sleeping
         }
     }
     private func refresh() {

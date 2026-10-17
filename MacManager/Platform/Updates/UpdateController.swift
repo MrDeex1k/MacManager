@@ -35,7 +35,7 @@ final class UpdateController: ApplicationLifecycleParticipant {
         monitor.start(queue: DispatchQueue(label: "dev.macmanager.update-path"))
 
         SystemSessionMonitor.shared.subscribe(in: observers) { [weak self] state in
-            guard let self else { return }
+            guard let self, self.isSuspended != state.sleeping else { return }
             let wasSuspended = self.isSuspended
             self.isSuspended = state.sleeping
             if wasSuspended && !state.sleeping { self.wakeNotBefore = Date().addingTimeInterval(30) }

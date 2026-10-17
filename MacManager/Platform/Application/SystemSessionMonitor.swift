@@ -2,7 +2,7 @@ import AppKit
 import MacManagerCore
 
 /// One process-wide source; consumers retain their own suspension policies.
-@MainActor final class SystemSessionMonitor: ApplicationLifecycleParticipant {
+@MainActor final class SystemSessionMonitor: NSObject, ApplicationLifecycleParticipant {
     static let shared = SystemSessionMonitor()
     private static let changed = Notification.Name("MacManager.sessionStateChanged")
     private let observers = NotificationTokens()

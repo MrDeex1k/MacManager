@@ -95,6 +95,7 @@ final class LauncherController: ApplicationLifecycleParticipant {
         running = false; hide(restoreFocus: false); hotKey.stop()
         model.cancel(); shortcutCleanup?.cancel(); shortcutCleanup = nil
         applicationIcons.clear()
+        panel?.rowMenus.stop()
         panel?.contentView = nil; hosting = nil
         itemHotKeys.stop()
         observers.removeAll()
@@ -182,6 +183,7 @@ final class LauncherController: ApplicationLifecycleParticipant {
     }
 
     func toggleMode(clipboard: Bool? = nil) {
+        clipboardSearch.reset()
         clipboardMode = clipboard ?? !clipboardMode
         model.onlyAdditionalResults = clipboardMode
         model.search("")
@@ -375,4 +377,3 @@ final class LauncherController: ApplicationLifecycleParticipant {
         }
     }
 }
-

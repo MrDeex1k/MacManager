@@ -7,7 +7,8 @@ struct ClipboardThumbnailView: View {
     let service: ClipboardService
     let id: UUID
     let kind: ClipboardKind
-    private struct Request: Equatable { let id: UUID; let kind: ClipboardKind; let suspended: Bool }
+    var damaged = false
+    private struct Request: Equatable { let id: UUID; let kind: ClipboardKind; let suspended: Bool; let damaged: Bool }
     @State private var image: NSImage?
     var body: some View {
         Group {
@@ -15,9 +16,9 @@ struct ClipboardThumbnailView: View {
             else { Image(systemName: kind == .image ? "photo" : "doc.plaintext")
                     .font(.title2).foregroundStyle(AppTheme.accent) }
         }
-        .task(id: Request(id: id, kind: kind, suspended: service.suspended)) {
+        .task(id: Request(id: id, kind: kind, suspended: service.suspended, damaged: damaged)) {
             image = nil
-            guard kind == .image, !service.suspended, let data = await service.thumbnail(id), !Task.isCancelled, !service.suspended else { return }
+            guard kind == .image, !damaged, !service.suspended, let data = await service.thumbnail(id), !Task.isCancelled, !service.suspended else { return }
             image = NSImage(data: data)
         }
         .onDisappear { image = nil }

@@ -92,9 +92,8 @@ final class SystemTests: AppUITestSupport {
     func testLaunchAtLoginStateAndPreferencePersistence() throws {
         var app = launch(reset: true)
         app.typeKey(",", modifierFlags: .command)
-        let settingsScrollView = app.scrollViews.element(boundBy: 1)
-        settingsScrollView.scroll(byDeltaX: 0, deltaY: 120)
         let toggle = element("integration.launchAtLogin", in: app)
+        scrollTo(toggle, in: app)
         XCTAssertEqual(switchValue(toggle), 1)
         XCTAssertTrue(app.staticTexts["On in macOS"].exists)
         toggle.click()
@@ -104,14 +103,14 @@ final class SystemTests: AppUITestSupport {
 
         app = launch(reset: false)
         app.typeKey(",", modifierFlags: .command)
-        app.scrollViews.element(boundBy: 1).scroll(byDeltaX: 0, deltaY: 120)
+        scrollTo(element("integration.launchAtLogin", in: app), in: app)
         XCTAssertEqual(switchValue(element("integration.launchAtLogin", in: app)), 0)
         XCTAssertTrue(app.staticTexts["Off in macOS"].exists)
         app.terminate()
 
         app = launch(reset: true, loginItemRequiresApproval: true)
         app.typeKey(",", modifierFlags: .command)
-        app.scrollViews.element(boundBy: 1).scroll(byDeltaX: 0, deltaY: 120)
+        scrollTo(element("integration.launchAtLogin", in: app), in: app)
         XCTAssertTrue(app.staticTexts["Approval required in macOS"].exists)
         XCTAssertTrue(app.buttons["integration.launchAtLogin.openSettings"].exists)
         app.terminate()

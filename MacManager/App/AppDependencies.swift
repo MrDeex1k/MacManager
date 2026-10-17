@@ -18,14 +18,18 @@ import MacManagerCore
     let updateController: UpdateController
     let lifecycle: ApplicationLifecycleCoordinator
 
+    private static var isUITesting: Bool {
+        #if DEBUG
+        ProcessInfo.processInfo.arguments.contains("--ui-testing")
+        #else
+        false
+        #endif
+    }
+
     init(energy: EnergyPolicy, diagnostics: DiagnosticsStore, artworkAccess: PodcastArtworkAccess,
          showsMainWindow: Bool, appVersion: String) {
         let arguments = ProcessInfo.processInfo.arguments
-        #if DEBUG
-        let testing = arguments.contains("--ui-testing")
-        #else
-        let testing = false
-        #endif
+        let testing = Self.isUITesting
         if testing, let defaults = UserDefaults(suiteName: "dev.macmanager.MacManager.UITests") {
             if arguments.contains("--reset-preferences") { defaults.removePersistentDomain(forName: "dev.macmanager.MacManager.UITests") }
             preferences = PreferencesStore(defaults: defaults)
