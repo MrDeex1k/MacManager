@@ -44,6 +44,8 @@ Obrazy normalizować do PNG z miniaturą, bez OCR i automatycznego otwierania ze
 
 ## Przechwycenie i przywracanie
 
+Historia jest domyślnie włączona w preferencjach nowej instalacji, zgodnie z decyzją właściciela z 2026-10-14. Zapisany wybór wyłączenia pozostaje zachowany. Samo ustawienie nie udziela zgody na schowek i nie wyświetla automatycznego promptu: przechwytywanie wymaga dostępu dozwolonego przez macOS, a sprawdzenie/uzyskanie zgody uruchamia użytkownik. Zastana treść nie jest importowana.
+
 1. Przy aktywnej funkcji sprawdzać licznik zmian; interwał 500 ms, niezależna od metryk.
 2. Sprawdzić dostęp i oznaczenia przed pobraniem payloadu. Ponownie sprawdzić changeCount po odczycie; przy zmianie odrzucić niespójny snapshot.
 3. Pominąć wpisy poufne, tymczasowe, automatycznie generowane i pochodzące z wykluczonych aplikacji.

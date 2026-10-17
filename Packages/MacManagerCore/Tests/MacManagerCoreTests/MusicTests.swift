@@ -90,3 +90,89 @@ private actor TestMusicAdapter: MusicPlayerAdapter {
     podcast.setVisible(false)
     #expect(!podcast.hasPendingWork && podcast.snapshot.artwork == nil)
 }
+
+/// Keeps reads pending even after cancellation, like an in-flight synchronous player request.
+private actor ControlledMusicAdapter: MusicPlayerAdapter {
+    private var pending: [Int: CheckedContinuation<MusicSnapshot, Never>] = [:]
+    private var releaseContinuation: CheckedContinuation<Void, Never>?
+    private var holdCleanup: Bool
+    private var activeReads = 0
+    var reads = 0
+    var releases = 0
+    var maximumConcurrentReads = 0
+    init(holdCleanup: Bool = false) { self.holdCleanup = holdCleanup }
+    func read() async -> MusicSnapshot {
+        reads += 1
+        let number = reads
+        activeReads += 1
+        maximumConcurrentReads = max(maximumConcurrentReads, activeReads)
+        defer { activeReads -= 1 }
+        return await withCheckedContinuation { pending[number] = $0 }
+    }
+    func finishRead(_ number: Int, title: String) {
+        pending.removeValue(forKey: number)?.resume(returning:
+            MusicSnapshot(availability: .ready, playback: .playing, trackID: title, title: title, artwork: Data([1, 2, 3])))
+    }
+    func perform(_ command: MusicCommand) -> MusicAvailability { .ready }
+    func requestAccess() -> MusicAvailability { .ready }
+    func releaseArtwork() async {
+        releases += 1
+        if holdCleanup { await withCheckedContinuation { releaseContinuation = $0 } }
+    }
+    func finishCleanup() {
+        holdCleanup = false
+        releaseContinuation?.resume(); releaseContinuation = nil
+    }
+}
+
+@Test @MainActor func musicRefreshPreservesSnapshotAndCacheAndSerializesPendingReads() async {
+    let adapter = ControlledMusicAdapter()
+    let service = MusicService(adapter: adapter)
+    service.setVisible(true)
+    #expect(await waitUntil { await adapter.reads == 1 })
+    await adapter.finishRead(1, title: "Current track")
+    #expect(await waitUntil { service.snapshot.title == "Current track" })
+
+    service.refresh()
+    #expect(service.visible && service.snapshot.availability == .ready)
+    #expect(service.snapshot.title == "Current track" && service.snapshot.artwork == Data([1, 2, 3]))
+    #expect(await waitUntil { await adapter.reads == 2 })
+    #expect(await adapter.releases == 0)
+    service.refresh() // Invalidate the pending response without starting an overlapping read.
+    for _ in 0..<20 { await Task.yield() }
+    #expect(await adapter.reads == 2)
+    await adapter.finishRead(2, title: "Obsolete response")
+    #expect(await waitUntil { await adapter.reads == 3 })
+    #expect(service.snapshot.title == "Current track")
+    #expect(await adapter.maximumConcurrentReads == 1)
+    await adapter.finishRead(3, title: "Updated track")
+    #expect(await waitUntil { service.snapshot.title == "Updated track" })
+    #expect(await adapter.releases == 0)
+
+    service.setVisible(false)
+    service.refresh() // A hidden section must not restart its reader.
+    #expect(service.snapshot.title.isEmpty && service.snapshot.artwork == nil && !service.hasPendingWork)
+    #expect(await waitUntil { await adapter.releases == 1 })
+}
+
+@Test @MainActor func musicRefreshWaitsForPendingVisibilityCleanup() async {
+    let adapter = ControlledMusicAdapter(holdCleanup: true)
+    let service = MusicService(adapter: adapter)
+    service.setVisible(true)
+    #expect(await waitUntil { await adapter.reads == 1 })
+    await adapter.finishRead(1, title: "Before hiding")
+    #expect(await waitUntil { service.snapshot.title == "Before hiding" })
+    service.setVisible(false)
+    #expect(await waitUntil { await adapter.releases == 1 })
+    service.setVisible(true)
+    service.refresh()
+    for _ in 0..<20 { await Task.yield() }
+    #expect(await adapter.reads == 1)
+    await adapter.finishCleanup()
+    #expect(await waitUntil { await adapter.reads == 2 })
+    await adapter.finishRead(2, title: "After cleanup")
+    #expect(await waitUntil { service.snapshot.title == "After cleanup" })
+    #expect(await adapter.maximumConcurrentReads == 1)
+    service.setVisible(false)
+    #expect(await waitUntil { await adapter.releases == 2 })
+}

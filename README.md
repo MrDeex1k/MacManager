@@ -24,7 +24,7 @@ A native macOS utility for live system monitoring, independent mouse scrolling a
 | --- | --- |
 | **System** | Live CPU, GPU and RAM readings with a persistent 1, 2 or 5 second interval. Five-minute Swift Charts history stays in memory and preserves gaps in unavailable data. |
 | **Sensors** | CPU/GPU temperatures in °C or °F, individual fan RPM and five-minute history. Temperature mapping is currently validated on M4 Pro. Read-only sensors, no fan control. |
-| **Clipboard** | Opt-in local history of text and images, search, preview and restore. Encrypted storage, app exclusions and configurable count, age and size limits. |
+| **Clipboard** | Local history of text and images, search, preview and restore; enabled by default, with capture gated by macOS permission. Encrypted storage, app exclusions and configurable count, age and size limits. |
 | **Launcher** | Local app and command search in a floating Liquid Glass palette. Latest valid app copy per folder, symlinked folders, configurable shortcuts and fuzzy ranking adapted from Tinycast. Search focus returns after result menus and personalization. |
 | **Network** | Primary local and public IPv4 addresses, connection status, manual refresh and copy actions. Independent visibility toggles for both addresses in the menu bar panel, hidden by default and configured in Network. |
 | **Scroll** | Independent vertical and horizontal mouse reversal with automatic mouse/trackpad classification. Trackpad direction and momentum remain intact. No device model lists. |
@@ -74,7 +74,7 @@ Development builds (Debug and local Release) use the display name **Mac Manager 
 
 ### Clipboard history
 
-Open **Clipboard** and enable history, then grant permanent clipboard access in macOS when requested. Recording starts with new copies; existing clipboard content is not imported. Restore an item and press `Command-V` in the destination app.
+Clipboard history is enabled by default on a fresh installation; a previously saved disabled choice is preserved. Open **Clipboard** and use **Check access** to grant permanent clipboard access in macOS. Capture remains blocked until access is allowed; the application does not request permission automatically. Recording starts with new copies; existing clipboard content is not imported. Restore an item and press `Command-V` in the destination app.
 
 Defaults are **50 items, 7 days and 200 MB**. History settings provide pause/resume, application exclusions and retention controls. Text and normalized PNG images, including thumbnails, are encrypted locally. The encryption key is protected by Secure Enclave with its wrapped representation kept in the nonsynchronizing Keychain. Missing key access never falls back to plaintext. Clearing history leaves the current system clipboard unchanged.
 

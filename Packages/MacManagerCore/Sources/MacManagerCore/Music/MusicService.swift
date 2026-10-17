@@ -54,26 +54,39 @@ public protocol MusicPlayerAdapter: Sendable {
     public var hasPendingWork: Bool { loop != nil || action != nil }
 
     public init(adapter: any MusicPlayerAdapter) { self.adapter = adapter }
+    /// Starts reading when visible; hiding clears presentation and releases cached private data.
     public func setVisible(_ value: Bool) {
         guard visible != value else { return }
         visible = value; generation += 1
+        let previousLoop = loop, previousAction = action
         loop?.cancel(); loop = nil; action?.cancel(); action = nil; busy = false; commandFailed = false
         if value {
-            let token = generation, previousCleanup = cleanup
-            loop = Task { [weak self] in
-                await previousCleanup?.value
-                guard let self, !Task.isCancelled, token == self.generation else { return }
-                while !Task.isCancelled, self.visible, token == self.generation {
-                    if !self.busy { await self.refresh(token: token) }
-                    let seconds = self.snapshot.availability == .idle ||
-                        (self.snapshot.availability == .ready && self.snapshot.playback == .playing) ? 1 : 3
-                    do { try await Task.sleep(for: .seconds(seconds)) } catch { return }
-                }
-            }
+            startLoop(waitingFor: previousLoop)
         } else {
             snapshot = MusicSnapshot()
             let previousCleanup = cleanup, adapter = adapter
-            cleanup = Task { await previousCleanup?.value; await adapter.releaseArtwork() }
+            cleanup = Task {
+                await previousCleanup?.value
+                await previousLoop?.value
+                await previousAction?.value
+                await adapter.releaseArtwork()
+            }
+        }
+    }
+    private func startLoop(waitingFor previousLoop: Task<Void, Never>?) {
+        let token = generation, previousCleanup = cleanup
+        loop = Task { [weak self] in
+            // A cancelled synchronous player read can still be finishing. Do not overlap it
+            // or bypass the cache cleanup from an earlier visibility cycle.
+            await previousLoop?.value
+            await previousCleanup?.value
+            guard let self, !Task.isCancelled, self.visible, token == self.generation else { return }
+            while !Task.isCancelled, self.visible, token == self.generation {
+                if !self.busy { await self.refresh(token: token) }
+                let seconds = self.snapshot.availability == .idle ||
+                    (self.snapshot.availability == .ready && self.snapshot.playback == .playing) ? 1 : 3
+                do { try await Task.sleep(for: .seconds(seconds)) } catch { return }
+            }
         }
     }
     private func refresh(token: Int) async {
@@ -81,11 +94,13 @@ public protocol MusicPlayerAdapter: Sendable {
         guard !Task.isCancelled, visible, token == generation else { return }
         snapshot = value
     }
+    /// Re-reads a visible player while preserving its snapshot and adapter artwork cache.
     public func refresh() {
         guard visible, !busy else { return }
-        loop?.cancel(); loop = nil
-        // Re-enter the same visibility lifecycle, keeping a single periodic reader.
-        setVisible(false); setVisible(true)
+        generation += 1; commandFailed = false
+        let previousLoop = loop
+        previousLoop?.cancel()
+        startLoop(waitingFor: previousLoop)
     }
     public func perform(_ command: MusicCommand) {
         guard visible, !busy, snapshot.availability == .ready else { return }

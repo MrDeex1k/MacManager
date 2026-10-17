@@ -957,18 +957,30 @@ final class AppShellTests: XCTestCase {
     }
 
     @MainActor
-    func testClipboardDefaultsOffAndLocalizes() throws {
+    func testClipboardDefaultsEnabledAndLocalizes() throws {
         let app = launch(reset: true)
+        defer { app.terminate() }
         element("navigation.clipboard", in: app).click()
-        XCTAssertTrue(app.buttons["clipboard.enable"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["History is off"].exists)
+        XCTAssertTrue(app.buttons["clipboard.pause"].waitForExistence(timeout: 5))
+        XCTAssertEqual(app.buttons["clipboard.pause"].label, "Pause")
+        XCTAssertFalse(app.buttons["clipboard.enable"].exists)
+        let englishStates = ["Clipboard access required", "Clipboard access denied", "Saving new copies"]
+        let status = app.staticTexts["clipboard.status"]
+        XCTAssertTrue(status.waitForExistence(timeout: 5))
+        XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "label IN %@ OR value IN %@", englishStates, englishStates), object: status
+        )], timeout: 5), .completed)
         element("navigation.settings", in: app).click()
         app.popUpButtons["settings.language"].click()
         app.menuItems["Polski"].click()
         element("navigation.clipboard", in: app).click()
-        XCTAssertEqual(app.buttons["clipboard.enable"].label, "Włącz historię")
-        XCTAssertTrue(app.staticTexts["Historia jest wyłączona"].exists)
-        app.terminate()
+        XCTAssertTrue(app.buttons["clipboard.pause"].waitForExistence(timeout: 5))
+        XCTAssertEqual(app.buttons["clipboard.pause"].label, "Wstrzymaj")
+        XCTAssertFalse(app.buttons["clipboard.enable"].exists)
+        let polishStates = ["Wymagany dostęp do schowka", "Brak zgody na dostęp do schowka", "Zapisywanie nowych kopii"]
+        XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "label IN %@ OR value IN %@", polishStates, polishStates), object: status
+        )], timeout: 5), .completed)
     }
 
     @MainActor

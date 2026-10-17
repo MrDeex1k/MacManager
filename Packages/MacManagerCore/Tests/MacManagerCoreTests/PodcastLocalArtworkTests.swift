@@ -72,4 +72,33 @@ struct PodcastLocalArtworkTests {
             #expect(PodcastLocalArtworkReader(directory: folder).read(title: "Episode") == nil)
         }
     }
+    @Test func expandedMetadataFindsCorrectShowBeyondThreeTitleOnlyMatches() throws {
+        try fixture { folder, db in
+            for index in 2...6 {
+                let sql = "INSERT INTO ZMTPODCAST VALUES (\(index), 'Show \(index)', 'template-\(index)'); INSERT INTO ZMTEPISODE VALUES (\(index), 'Episode, with comma', 'episode-\(index)', NULL);"
+                #expect(sqlite3_exec(db, sql, nil, nil, nil) == SQLITE_OK)
+            }
+            try image(folder, template: "template-6", kind: "Show", payload: "correct show cover")
+            let reader = PodcastLocalArtworkReader(directory: folder)
+            #expect(reader.read(title: "Episode, with comma") == nil)
+            let metadata = "Today, Episode, with comma, Show 6"
+            for title in ["Episode, with comma", metadata] {
+                let value = try #require(reader.read(title: title, expandedMetadata: metadata))
+                #expect(value.episodeID == "episode-6" && value.data == Data("correct show cover".utf8))
+            }
+        }
+    }
+    @Test func expandedMetadataExcludesPrefixMatchesBeforeApplyingRowLimit() throws {
+        try fixture { folder, db in
+            for index in 2...5 {
+                let sql = "INSERT INTO ZMTPODCAST VALUES (\(index), 'Show', 'prefix'); INSERT INTO ZMTEPISODE VALUES (\(index), 'Episode, with comma', 'prefix-\(index)', NULL);"
+                #expect(sqlite3_exec(db, sql, nil, nil, nil) == SQLITE_OK)
+            }
+            #expect(sqlite3_exec(db, "INSERT INTO ZMTPODCAST VALUES (6, 'Show, exact suffix', 'exact'); INSERT INTO ZMTEPISODE VALUES (6, 'Episode, with comma', 'exact-episode', NULL);", nil, nil, nil) == SQLITE_OK)
+            let metadata = "Today, Episode, with comma, Show, exact suffix"
+            let result = PodcastLocalArtworkReader(directory: folder).read(title: "Episode, with comma", expandedMetadata: metadata)
+            #expect(result?.episodeID == "exact-episode")
+        }
+    }
+
 }

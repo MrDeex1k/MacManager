@@ -43,7 +43,8 @@ public struct PodcastLocalArtworkReader: Sendable {
             let sql = """
                 SELECT e.ZTITLE, p.ZTITLE, e.ZUUID, e.ZARTWORKTEMPLATEURL, p.ZARTWORKTEMPLATEURL
                 FROM ZMTEPISODE e JOIN ZMTPODCAST p ON p.Z_PK = e.ZPODCAST
-                WHERE e.ZTITLE = ?1 OR (?2 <> '' AND instr(?2, ', ' || e.ZTITLE || ', ' || p.ZTITLE) > 0)
+                WHERE (?2 = '' AND e.ZTITLE = ?1)
+                   OR (?2 <> '' AND substr(?2, -length(', ' || e.ZTITLE || ', ' || p.ZTITLE)) = ', ' || e.ZTITLE || ', ' || p.ZTITLE)
                 LIMIT 3
                 """
             let prepareStatus = sqlite3_prepare_v2(database, sql, -1, &statement, nil)
