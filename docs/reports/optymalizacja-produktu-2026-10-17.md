@@ -43,3 +43,7 @@ ClipboardSearchModel jest osobnym stanem dla każdej powierzchni, współdzielą
 ## Etap 7 - sesja i obserwacje
 
 NotificationTokens zwalnia rejestracje przy stop oraz zwolnieniu właściciela. SystemSessionMonitor jest jednym źródłem sleep/lock/inactiveSession dla kontrolerów; polityki nadal rozróżniają pełne zawieszenie od samego snu. Clipboard zachowuje maintenance po wake. Test nakładających się powodów zawieszenia i build aplikacji przeszły.
+
+## Etap 8 - składanie aplikacji i odtwarzacze
+
+AppDependencies składa jeden wspólny zestaw usług i uczestników cyklu życia; fixture podmieniają adaptery graniczne i zachowują izolowane dane. MediaSource opisuje bundle ID, teksty, symbole, powiadomienia i możliwości sterowania. Wyspa utrzymuje rejestr usług według źródła. Build aplikacji i testów UI przeszedł.

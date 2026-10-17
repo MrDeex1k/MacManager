@@ -50,7 +50,7 @@ struct IslandView: View {
             } else if coordinator.displayedSection == .music, let music = coordinator.music {
                 IslandMusicView(service: music, strings: coordinator.strings)
             } else if coordinator.displayedSection == .podcast, let podcasts = coordinator.podcasts {
-                IslandMusicView(service: podcasts, strings: coordinator.strings, isPodcast: true)
+                IslandMusicView(service: podcasts, strings: coordinator.strings, source: .podcast)
             } else if coordinator.displayedSection == .spotify {
                 VStack(alignment: .leading, spacing: 12) {
                     Label("Spotify", systemImage: "music.note").font(.headline)

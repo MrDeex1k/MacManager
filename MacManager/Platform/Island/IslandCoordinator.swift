@@ -23,9 +23,10 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
     private(set) var transitioning = false
     private(set) var shortcutFailed = false
     private(set) var clipboardModel: IslandClipboardModel?
-    private(set) var music: MusicService?
-    private(set) var podcasts: MusicService?
-    private var activePlayer: MusicService? { section == .music ? music : section == .podcast ? podcasts : nil }
+    private var players: [MediaSource: MusicService] = [:]
+    var music: MusicService? { players[.music] }
+    var podcasts: MusicService? { players[.podcast] }
+    private var activePlayer: MusicService? { MediaSource.allCases.first { $0.section == section }.flatMap { players[$0] } }
     private(set) var section: IslandSection = .clipboard
     private(set) var displayedSection: IslandSection = .clipboard
     private(set) var sectionOpacity = 1.0
@@ -35,8 +36,7 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
     @ObservationIgnored private var sectionPreparedAt: CFTimeInterval = 0
     @ObservationIgnored private var sectionRevealDelay: Double = 0
     #endif
-    func connectMusic(_ service: MusicService) { music = service }
-    func connectPodcasts(_ service: MusicService) { podcasts = service }
+    func connectPlayer(_ service: MusicService, source: MediaSource) { players[source] = service }
     var availableSections: [IslandSection] {
         IslandSection.allCases.filter { preferences.island.sections.contains($0) }
     }
@@ -59,7 +59,7 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
         sectionGeneration += 1; sectionTask?.cancel(); sectionTask = nil
     }
     private func renderSelectedSection() {
-        clipboardModel?.reset(); music?.setVisible(false); podcasts?.setVisible(false)
+        clipboardModel?.reset(); players.values.forEach { $0.setVisible(false) }
         panel?.makeFirstResponder(nil)
         // Prepare in-memory entries/selection before mounting the clipboard subtree.
         if section == .clipboard { clipboardModel?.activate() }
@@ -485,7 +485,7 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
         visible = false; menuTracking = false
         cancelSectionChange(); sectionOpacity = 1; displayedSection = section
         clipboardModel?.reset()
-        music?.setVisible(false); podcasts?.setVisible(false)
+        players.values.forEach { $0.setVisible(false) }
         panel?.makeFirstResponder(nil)
         panel?.ignoresMouseEvents = true
         if animated, let transitionHost {
