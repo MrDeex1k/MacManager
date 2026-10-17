@@ -56,7 +56,7 @@ final class AppState {
         let initiallyShowsMainWindow = launchContext != .loginItem
         mainWindowVisible = initiallyShowsMainWindow
         diagnostics = DiagnosticsStore()
-        let appVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.8.8"
+        let appVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.8.9"
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("--ui-testing"),
            let defaults = UserDefaults(suiteName: "dev.macmanager.MacManager.UITests") {
@@ -268,7 +268,7 @@ private struct TestUpdateFixture: Sendable {
     }
 
     let mode: Mode
-    let currentVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.8.8"
+    let currentVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.8.9"
 
     init(arguments: [String]) {
         if arguments.contains("--update-available") {

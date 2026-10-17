@@ -1,6 +1,6 @@
 # Okładki Apple Podcasts w wyspie
 
-Data: 2026-10-17.
+Data: 2026-10-17. Wersja: 0.8.9 (13).
 
 Poprzedni adapter miał wyłącznie symbol zastępczy; publiczne AX nie przekazuje pikseli okładki. Dodano opcjonalny adapter lokalnego cache. Dopasowanie dokładnego tytułu i, jeśli dostępna, audycji pochodzi z MTLibrary.sqlite otwartego z SQLITE_OPEN_READONLY. Niepewne dopasowanie jest odrzucane. Dostępna okładka odcinka ma pierwszeństwo przed okładką audycji; wybierany jest mały ostry wariant cache, bez plików blurred. Nazwa audycji zastępuje datę publikacji. Dane cache oraz biblioteka nie są modyfikowane, żaden URL nie jest pobierany, tytuł nie opuszcza komputera.
 

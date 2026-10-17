@@ -116,3 +116,5 @@ Dopracowano rytm przełączania sekcji: niezależny suwak, wygaszenie starej tre
 
 
 2026-10-17: dodano cztery sekcje wyspy, osobne przełączniki ich widoczności i integrację Apple Podcasts przez publiczną Dostępność. Pusty wybór wyłącza wyspę, a jej ponowne włączenie przywraca komplet. Spotify pozostaje odłożone. Granice adaptera Podcastów (dostępne okno, brak pikseli okładki) i zakres testów: [raport](reports/wyspa-podcast-sekcje-2026-10-17.md).
+
+2026-10-17: wersja gałęzi to 0.8.9, build 13. Okładki Podcastów są pobierane z istniejącego lokalnego cache po jednorazowym udostępnieniu folderu, z zapamiętanym dostępem tylko do odczytu. Potwierdzono obraz i zachowanie zgody po restarcie, regresję Apple Music, 143 testy Core i test GUI ustawień. [Raport](reports/wyspa-okladki-podcast-2026-10-17.md).
