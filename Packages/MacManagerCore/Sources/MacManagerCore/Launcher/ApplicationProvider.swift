@@ -13,9 +13,10 @@ public struct ApplicationProvider: LauncherProvider {
     private func scan(language: String) throws -> [LauncherEntry] {
         var result: [LauncherEntry] = []
         var seen = Set<String>()
-        for url in SearchScopes.appBundles(in: scopes) {
+        for record in SearchScopes.catalog(in: scopes) {
+            let url = record.url
             try Task.checkCancellation()
-            guard let info = SearchScopes.infoDictionary(for: url),
+            guard let info = record.info,
                   let bundle = Bundle(url: url.resolvingSymlinksInPath()),
                   let id = info["CFBundleIdentifier"] as? String, !id.isEmpty,
                   info["CFBundlePackageType"] as? String == "APPL",

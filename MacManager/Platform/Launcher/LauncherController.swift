@@ -22,6 +22,7 @@ final class LauncherController: ApplicationLifecycleParticipant {
     var options: LauncherPreferences { preferences.launcher }
     var showsResults: Bool { clipboardMode || !model.query.isEmpty }
     @ObservationIgnored private let clipboardSearch = ClipboardSearchModel()
+    @ObservationIgnored private let calculator = LocalCalculatorWorker()
     @ObservationIgnored private let files = LauncherFileSearch()
     @ObservationIgnored private let applicationIcons = LauncherIconCache()
     var catalogRefreshSeconds: Double = 60 { didSet { model.catalogRefreshSeconds = catalogRefreshSeconds } }
@@ -72,7 +73,9 @@ final class LauncherController: ApplicationLifecycleParticipant {
                             action: .clipboard($0.id))
                     }
             }
-            var results = LocalCalculator.result(query, language: self.preferences.language.resolvedCode()).map { [$0] } ?? []
+            let context = LocalCalculator.Context(language: self.preferences.language.resolvedCode())
+            var results = try await self.calculator.result(query, context: context).map { [$0] } ?? []
+            try Task.checkCancellation()
             let options = self.preferences.launcher, filter = self.fileFilter
             if results.isEmpty && options.filesEnabled && query.count >= 2 {
                 try await Task.sleep(for: .milliseconds(120))

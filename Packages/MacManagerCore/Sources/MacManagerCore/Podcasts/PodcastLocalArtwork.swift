@@ -75,26 +75,47 @@ public struct PodcastLocalArtworkReader: Sendable {
                 logger.debug("Local artwork match unavailable: status=\(status), titleLength=\(title.count), metadataLength=\(expandedMetadata.count)")
                 return nil
             }
-            let data = image(template: match.episodeArt, kind: "Episode") ?? image(template: match.showArt, kind: "Show")
+            let data = artwork(episodeTemplate: match.episodeArt, showTemplate: match.showArt)
             return PodcastLocalArtwork(episodeTitle: match.title, showTitle: match.show, episodeID: match.id, data: data)
         }
     }
 
-    private func image(template: String, kind: String) -> Data? {
-        guard !template.isEmpty, !Task.isCancelled else { return nil }
-        // Podcasts names cached artwork using the MD5 of its artwork template URL.
-        // MD5 is only a cache filename mapping, never a security decision.
-        let hash = Insecure.MD5.hash(data: Data(template.utf8)).map { String(format: "%02x", $0) }.joined()
+    private func artwork(episodeTemplate: String, showTemplate: String) -> Data? {
+        guard !Task.isCancelled, !episodeTemplate.isEmpty || !showTemplate.isEmpty else { return nil }
+        // One incremental scan serves episode and show fallback. Only matching paths are retained.
         let folder = directory.appendingPathComponent("Library/Cache/Assets/Artwork", isDirectory: true)
-        guard let urls = try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: [.fileSizeKey, .isRegularFileKey]) else { return nil }
-        let prefix = kind + "-" + hash + "-"
-        let candidates = urls.prefix(10_000).compactMap { url -> (URL, Int)? in
+        let templates = [("Episode", episodeTemplate), ("Show", showTemplate)].filter { !$0.1.isEmpty }
+        let prefixes = templates.map { kind, template in
+            kind + "-" + Insecure.MD5.hash(data: Data(template.utf8)).map { String(format: "%02x", $0) }.joined() + "-"
+        }
+        var failed = false
+        guard let enumerator = FileManager.default.enumerator(at: folder, includingPropertiesForKeys: nil,
+            options: [.skipsSubdirectoryDescendants, .skipsHiddenFiles], errorHandler: { _, _ in failed = true; return false }) else { return nil }
+        let clock = ContinuousClock(), deadline = ContinuousClock.now.advanced(by: .seconds(2))
+        var groups = Array(repeating: [(URL, Int)](), count: prefixes.count)
+        var scanned = 0
+        while let url = enumerator.nextObject() as? URL {
+            scanned += 1
+            // Do not publish a partial selection from an arbitrary prefix of a large directory.
+            guard !Task.isCancelled, scanned <= 100_000, clock.now < deadline else { return nil }
             let name = url.lastPathComponent
-            guard name.hasPrefix(prefix), !name.contains("-blurred"), ["heic", "jpg", "jpeg", "png"].contains(url.pathExtension.lowercased()),
-                  let size = name.dropFirst(prefix.count).split(separator: "x").first.flatMap({ Int($0) }) else { return nil }
-            return (url, size)
-        }.sorted { a, b in
-            // Prefer a small sharp source at least as large as our 256px thumbnail.
+            guard !name.contains("-blurred"), ["heic", "jpg", "jpeg", "png"].contains(url.pathExtension.lowercased()) else { continue }
+            for (index, prefix) in prefixes.enumerated() where name.hasPrefix(prefix) {
+                if let size = name.dropFirst(prefix.count).split(separator: "x").first.flatMap({ Int($0) }) {
+                    guard groups[index].count < 1_024 else { return nil }
+                    groups[index].append((url, size))
+                }
+            }
+        }
+        guard !failed else { return nil }
+        for candidates in groups {
+            if let image = image(candidates: candidates, folder: folder) { return image }
+        }
+        return nil
+    }
+
+    private func image(candidates: [(URL, Int)], folder: URL) -> Data? {
+        let candidates = candidates.sorted { a, b in
             let left = a.1 >= 256 ? a.1 : 10_000 - a.1
             let right = b.1 >= 256 ? b.1 : 10_000 - b.1
             return left == right ? a.0.lastPathComponent < b.0.lastPathComponent : left < right

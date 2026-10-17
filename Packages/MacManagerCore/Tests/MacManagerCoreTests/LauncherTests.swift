@@ -340,3 +340,36 @@ private func launcherEntry(_ id: String, _ title: String, alternate: [String] = 
         #expect(text == "62.5 MBps")
     }
 }
+
+@Test func boundedRankingMatchesFullSortAndExplicitRevisionRefreshesIndex() async throws {
+    let engine = LauncherSearchEngine()
+    let entries = (0..<1200).map { index in
+        LauncherEntry(id: "app:\(index)", title: ["Alpha", "Álpha", "Beta", "Application"][index % 4], action: .section("overview"))
+    }
+    var preferences = LauncherPreferences()
+    var item = LauncherCustomization(entry: entries[50]); item.favorite = true; item.alias = "special"
+    preferences.items[item.entry.id] = item
+    for query in ["", "a", "alpha", "b", "special", "missing"] {
+        let full = try await engine.search(query, entries: entries, limit: entries.count, preferences: preferences)
+        for limit in [0, 1, 7, 40, 1199] {
+            let bounded = try await engine.search(query, entries: entries, limit: limit, preferences: preferences)
+            #expect(bounded == Array(full.prefix(limit)))
+        }
+    }
+    let before = try await engine.search("", entries: entries, preferences: preferences, catalogRevision: 1)
+    #expect(before.first?.id == entries[50].id)
+    item.hidden = true; preferences.items[item.entry.id] = item
+    let after = try await engine.search("", entries: entries, preferences: preferences, catalogRevision: 2)
+    #expect(!after.contains { $0.id == item.entry.id })
+}
+
+@Test func calculatorWorkerPreservesInjectedContextAndRejectsCancellation() async throws {
+    let worker = LocalCalculatorWorker()
+    let context = LocalCalculator.Context(language: "pl", now: Date(timeIntervalSince1970: 1_000_000), locale: Locale(identifier: "pl_PL"))
+    for query in ["2+3*4", "500 Mbps in MBps", "1,5 + 2", "tomorrow", "255 to hex"] {
+        #expect(try await worker.result(query, context: context) == LocalCalculator.result(query, context: context))
+    }
+    let task = Task { try await worker.result("2+2", context: context) }
+    task.cancel()
+    await #expect(throws: CancellationError.self) { try await task.value }
+}

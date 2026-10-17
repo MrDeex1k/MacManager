@@ -57,3 +57,19 @@ Panele AppKit wyspy i launchera mają osobne pliki i własną obsługę klawiatu
 BoundedHTTPClient wspólnie obsługuje ephemeral session, brak cookies/cache, odmowę przekierowań, timeout i limit strumienia. Interpretacja statusów i błędów pozostaje w klientach. Usunięto nieużywane mm_gpu_read/mm_power_read, cryptoCodes, normalize/abbreviate. mm_smc_key_at pozostaje dla prototypu Stage2. 153 testy Core oraz build aplikacji przeszły; test transportu używa syntetycznego URLProtocol.
 
 Scenariusze UI schowka i czterech sekcji wyspy przeszły. Test personalizacji przeszedł zapis aliasu, ulubionych i konfliktu, ale nie otworzył okna przy końcowym Ctrl+Option+N: scenariusz nie ustawia takiego modyfikatora (domyślnie Option). Zostanie doprecyzowany przy końcowej weryfikacji.
+
+## Etap 11 - skanowanie i obliczenia
+
+Katalog aplikacji przekazuje rekordy z metadanymi z jednego skanu; cache jest lokalny dla skanu i odczytuje także symlinki na nowo przy kolejnym odświeżeniu. Okładki odcinka/audycji są wybierane po jednej przyrostowej enumeracji (budżet 2 s/100000 plików, maksymalnie 1024 pasujące warianty na typ). Przekroczenie budżetu zwraca brak okładki zamiast arbitralnego częściowego wyboru. Test katalogu 10050 plików przeszedł.
+
+Kalkulator działa na osobnym actorze, otrzymując kontekst czasu/kalendarza/języka przechwycony przed wywołaniem. Ranking modelu używa rewizji katalogu i personalizacji; duże katalogi utrzymują kopiec najlepszych wyników, małe (do 512 wpisów) zachowują pełne sortowanie ze względu na jego niższy narzut. Testy zgodności z pełnym sortowaniem obejmują remisy, aliasy, ulubione i limity. 155 testów Core przed dodatkowym testem dużego katalogu oraz dodatkowe testy rankingu/skanu przeszły. Prototyp Stage2 nadal się kompiluje.
+
+Porównanie syntetycznego rankingu Release (mediana/P95 ms, osobny przebieg bez równoległych testów):
+
+| Katalog | Przed | Po |
+| --- | --- | --- |
+| 200 | 0,094 / 0,103 | 0,099 / 0,112 |
+| 1000 | 0,446 / 0,479 | 0,419 / 0,500 |
+| 5000 | 2,631 / 3,804 | 1,964 / 2,682 |
+
+Zysk dotyczy głównie dużego katalogu; brak dowodu poprawy małego katalogu i P95 dla 1000 wpisów. Nie jest to pomiar opóźnienia całego interfejsu.
