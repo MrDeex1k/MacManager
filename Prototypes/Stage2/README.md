@@ -41,7 +41,7 @@ HardwareMetricsSampler dołącza wynik czujników do MetricsSnapshot w istnieją
 
 Nowa sekcja Czujniki zawiera CPU, GPU, osobne wentylatory i trwały wybór °C/°F; konwersja następuje tylko w prezentacji. Braki GPU nie są zerami i są oznaczone jako niepełny zestaw. UI jest dostępne w PL/EN. Dotychczasowa kropka w panelu nadal opisuje cztery metryki etapu 1.
 
-Następne kroki: rozszerzenie katalogów Apple Silicon. Późniejszy pomiar kosztu w tle opisuje [raport etapu 2](../../docs/reports/etap-2-koszt-tla.md).
+Następne kroki: rozszerzenie katalogów Apple Silicon. Historyczny pomiar kosztu pracy w tle podsumowano poniżej; [README aplikacji](../../README.md#built-to-live-with-your-mac) opisuje późniejsze mechanizmy ograniczania pracy.
 
 Weryfikacja kroku 2: 59 testów Core przeszło, build Debug i celowany XCTest UI na M4 Pro przeszły. Test GUI odczytał temperatury CPU/GPU i RPM oraz potwierdził zmianę °C/°F i odtworzenie jednostki po restarcie aplikacji. Test sprzętowy jest pomijany na innych chipach.
 
@@ -75,10 +75,11 @@ MetricsService i z tego samego monotonicznego czasu. Nie zapisują danych na dys
 
 Zainstalowana aplikacja po zamknięciu okna zużyła średnio 2,338% jednego rdzenia
 według przyrostu czasu CPU w 10-minutowej próbie. RSS spadł z 141,47 do 104,00 MiB.
-Szczegóły, warunki i granice porównania z etapem 1 zawiera
-[raport pomiaru](../../docs/reports/etap-2-koszt-tla.md). Wynik przekracza przyjęty
-wcześniej cel CPU poniżej 1%. Właściciel odłożył profilowanie i optymalizację na
-później; wynik pozostaje znanym kosztem bieżącej implementacji.
+To pomiar historycznego zakresu z 22 września, przed dodaniem narzędzi i późniejszymi
+optymalizacjami. Wynik przekraczał ówczesny cel CPU poniżej 1%.
+Nie opisuje kosztu bieżącej aplikacji. Aktualna implementacja ponownie używa sesji
+SMC/GPU, ogranicza zbędne odczyty i dostosowuje harmonogram do Low Power Mode;
+nowy pomiar całego procesu i energii pozostaje do wykonania.
 
 ## Odbiór odczytów M4 Pro (2026-09-22)
 
