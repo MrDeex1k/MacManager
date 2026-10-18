@@ -4,17 +4,14 @@ import Observation
 
 @MainActor @Observable
 final class IslandClipboardModel {
-    struct Request: Equatable, Hashable {
-        let query: String
-        let revision: Int
-        let suspended: Bool
-    }
+    typealias Request = ClipboardSearchModel.Request
+    private let searchState = ClipboardSearchModel()
     let service: ClipboardService
     private(set) var active = false
     var query = "" {
         didSet {
             if query != oldValue {
-                searchTask?.cancel(); searchTask = nil; searchID = nil
+                searchState.reset()
                 action?.cancel(); action = nil; actionID = nil
                 confirmation?.cancel(); confirmation = nil; restoringID = nil; copiedID = nil
             }
@@ -23,49 +20,30 @@ final class IslandClipboardModel {
     var selectedID: UUID?
     private(set) var copiedID: UUID?
     private(set) var restoringID: UUID?
-    private(set) var searchFailure: ClipboardFailure?
-    private var matches: [ClipboardEntry] = []
-    private var completed: Request?
+    var searchFailure: ClipboardFailure? { searchState.failure }
     @ObservationIgnored private var action: Task<Void, Never>?
     @ObservationIgnored private var confirmation: Task<Void, Never>?
-    @ObservationIgnored private var searchTask: Task<[ClipboardEntry], Error>?
     @ObservationIgnored private var presentation = 0
-    @ObservationIgnored private var searchID: UUID?
     @ObservationIgnored private var actionID: UUID?
-    var hasPendingWork: Bool { searchTask != nil || action != nil || confirmation != nil }
+    var hasPendingWork: Bool { searchState.hasPendingWork || action != nil || confirmation != nil }
 
     func activate() { reset(); active = true; reconcileSelection() }
 
     init(service: ClipboardService) { self.service = service }
-    var request: Request { Request(query: query, revision: service.revision, suspended: service.suspended) }
-    var searching: Bool { !query.isEmpty && completed != request && !service.suspended }
+    var request: Request { Request(query: query, service: service) }
+    var searching: Bool { !query.isEmpty && searchState.completed != request && !service.suspended }
     var entries: [ClipboardEntry] {
         guard active, !service.suspended else { return [] }
-        return query.isEmpty ? service.entries : completed == request ? matches : []
+        return searchState.entries(for: request, service: service)
     }
 
     func search(_ request: Request) async {
         guard active, !Task.isCancelled, request == self.request else { return }
-        let token = presentation
-        matches = []; completed = nil; searchFailure = nil
         guard !request.suspended else { reset(); return }
-        guard !request.query.isEmpty else { reconcileSelection(); return }
-        do {
-            searchTask?.cancel()
-            let task = Task { try await service.search(request.query, limit: 50) }
-            let id = UUID(); searchID = id
-            searchTask = task
-            defer { if searchID == id { searchTask = nil; searchID = nil } }
-            let result = try await withTaskCancellationHandler { try await task.value } onCancel: { task.cancel() }
-            try Task.checkCancellation()
-            guard active, token == presentation, request == self.request else { return }
-            matches = result; completed = request; reconcileSelection()
-        } catch is CancellationError {
-            // A cancelled/older search must never replace the current results.
-        } catch {
-            guard active, token == presentation, !Task.isCancelled, request == self.request else { return }
-            searchFailure = error as? ClipboardFailure ?? .storage; completed = request
-        }
+        guard !request.query.isEmpty else { searchState.reset(); reconcileSelection(); return }
+        _ = try? await searchState.search(request, service: service, limit: 50)
+        guard active, request == self.request, !Task.isCancelled else { return }
+        reconcileSelection()
     }
     func reconcileSelection() {
         if !entries.contains(where: { $0.id == selectedID }) { selectedID = entries.first?.id }
@@ -111,10 +89,10 @@ final class IslandClipboardModel {
     }
     func reset() {
         active = false; presentation += 1
-        searchTask?.cancel(); searchTask = nil
-        searchID = nil; actionID = nil
+        searchState.reset()
+        actionID = nil
         action?.cancel(); action = nil; confirmation?.cancel(); confirmation = nil
-        query = ""; matches = []; completed = nil; searchFailure = nil
+        query = ""
         selectedID = nil; copiedID = nil; restoringID = nil
     }
 }

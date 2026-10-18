@@ -164,8 +164,8 @@ private func launcherEntry(_ id: String, _ title: String, alternate: [String] = 
     #expect(model.results.isEmpty && model.query.isEmpty)
 }
 
-@Test func launcherSpotlightSearchesOnlyExplicitRepositoryFixture() async throws {
-    guard let path = ProcessInfo.processInfo.environment["MM_LAUNCHER_TEST_ROOT"] else { return }
+@Test(.enabled(if: ProcessInfo.processInfo.environment["MM_LAUNCHER_TEST_ROOT"] != nil, "Requires MM_LAUNCHER_TEST_ROOT pointing to an indexed repository")) func launcherSpotlightSearchesOnlyExplicitRepositoryFixture() async throws {
+    let path = try #require(ProcessInfo.processInfo.environment["MM_LAUNCHER_TEST_ROOT"])
     let root = URL(fileURLWithPath: path)
     let search = LauncherFileSearch()
     let results = try await search.search("README.md", roots: [root], filter: .all)
@@ -339,4 +339,57 @@ private func launcherEntry(_ id: String, _ title: String, alternate: [String] = 
         }
         #expect(text == "62.5 MBps")
     }
+}
+
+@Test func boundedRankingMatchesFullSortAndExplicitRevisionRefreshesIndex() async throws {
+    let engine = LauncherSearchEngine()
+    let entries = (0..<1200).map { index in
+        LauncherEntry(id: "app:\(index)", title: ["Alpha", "Álpha", "Beta", "Application"][index % 4], action: .section("overview"))
+    }
+    var preferences = LauncherPreferences()
+    var item = LauncherCustomization(entry: entries[50]); item.favorite = true; item.alias = "special"
+    preferences.items[item.entry.id] = item
+    for query in ["", "a", "alpha", "b", "special", "missing"] {
+        let full = try await engine.search(query, entries: entries, limit: entries.count, preferences: preferences)
+        for limit in [0, 1, 7, 40, 1199] {
+            let bounded = try await engine.search(query, entries: entries, limit: limit, preferences: preferences)
+            #expect(bounded == Array(full.prefix(limit)))
+        }
+    }
+    let before = try await engine.search("", entries: entries, preferences: preferences, catalogRevision: 1)
+    #expect(before.first?.id == entries[50].id)
+    item.hidden = true; preferences.items[item.entry.id] = item
+    let after = try await engine.search("", entries: entries, preferences: preferences, catalogRevision: 2)
+    #expect(!after.contains { $0.id == item.entry.id })
+}
+
+@Test func calculatorWorkerPreservesInjectedContextAndRejectsCancellation() async throws {
+    let worker = LocalCalculatorWorker()
+    let context = LocalCalculator.Context(language: "pl", now: Date(timeIntervalSince1970: 1_000_000), locale: Locale(identifier: "pl_PL"))
+    for query in ["2+3*4", "500 Mbps in MBps", "1,5 + 2", "tomorrow", "255 to hex"] {
+        #expect(try await worker.result(query, context: context) == LocalCalculator.result(query, context: context))
+    }
+    let task = Task {
+        withUnsafeCurrentTask { $0?.cancel() }
+        return try await worker.result("2+2", context: context)
+    }
+    await #expect(throws: CancellationError.self) { try await task.value }
+}
+
+@MainActor @Test func launcherPersonalizationInvalidatesSearchIndex() async {
+    let model = LauncherSearchModel()
+    let entry = LauncherEntry(id: "command:network", title: "Network", action: .section("network"))
+    model.load(providers: [], language: "en", commands: [entry])
+    #expect(await waitUntil { !model.isLoading && model.resultsAreCurrent })
+    model.search("network")
+    #expect(await waitUntil { model.resultsAreCurrent && !model.isSearching })
+    var preferences = LauncherPreferences()
+    var customization = LauncherCustomization(entry: entry)
+    customization.alias = "myconnection"; customization.favorite = true
+    preferences.items[entry.id] = customization
+    model.preferences = preferences
+    model.search("myconnection")
+    #expect(await waitUntil { model.resultsAreCurrent && !model.isSearching })
+    #expect(model.results == [entry])
+    model.cancel()
 }

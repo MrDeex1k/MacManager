@@ -57,95 +57,22 @@ final class AppState {
         mainWindowVisible = initiallyShowsMainWindow
         diagnostics = DiagnosticsStore()
         let appVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.8.9"
-        #if DEBUG
-        if ProcessInfo.processInfo.arguments.contains("--ui-testing"),
-           let defaults = UserDefaults(suiteName: "dev.macmanager.MacManager.UITests") {
-            if ProcessInfo.processInfo.arguments.contains("--reset-preferences") {
-                defaults.removePersistentDomain(forName: "dev.macmanager.MacManager.UITests")
-            }
-            preferences = PreferencesStore(defaults: defaults)
-            island = IslandCoordinator(preferences: preferences)
-            music = MusicService(adapter: FixtureAppleMusicAdapter(arguments: ProcessInfo.processInfo.arguments))
-            podcasts = MusicService(adapter: FixturePodcastsAdapter(arguments: ProcessInfo.processInfo.arguments))
-            launcher = LauncherController(preferences: preferences, testing: true)
-            clipboardController = ClipboardController(preferences: preferences, testing: true)
-            scroll = ScrollService(enabled: preferences.reverseMouseScroll, driver: TestScrollDriver())
-            network = NetworkService(enabled: false)
-            metrics = MetricsService(interval: preferences.samplingInterval)
-            dock = DockController(
-                showsDockIcon: preferences.appIntegration.showsDockIcon,
-                mainWindowVisible: initiallyShowsMainWindow
-            )
-            loginItem = LoginItemController(
-                preferences: preferences,
-                service: TestLoginItemService(arguments: ProcessInfo.processInfo.arguments)
-            )
-            let fixture = TestUpdateFixture(arguments: ProcessInfo.processInfo.arguments)
-            updates = UpdateService(
-                preferences: preferences,
-                installedVersion: appVersion,
-                diagnostics: diagnostics,
-                fetch: fixture.fetch
-            )
-            let updateOffline = ProcessInfo.processInfo.arguments.contains("--update-offline")
-            updates.setOnline(!updateOffline)
-            updateController = UpdateController(service: updates, energy: energy)
-            var participants: [any ApplicationLifecycleParticipant] = [
-                EnergyController(policy: energy),
-                dock,
-                loginItem,
-                clipboardController,
-                launcher,
-                island,
-                ScrollController(service: scroll, diagnostics: diagnostics)
-            ]
-            if !updateOffline { participants.append(updateController) }
-            if ProcessInfo.processInfo.arguments.contains("--live-metrics") {
-                participants.append(MetricsController(service: metrics, diagnostics: diagnostics, energy: energy))
-            }
-            lifecycle = ApplicationLifecycleCoordinator(participants: participants)
-            observeLaunch()
-            observeTermination()
-            connectLauncher()
-            watchEnergyPreferences()
-            lifecycle.start()
-            return
-        }
-        #endif
-        preferences = PreferencesStore()
-        island = IslandCoordinator(preferences: preferences)
-        music = MusicService(adapter: AppleMusicAdapter())
-        podcasts = MusicService(adapter: ApplePodcastsAdapter(artworkAccess: podcastArtworkAccess))
-        launcher = LauncherController(preferences: preferences)
-        clipboardController = ClipboardController(preferences: preferences)
-        scroll = ScrollService(enabled: preferences.reverseMouseScroll, driver: ScrollDriver())
-        network = NetworkService(enabled: preferences.publicIPEnabled)
-        metrics = MetricsService(interval: preferences.samplingInterval)
-        dock = DockController(
-            showsDockIcon: preferences.appIntegration.showsDockIcon,
-            mainWindowVisible: initiallyShowsMainWindow
-        )
-        loginItem = LoginItemController(preferences: preferences)
-        updates = UpdateService(
-            preferences: preferences,
-            installedVersion: appVersion,
-            diagnostics: diagnostics
-        )
-        updateController = UpdateController(service: updates, energy: energy)
-        lifecycle = ApplicationLifecycleCoordinator(participants: [
-            EnergyController(policy: energy),
-            dock,
-            loginItem,
-            clipboardController,
-            launcher,
-            island,
-            ScrollController(service: scroll, diagnostics: diagnostics),
-            MusicController(service: music),
-            MusicController(service: podcasts, bundleID: "com.apple.podcasts"),
-            NetworkController(service: network, diagnostics: diagnostics, energy: energy),
-            MetricsController(service: metrics, diagnostics: diagnostics, energy: energy),
-            updateController
-        ])
+        let dependencies = AppDependencies(energy: energy, diagnostics: diagnostics, artworkAccess: podcastArtworkAccess,
+                                           showsMainWindow: initiallyShowsMainWindow, appVersion: appVersion)
+        preferences = dependencies.preferences
+        island = dependencies.island
+        music = dependencies.music
+        podcasts = dependencies.podcasts
+        launcher = dependencies.launcher
+        clipboardController = dependencies.clipboardController
+        scroll = dependencies.scroll
+        network = dependencies.network
+        metrics = dependencies.metrics
+        dock = dependencies.dock
+        loginItem = dependencies.loginItem
+        updates = dependencies.updates
+        updateController = dependencies.updateController
+        lifecycle = dependencies.lifecycle
         observeLaunch()
         observeTermination()
         connectLauncher()
@@ -171,8 +98,8 @@ final class AppState {
 
     private func connectLauncher() {
         island.connectClipboard(clipboard)
-        island.connectMusic(music)
-        island.connectPodcasts(podcasts)
+        island.connectPlayer(music, source: .music)
+        island.connectPlayer(podcasts, source: .podcast)
         launcher.clipboard = clipboard
         launcher.navigate = { [weak self] section in
             guard let self, let section = AppSection(rawValue: section) else { return }
@@ -257,55 +184,3 @@ final class AppState {
 
     var strings: AppStrings { AppStrings(languageCode: preferences.language.resolvedCode()) }
 }
-
-#if DEBUG
-private struct TestUpdateFixture: Sendable {
-    enum Mode: Equatable, Sendable {
-        case noRelease
-        case current
-        case available
-        case failed
-    }
-
-    let mode: Mode
-    let currentVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.8.9"
-
-    init(arguments: [String]) {
-        if arguments.contains("--update-available") {
-            mode = .available
-        } else if arguments.contains("--update-current") {
-            mode = .current
-        } else if arguments.contains("--update-failure") {
-            mode = .failed
-        } else {
-            mode = .noRelease
-        }
-    }
-
-    func fetch(etag: String?) async throws -> UpdateCheckPayload {
-        if mode == .failed { throw UpdateCheckFailure(.timeout) }
-        if etag != nil { return .notModified(etag: "\"ui-test\"") }
-        switch mode {
-        case .noRelease:
-            return .noPublicRelease(etag: "\"ui-test\"")
-        case .current:
-            return .release(release(version: currentVersion), etag: "\"ui-test\"")
-        case .available:
-            return .release(release(version: "0.9.0"), etag: "\"ui-test\"")
-        case .failed:
-            throw UpdateCheckFailure(.timeout)
-        }
-    }
-
-    private func release(version: String) -> UpdateRelease {
-        let semanticVersion = SemanticVersion.parse(version)!
-        let tag = semanticVersion.tag
-        return UpdateRelease(
-            version: semanticVersion,
-            tag: tag,
-            pageURL: URL(string: "https://github.com/MrDeex1k/MacManager/releases/tag/\(tag)")!,
-            assetName: "MacManager-\(tag)-arm64.dmg"
-        )
-    }
-}
-#endif

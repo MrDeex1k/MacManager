@@ -23,9 +23,10 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
     private(set) var transitioning = false
     private(set) var shortcutFailed = false
     private(set) var clipboardModel: IslandClipboardModel?
-    private(set) var music: MusicService?
-    private(set) var podcasts: MusicService?
-    private var activePlayer: MusicService? { section == .music ? music : section == .podcast ? podcasts : nil }
+    private var players: [MediaSource: MusicService] = [:]
+    var music: MusicService? { players[.music] }
+    var podcasts: MusicService? { players[.podcast] }
+    private var activePlayer: MusicService? { MediaSource.allCases.first { $0.section == section }.flatMap { players[$0] } }
     private(set) var section: IslandSection = .clipboard
     private(set) var displayedSection: IslandSection = .clipboard
     private(set) var sectionOpacity = 1.0
@@ -35,8 +36,7 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
     @ObservationIgnored private var sectionPreparedAt: CFTimeInterval = 0
     @ObservationIgnored private var sectionRevealDelay: Double = 0
     #endif
-    func connectMusic(_ service: MusicService) { music = service }
-    func connectPodcasts(_ service: MusicService) { podcasts = service }
+    func connectPlayer(_ service: MusicService, source: MediaSource) { players[source] = service }
     var availableSections: [IslandSection] {
         IslandSection.allCases.filter { preferences.island.sections.contains($0) }
     }
@@ -59,7 +59,7 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
         sectionGeneration += 1; sectionTask?.cancel(); sectionTask = nil
     }
     private func renderSelectedSection() {
-        clipboardModel?.reset(); music?.setVisible(false); podcasts?.setVisible(false)
+        clipboardModel?.reset(); players.values.forEach { $0.setVisible(false) }
         panel?.makeFirstResponder(nil)
         // Prepare in-memory entries/selection before mounting the clipboard subtree.
         if section == .clipboard { clipboardModel?.activate() }
@@ -127,7 +127,7 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
     @ObservationIgnored private var scheduledDeadline: TimeInterval?
     @ObservationIgnored private var generation = 0
     @ObservationIgnored private var monitors: [Any] = []
-    @ObservationIgnored private var observers: [(NotificationCenter, NSObjectProtocol)] = []
+    @ObservationIgnored private let observers = NotificationTokens()
     @ObservationIgnored private let hotKey = LauncherHotKey()
     @ObservationIgnored private var activationFrame = NSRect.zero
     @ObservationIgnored private var panelFrame = NSRect.zero
@@ -157,16 +157,13 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
             if $0.closing { $0.finishClosing() }
             else if $0.visible { $0.settleSectionChange() }
         }
-        observe(workspace, NSWorkspace.willSleepNotification) { $0.suspend("sleep") }
-        observe(workspace, NSWorkspace.sessionDidResignActiveNotification) { $0.suspend("session") }
-        observe(workspace, NSWorkspace.didWakeNotification) { $0.resume("sleep") }
-        observe(workspace, NSWorkspace.sessionDidBecomeActiveNotification) { $0.resume("session") }
         observe(.default, NSMenu.didBeginTrackingNotification) { $0.setMenuTracking(true) }
         observe(.default, NSMenu.didEndTrackingNotification) { $0.setMenuTracking(false) }
-        observe(DistributedNotificationCenter.default(), Notification.Name("com.apple.screenIsLocked")) { $0.suspend("lock") }
-        observe(DistributedNotificationCenter.default(), Notification.Name("com.apple.screenIsUnlocked")) { $0.resume("lock") }
-        if let session = CGSessionCopyCurrentDictionary() as? [String: Any],
-           session["CGSSessionScreenIsLocked"] as? Bool == true { suspensionReasons.insert("lock") }
+        SystemSessionMonitor.shared.subscribe(in: observers) { [weak self] state in
+            guard let self else { return }
+            if state.suspended { self.suspend("system-session") }
+            else if self.suspensionReasons.contains("system-session") { self.resume("system-session") }
+        }
         watchPreferences()
         reposition()
     }
@@ -175,7 +172,7 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
         running = false
         dismiss(restoreFocus: false, animated: false)
         monitors.forEach(NSEvent.removeMonitor); monitors.removeAll()
-        observers.forEach { $0.0.removeObserver($0.1) }; observers.removeAll()
+        observers.removeAll()
         hotKey.stop(); interaction.reset()
     }
 
@@ -194,7 +191,7 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
         } onChange: { [weak self] in
             Task { @MainActor [weak self] in
                 guard let self, self.running else { return }
-                self.applyPreferences(); self.watchPreferences()
+                self.watchPreferences()
             }
         }
         applyPreferences()
@@ -236,7 +233,7 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
 
     private var available: Bool {
         running && !suspended && preferences.island.enabled && screen != nil &&
-            (preferences.island.showsInFullScreen || !isFullScreenOnTarget())
+            (preferences.island.showsInFullScreen || !IslandWindowGeometry.isFullScreen(on: screen))
     }
 
     private func reposition() {
@@ -247,15 +244,10 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
         } ?? NSScreen.main
         guard let screen else { return }
         let frame = screen.frame
-        let inset = max(screen.safeAreaInsets.top, frame.maxY - screen.visibleFrame.maxY, 24)
-        topInset = inset
-        let notchWidth: CGFloat
-        if let left = screen.auxiliaryTopLeftArea, let right = screen.auxiliaryTopRightArea {
-            notchWidth = max(160, right.minX - left.maxX + 24)
-        } else { notchWidth = 180 }
-        activationFrame = NSRect(x: frame.midX - notchWidth / 2, y: frame.maxY - inset - 12,
-                                 width: notchWidth, height: inset + 12)
-        let width = min(560, frame.width - 32)
+        let geometry = IslandWindowGeometry.activation(on: screen)
+        topInset = geometry.inset
+        activationFrame = geometry.frame
+        let width = geometry.panelWidth
         let height = sectionHeight(width: width)
         panelFrame = NSRect(x: frame.midX - width / 2, y: frame.maxY - height,
                             width: width, height: height)
@@ -325,23 +317,6 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
         panel?.setFrame(frame, display: false)
         transitionHost?.resizeGeometry(size: frame.size, topInset: topInset, collapsedWidth: activationFrame.width)
         CATransaction.commit()
-    }
-
-    /// Window bounds are public metadata; do not request Screen Recording to inspect titles/content.
-    private func isFullScreenOnTarget() -> Bool {
-        guard let screen, let main = NSScreen.screens.first,
-              let pid = NSWorkspace.shared.frontmostApplication?.processIdentifier,
-              let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] else { return false }
-        let target = CGRect(x: screen.frame.minX, y: main.frame.maxY - screen.frame.maxY,
-                            width: screen.frame.width, height: screen.frame.height)
-        return windows.contains { info in
-            guard (info[kCGWindowOwnerPID as String] as? Int) == Int(pid),
-                  (info[kCGWindowLayer as String] as? Int) == 0,
-                  let bounds = info[kCGWindowBounds as String] as? [String: Any],
-                  let rect = CGRect(dictionaryRepresentation: bounds as CFDictionary) else { return false }
-            return abs(rect.minX - target.minX) < 2 && abs(rect.minY - target.minY) < 2 &&
-                rect.width >= target.width - 2 && rect.height >= target.height - 2
-        }
     }
 
     private func handlePointer(_ event: NSEvent) {
@@ -488,7 +463,7 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
         visible = false; menuTracking = false
         cancelSectionChange(); sectionOpacity = 1; displayedSection = section
         clipboardModel?.reset()
-        music?.setVisible(false); podcasts?.setVisible(false)
+        players.values.forEach { $0.setVisible(false) }
         panel?.makeFirstResponder(nil)
         panel?.ignoresMouseEvents = true
         if animated, let transitionHost {
@@ -500,66 +475,5 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
             else { previousWindow?.makeKeyAndOrderFront(nil) }
         }
         previousApplication = nil; previousWindow = nil
-    }
-}
-
-@MainActor final class IslandPanel: NSPanel {
-    var onSectionSelect: ((Int) -> Void)?
-    var onEscape: (() -> Void)?
-    var onKeyChange: ((Bool) -> Void)?
-    var onMove: ((Int) -> Void)?
-    var onSubmit: (() -> Void)?
-    var onSpace: (() -> Bool)?
-    init() {
-        super.init(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
-        identifier = .init("island.panel")
-        isFloatingPanel = true
-        // Floating windows sit below the menu bar, which would cover the notch bridge.
-        level = NSWindow.Level(rawValue: NSWindow.Level.statusBar.rawValue + 1)
-        collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-        backgroundColor = .clear; isOpaque = false; hasShadow = false
-        isReleasedWhenClosed = false; hidesOnDeactivate = false
-        appearance = NSAppearance(named: .darkAqua)
-    }
-    override var canBecomeKey: Bool { true }
-    override var canBecomeMain: Bool { false }
-    override func constrainFrameRect(_ frameRect: NSRect, to screen: NSScreen?) -> NSRect {
-        // Our coordinator positions against NSScreen.frame, including the menu/camera strip.
-        // AppKit's default constraint can shift a panel down into visibleFrame on presentation.
-        frameRect
-    }
-    override func becomeKey() { super.becomeKey(); onKeyChange?(true) }
-    override func resignKey() { super.resignKey(); onKeyChange?(false) }
-    override func sendEvent(_ event: NSEvent) {
-        if event.type == .keyDown, (firstResponder as? NSTextView)?.hasMarkedText() != true,
-           event.modifierFlags.intersection([.command, .control, .option, .shift]) == .option,
-           let index = [UInt16(18), 19, 20, 21].firstIndex(of: event.keyCode) {
-            // Local panel handling also works while the native search editor owns focus.
-            onSectionSelect?(index); return
-        }
-        if event.type == .keyDown, (firstResponder as? NSTextView)?.hasMarkedText() != true,
-           event.modifierFlags.intersection([.command, .control, .option, .shift]).isEmpty {
-            switch event.keyCode {
-            case 53: onEscape?(); return
-            case 124:
-                if (firstResponder as? NSTextView)?.string.isEmpty != false { onMove?(1); return }
-            case 123:
-                if (firstResponder as? NSTextView)?.string.isEmpty != false { onMove?(-1); return }
-            case 125: onMove?(1); return
-            case 126: onMove?(-1); return
-            case 36: onSubmit?(); return
-            case 49: if onSpace?() == true { return }
-            default: break
-            }
-        }
-        super.sendEvent(event)
-    }
-    func focusSearch() {
-        func find(_ view: NSView) -> NSTextField? {
-            if let field = view as? NSTextField, field.identifier?.rawValue == "island.search" { return field }
-            return view.subviews.lazy.compactMap(find).first
-        }
-        contentView?.layoutSubtreeIfNeeded()
-        if let field = contentView.flatMap(find) { makeFirstResponder(field) }
     }
 }

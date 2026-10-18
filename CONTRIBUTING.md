@@ -65,3 +65,13 @@ Contributions are accepted under the project's [GNU Affero General Public Licens
 ## Reporting bugs and requesting features
 
 Use the repository issue forms. Include macOS version, Mac model class, reproduction steps and expected behavior when relevant. Redact IP addresses and other personal data. Do not place security vulnerabilities or sensitive user content in a public issue; follow [SECURITY.md](SECURITY.md).
+
+## Test sets and optimization measurements
+
+`swift test --package-path Packages/MacManagerCore` runs local logic and storage checks. Tests requiring macOS services explicitly report a skip unless enabled:
+
+- `MM_SYSTEM_TESTS=1`: named synthetic pasteboards, a dedicated test Keychain item and backup metadata. Run outside a restricted sandbox with the required system access.
+- `MM_LAUNCHER_TEST_ROOT="$PWD"`: Spotlight integration against this indexed repository.
+- `MM_BENCHMARKS=1`: synthetic launcher ranking benchmark; run with `-c release --filter launcherRankingBenchmark` separately from other tests.
+
+UI tests are grouped by feature and share AppUITestSupport. Run the MacManager scheme on macOS. Fixture launches use isolated preferences and clipboard data. Performance reports must distinguish engine timings from end-to-end UI latency and record skipped or unavailable checks explicitly.

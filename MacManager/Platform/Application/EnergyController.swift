@@ -4,17 +4,15 @@ import MacManagerCore
 @MainActor
 final class EnergyController: ApplicationLifecycleParticipant {
     let policy: EnergyPolicy
-    private var observers: [(NotificationCenter, NSObjectProtocol)] = []
+    private let observers = NotificationTokens()
     init(policy: EnergyPolicy) { self.policy = policy }
     func start() {
         refresh()
         observe(NotificationCenter.default, .NSProcessInfoPowerStateDidChange) { [weak self] in self?.refresh() }
-        observe(NSWorkspace.shared.notificationCenter, NSWorkspace.willSleepNotification) { [weak self] in
-            self?.policy.sleeping = true
-        }
-        observe(NSWorkspace.shared.notificationCenter, NSWorkspace.didWakeNotification) { [weak self] in
-            self?.refresh()
-            self?.policy.sleeping = false
+        SystemSessionMonitor.shared.subscribe(in: observers) { [weak self] state in
+            guard let self, self.policy.sleeping != state.sleeping else { return }
+            self.refresh()
+            self.policy.sleeping = state.sleeping
         }
     }
     private func refresh() {
@@ -30,6 +28,6 @@ final class EnergyController: ApplicationLifecycleParticipant {
         observers.append((center, token))
     }
     func stop() {
-        observers.forEach { $0.0.removeObserver($0.1) }; observers.removeAll()
+        observers.removeAll()
     }
 }

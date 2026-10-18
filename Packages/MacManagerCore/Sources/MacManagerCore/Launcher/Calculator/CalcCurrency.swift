@@ -153,9 +153,6 @@ enum CalcCurrency {
         ("XRP", "XRP", ["ripple"])
     ]
 
-    /// `CurrencyRateStore` builds its request from this, so the two lists cannot drift apart.
-    static let cryptoCodes: [String] = crypto.map(\.code)
-
     /// Lookup by lowercased ident, generated data first so the hand-written tables above win.
     static let byName: [String: CurrencyDef] = {
         var defs: [String: CurrencyDef] = [:]

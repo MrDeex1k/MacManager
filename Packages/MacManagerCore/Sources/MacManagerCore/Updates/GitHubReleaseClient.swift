@@ -1,17 +1,5 @@
 import Foundation
 
-private final class UpdateRedirectDelegate: NSObject, URLSessionTaskDelegate, @unchecked Sendable {
-    func urlSession(
-        _ session: URLSession,
-        task: URLSessionTask,
-        willPerformHTTPRedirection response: HTTPURLResponse,
-        newRequest request: URLRequest,
-        completionHandler: @escaping @Sendable (URLRequest?) -> Void
-    ) {
-        completionHandler(nil)
-    }
-}
-
 public struct GitHubReleaseClient: Sendable {
     public static let endpoint = URL(string: "https://api.github.com/repos/MrDeex1k/MacManager/releases/latest")!
     public static let maximumResponseBytes = 1_048_576
@@ -23,20 +11,6 @@ public struct GitHubReleaseClient: Sendable {
     }
 
     public func check(etag: String?) async throws -> UpdateCheckPayload {
-        let configuration = URLSessionConfiguration.ephemeral
-        configuration.timeoutIntervalForRequest = 8
-        configuration.timeoutIntervalForResource = 8
-        configuration.httpShouldSetCookies = false
-        configuration.httpCookieStorage = nil
-        configuration.urlCache = nil
-        configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
-        let session = URLSession(
-            configuration: configuration,
-            delegate: UpdateRedirectDelegate(),
-            delegateQueue: nil
-        )
-        defer { session.invalidateAndCancel() }
-
         var request = URLRequest(url: Self.endpoint)
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
         request.setValue("2026-03-10", forHTTPHeaderField: "X-GitHub-Api-Version")
@@ -46,23 +20,14 @@ public struct GitHubReleaseClient: Sendable {
         }
 
         do {
-            let (bytes, response) = try await session.bytes(for: request)
-            guard let http = response as? HTTPURLResponse else {
-                throw UpdateCheckFailure(.invalidResponse)
-            }
-            var data = Data()
-            for try await byte in bytes {
-                try Task.checkCancellation()
-                guard data.count < Self.maximumResponseBytes else {
-                    throw UpdateCheckFailure(.invalidResponse)
-                }
-                data.append(byte)
-            }
+            let (data, http) = try await BoundedHTTPClient.read(request, maximumBytes: Self.maximumResponseBytes, timeout: 8)
             return try Self.parse(
                 data,
                 status: http.statusCode,
                 etag: Self.validETag(http.value(forHTTPHeaderField: "ETag"))
             )
+        } catch is BoundedHTTPClient.Failure {
+            throw UpdateCheckFailure(.invalidResponse)
         } catch let failure as UpdateCheckFailure {
             throw failure
         } catch let error as URLError {

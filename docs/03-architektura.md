@@ -187,3 +187,17 @@ IslandPreferences przechowuje zbiór IslandSection. Brak pola w starym zapisie o
 PodcastLocalArtworkReader uzupełnia podgląd o okładkę z istniejącego cache Apple Podcasts. Łączy bieżący dokładny tytuł (lub pełną etykietę AX z audycją) z rekordem MTLibrary.sqlite otwartym tylko do odczytu, następnie odczytuje wyłącznie pasujący plik Episode/Show z cache. MD5 szablonu URL służy jedynie do odwzorowania istniejącej nazwy pliku. Nie pobiera URL ani nie wysyła tytułów. PodcastArtworkAccess wymaga jednorazowego wyboru konkretnego folderu w NSOpenPanel i przechowuje bookmark wyłącznie do odczytu; security scope otwiera tylko na czas czytania. Niepewne dopasowanie, brak udostępnienia lub zmiana schematu zwraca brak okładki, bez automatycznych promptów i bez Pełnego dostępu do dysku. To adapter zgodności z lokalnym formatem danych, nie stabilne API Apple.
 
 Odczyt SQL ma krótki busy timeout i budżet instrukcji. Obrazy są ograniczone do 8 MB, zminiaturyzowane przez ImageIO do 256 px i maksymalnie 1 MB PNG. Sharp cache ma pierwszeństwo przed wersją blurred. Adapter przechowuje jedną miniaturę w RAM tylko podczas widocznej sekcji, czyści ją przy ukryciu i zmianie odcinka, a nieudany odczyt ponawia najwcześniej po 30 s aktywnej pracy.
+
+## Wspólne mechanizmy po optymalizacji 2026-10-17
+
+AppDependencies składa produkcyjny i testowy zestaw zależności, a AppState utrzymuje stan aplikacji i łączy powierzchnie prezentacji. MediaSource opisuje możliwości i prezentację źródła, MusicService nadal zarządza jego widocznością, a osobne adaptery obsługują Apple Events i Accessibility. Dodanie kolejnego odtwarzacza wymaga własnego adaptera i konfiguracji; nie zakłada się zgodności jego protokołu z Music lub Podcasts.
+
+SystemSessionMonitor jest jednym źródłem powodów zawieszenia (sen, blokada, nieaktywna sesja). Odbiorcy wybierają własną politykę: metryki i sieć reagują na sen, prywatne powierzchnie i scroll na wszystkie przyczyny. NotificationTokens zarządza czasem życia rejestracji.
+
+ClipboardSearchModel współdzieli implementację wyszukiwania, ale każda powierzchnia ma własną instancję i limit wyników. Stan jest czyszczony przy zamknięciu lub zawieszeniu, a anulowane żądania nie zastępują nowych wyników. Miniatury widoków są ładowane według identyfikatora i stanu dostępu, bez unieważniania całej historii.
+
+ImageThumbnail wspólnie koduje PNG i pomniejsza okładki z jawnymi limitami. BoundedHTTPClient współdzieli ograniczony transport, bez przenoszenia do niego walidacji domenowej publicznego IP lub wydania. Cache metadanych aplikacji istnieje tylko podczas skanu. Kalkulator ma osobny actor i wstrzykiwany kontekst. Ranking używa rewizji indeksu; dla dużych katalogów ogranicza sortowanie do najlepszych wyników.
+
+Panele AppKit, geometria wyspy, cache ikon i rejestr skrótów mają osobnych właścicieli. Launcher używa jednego monitora menu wierszy na panel. Wspólne komponenty SwiftUI obejmują edytor skrótu oraz oś czasu i pusty stan wykresów.
+
+Szczegóły wdrożenia i pomiary: [raport optymalizacji](reports/optymalizacja-produktu-2026-10-17.md).

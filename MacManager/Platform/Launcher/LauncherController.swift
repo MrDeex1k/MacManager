@@ -21,13 +21,14 @@ final class LauncherController: ApplicationLifecycleParticipant {
     var focusPresentationID: UUID { presentationID }
     var options: LauncherPreferences { preferences.launcher }
     var showsResults: Bool { clipboardMode || !model.query.isEmpty }
+    @ObservationIgnored private let clipboardSearch = ClipboardSearchModel()
+    @ObservationIgnored private let calculator = LocalCalculatorWorker()
     @ObservationIgnored private let files = LauncherFileSearch()
-    @ObservationIgnored private let applicationIcons = NSCache<NSURL, NSImage>()
+    @ObservationIgnored private let applicationIcons = LauncherIconCache()
     var catalogRefreshSeconds: Double = 60 { didSet { model.catalogRefreshSeconds = catalogRefreshSeconds } }
     @ObservationIgnored private var shortcutCleanup: Task<Void, Never>?
-    @ObservationIgnored private var lastIconRefresh: ContinuousClock.Instant?
 
-    @ObservationIgnored private var itemHotKeys: [String: LauncherHotKey] = [:]
+    @ObservationIgnored private let itemHotKeys = LauncherItemShortcuts()
     private(set) var itemShortcutFailures: Set<String> = []
     private(set) var shortcutFailed = false
     private(set) var actionFailed = false
@@ -40,7 +41,7 @@ final class LauncherController: ApplicationLifecycleParticipant {
     @ObservationIgnored private var panel: LauncherPanel?
     @ObservationIgnored private var hosting: NSHostingView<AnyView>?
     @ObservationIgnored private var previousApplication: NSRunningApplication?
-    @ObservationIgnored private var observers: [(NotificationCenter, NSObjectProtocol)] = []
+    @ObservationIgnored private let observers = NotificationTokens()
     @ObservationIgnored private let testing: Bool
     private var usesRealShortcut: Bool { !testing || ProcessInfo.processInfo.arguments.contains("--launcher-live-testing") }
     @ObservationIgnored private var running = false
@@ -62,7 +63,7 @@ final class LauncherController: ApplicationLifecycleParticipant {
             guard let self, self.visible else { return [] }
             if self.clipboardMode {
                 guard let clipboard = self.clipboard, !clipboard.suspended else { return [] }
-                let entries = try await clipboard.search(query, limit: 40)
+                let entries = try await self.clipboardSearch.search(.init(query: query, service: clipboard), service: clipboard, limit: 40)
                 try Task.checkCancellation()
                 guard self.visible, self.clipboardMode, !clipboard.suspended else { return [] }
                 return entries.map {
@@ -72,7 +73,9 @@ final class LauncherController: ApplicationLifecycleParticipant {
                             action: .clipboard($0.id))
                     }
             }
-            var results = LocalCalculator.result(query, language: self.preferences.language.resolvedCode()).map { [$0] } ?? []
+            let context = LocalCalculator.Context(language: self.preferences.language.resolvedCode())
+            var results = try await self.calculator.result(query, context: context).map { [$0] } ?? []
+            try Task.checkCancellation()
             let options = self.preferences.launcher, filter = self.fileFilter
             if results.isEmpty && options.filesEnabled && query.count >= 2 {
                 try await Task.sleep(for: .milliseconds(120))
@@ -82,28 +85,20 @@ final class LauncherController: ApplicationLifecycleParticipant {
         }
         registerItemShortcuts()
         reconcileApplicationShortcuts()
-        let workspace = NSWorkspace.shared.notificationCenter
-        observe(workspace, NSWorkspace.willSleepNotification)
-        observe(workspace, NSWorkspace.sessionDidResignActiveNotification)
-        observe(DistributedNotificationCenter.default(), .init("com.apple.screenIsLocked"))
-    }
-    private func observe(_ center: NotificationCenter, _ name: Notification.Name) {
-        let token = center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
-            MainActor.assumeIsolated {
-                self?.hide(restoreFocus: false)
-                self?.model.cancel()
-                self?.shortcutCleanup?.cancel(); self?.shortcutCleanup = nil
-            }
+        SystemSessionMonitor.shared.subscribe(in: observers) { [weak self] state in
+            guard state.suspended, let self else { return }
+            self.hide(restoreFocus: false); self.model.cancel()
+            self.shortcutCleanup?.cancel(); self.shortcutCleanup = nil
         }
-        observers.append((center, token))
     }
     func stop() {
         running = false; hide(restoreFocus: false); hotKey.stop()
         model.cancel(); shortcutCleanup?.cancel(); shortcutCleanup = nil
-        applicationIcons.removeAllObjects()
+        applicationIcons.clear()
+        panel?.rowMenus.stop()
         panel?.contentView = nil; hosting = nil
-        itemHotKeys.values.forEach { $0.stop() }; itemHotKeys = [:]
-        observers.forEach { $0.0.removeObserver($0.1) }; observers = []
+        itemHotKeys.stop()
+        observers.removeAll()
     }
     @discardableResult func updateShortcut(_ value: LauncherShortcut) -> Bool {
         guard value.isValid else { return false }
@@ -120,10 +115,7 @@ final class LauncherController: ApplicationLifecycleParticipant {
         guard running else { return }
         if visible { panel?.makeKeyAndOrderFront(nil); return }
         reconcileApplicationShortcuts()
-        if lastIconRefresh.map({ $0.duration(to: .now) >= .seconds(catalogRefreshSeconds) }) ?? true {
-            applicationIcons.removeAllObjects()
-            lastIconRefresh = .now
-        }
+        applicationIcons.refreshIfNeeded(after: catalogRefreshSeconds)
         previousApplication = NSWorkspace.shared.frontmostApplication
         actionFailed = false; executing = false; presentationID = UUID()
         let commands = AppSection.allCases.map { section in
@@ -191,6 +183,7 @@ final class LauncherController: ApplicationLifecycleParticipant {
     }
 
     func toggleMode(clipboard: Bool? = nil) {
+        clipboardSearch.reset()
         clipboardMode = clipboard ?? !clipboardMode
         model.onlyAdditionalResults = clipboardMode
         model.search("")
@@ -225,21 +218,16 @@ final class LauncherController: ApplicationLifecycleParticipant {
                     key != id && item.shortcut?.enabled == true && item.shortcut?.keyCode == shortcut.keyCode && item.shortcut?.modifiers == shortcut.modifiers
                 }
             guard !duplicate, shortcut.isValid else { itemShortcutFailures.insert(id); return false }
-            let binding = itemHotKeys[id] ?? LauncherHotKey()
-            guard !usesRealShortcut || binding.register(shortcut) else {
-                if itemHotKeys[id] == nil { binding.stop() }; itemShortcutFailures.insert(id); return false
-            }
-            binding.onPress = { [weak self] in
+            guard itemHotKeys.register(id: id, shortcut: shortcut, enabled: usesRealShortcut, action: { [weak self] in
                 guard let self, let current = self.preferences.launcher.items[id] else { return }
                 self.execute(current.entry)
-            }
-            itemHotKeys[id] = binding
-        } else { itemHotKeys.removeValue(forKey: id)?.stop() }
+            }) else { itemShortcutFailures.insert(id); return false }
+        } else { itemHotKeys.remove(id) }
         itemShortcutFailures.remove(id)
         return true
     }
     func removeCustomization(_ id: String) {
-        itemHotKeys.removeValue(forKey: id)?.stop()
+        itemHotKeys.remove(id)
         preferences.launcher.items.removeValue(forKey: id)
         itemShortcutFailures.remove(id)
         refreshResults()
@@ -248,20 +236,14 @@ final class LauncherController: ApplicationLifecycleParticipant {
         for value in preferences.launcher.items.values { _ = registerCustomization(value) }
     }
 
-    func applicationIcon(at url: URL) -> NSImage {
-        if let image = applicationIcons.object(forKey: url as NSURL) { return image }
-        let image = NSWorkspace.shared.icon(forFile: url.path)
-        applicationIcons.countLimit = 128
-        applicationIcons.setObject(image, forKey: url as NSURL)
-        return image
-    }
+    func applicationIcon(at url: URL) -> NSImage { applicationIcons.image(at: url) }
 
     private func reconcileCatalogApplications(_ entries: [LauncherEntry]) {
         var updated = preferences.launcher
         for entry in entries {
             guard case .application = entry.action, var item = updated.items[entry.id], item.entry != entry else { continue }
             if case .application(let oldURL) = item.entry.action {
-                applicationIcons.removeObject(forKey: oldURL as NSURL)
+                applicationIcons.remove(oldURL)
             }
             item.entry = entry
             updated.items[entry.id] = item
@@ -307,7 +289,7 @@ final class LauncherController: ApplicationLifecycleParticipant {
                 updated.reconcileApplication(id: item.entry.id, installedURL: installed)
                 if installed == nil { removed.insert(item.entry.id) }
                 else { replacements[item.entry.id] = updated.items[item.entry.id]?.entry }
-                self.itemHotKeys.removeValue(forKey: item.entry.id)?.stop()
+                self.itemHotKeys.remove(item.entry.id)
                 self.itemShortcutFailures.remove(item.entry.id)
                 if let value = updated.items[item.entry.id], installed != nil { _ = self.registerCustomization(value) }
             }
@@ -332,6 +314,7 @@ final class LauncherController: ApplicationLifecycleParticipant {
         panel.setFrame(frame, display: true, animate: false)
     }
     func hide(restoreFocus: Bool = true) {
+        clipboardSearch.reset()
         guard visible else { return }
         visible = false; presentationID = UUID(); executing = false
         rowMenuOpen = false; searchSelection = nil
@@ -392,67 +375,5 @@ final class LauncherController: ApplicationLifecycleParticipant {
                 }
             }
         }
-    }
-}
-
-// Adapted from Tinycast PalettePanel, Copyright (C) 2026 Abue Ammar.
-// AGPL-3.0-or-later; used under AGPL-3.0. Source: c5cff8cbb9b7e12ac75c058da9573045c76029b7.
-// Modified 2026-09-23: minimal nonactivating panel, IME-safe navigation, no external event taps.
-@MainActor final class LauncherPanel: NSPanel {
-    var navigationEnabled: (() -> Bool)?
-    var onTab: (() -> Void)?
-    var onEscape: (() -> Void)?
-    var onArrow: ((Int) -> Void)?
-    var onSubmit: (() -> Void)?
-    var onResign: (() -> Void)?
-    init() {
-        super.init(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel, .fullSizeContentView], backing: .buffered, defer: false)
-        identifier = .init("launcher.panel"); title = "Mac Manager Launcher"
-        isFloatingPanel = true; level = .floating
-        collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-        isOpaque = false; backgroundColor = .clear; hasShadow = true
-        isReleasedWhenClosed = false; hidesOnDeactivate = false
-        appearance = NSAppearance(named: .darkAqua)
-    }
-    private var searchField: NSTextField? {
-        func find(in view: NSView) -> NSTextField? {
-            if let field = view as? NSTextField, field.identifier?.rawValue == "launcher.search" { return field }
-            return view.subviews.lazy.compactMap { find(in: $0) }.first
-        }
-        return contentView.flatMap { find(in: $0) }
-    }
-    func searchSelection() -> NSRange? {
-        (searchField?.currentEditor() as? NSTextView)?.selectedRange()
-    }
-    func focusSearchField(selection: NSRange? = nil) {
-        guard let field = searchField else { return }
-        if (firstResponder as? NSTextView)?.hasMarkedText() == true { return }
-        let selection = selection ?? searchSelection()
-        makeFirstResponder(nil)
-        makeFirstResponder(field)
-        if let selection, let editor = field.currentEditor() as? NSTextView, !editor.hasMarkedText() {
-            let length = (field.stringValue as NSString).length
-            if selection.location <= length, selection.length <= length - selection.location {
-                editor.setSelectedRange(selection)
-            }
-        }
-    }
-    override var canBecomeKey: Bool { true }
-    override var canBecomeMain: Bool { false }
-    override func resignKey() { super.resignKey(); onResign?() }
-    override func sendEvent(_ event: NSEvent) {
-        let composing = (firstResponder as? NSTextView)?.hasMarkedText() == true
-        if event.type == .keyDown, !composing, navigationEnabled?() != false,
-           event.modifierFlags.intersection([.command, .control, .option, .shift]).isEmpty {
-            switch event.keyCode {
-            case 48: onTab?(); return
-            case 53: onEscape?(); return
-            case 125: onArrow?(1); return
-            case 126: onArrow?(-1); return
-            case 36, 76: onSubmit?(); return
-            default: break
-            }
-        }
-        super.sendEvent(event)
     }
 }

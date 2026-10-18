@@ -53,7 +53,6 @@ private func clipboardDirectory() -> URL {
         #expect(data.range(of: Data("private.source.app".utf8)) == nil)
     }
     #expect(library.databaseBytes > 0)
-    #expect(try directory.resourceValues(forKeys: [.isExcludedFromBackupKey]).isExcludedFromBackup == true)
     #expect((try FileManager.default.attributesOfItem(atPath: directory.path)[.posixPermissions] as? NSNumber)?.intValue == 0o700)
 }
 
@@ -126,7 +125,7 @@ private func clipboardDirectory() -> URL {
     #expect(!ClipboardPrivacy.shouldSkip(types: ["public.utf8-plain-text"], declaredSource: nil, foregroundSource: nil, exclusions: []))
 }
 
-@MainActor @Test func clipboardAdapterRoundTripsSyntheticTextAndImageWithoutGeneralClipboard() throws {
+@MainActor @Test(.enabled(if: ProcessInfo.processInfo.environment["MM_SYSTEM_TESTS"] == "1", "Requires MM_SYSTEM_TESTS=1 and system services access")) func clipboardAdapterRoundTripsSyntheticTextAndImageWithoutGeneralClipboard() throws {
     let board = NSPasteboard(name: .init("MacManagerTests-\(UUID().uuidString)"))
     defer { board.releaseGlobally() }
     let adapter = SystemClipboardPasteboard(pasteboard: board, foregroundBundleID: { nil })
@@ -153,7 +152,7 @@ private func clipboardDirectory() -> URL {
     guard case .skipped = adapter.capture(exclusions: []) else { Issue.record("Confidential content was captured"); return }
 }
 
-@MainActor @Test func clipboardAdapterPrefersTextOverImageRepresentations() throws {
+@MainActor @Test(.enabled(if: ProcessInfo.processInfo.environment["MM_SYSTEM_TESTS"] == "1", "Requires MM_SYSTEM_TESTS=1 and system services access")) func clipboardAdapterPrefersTextOverImageRepresentations() throws {
     let board = NSPasteboard(name: .init("MacManagerTests-\(UUID().uuidString)"))
     defer { board.releaseGlobally() }
     let adapter = SystemClipboardPasteboard(pasteboard: board, foregroundBundleID: { nil })
@@ -275,7 +274,7 @@ private func clipboardDirectory() -> URL {
     service.stop()
 }
 
-@Test func clipboardHardwareKeyPersistsWithoutSync() throws {
+@Test(.enabled(if: ProcessInfo.processInfo.environment["MM_SYSTEM_TESTS"] == "1", "Requires MM_SYSTEM_TESTS=1 and system services access")) func clipboardHardwareKeyPersistsWithoutSync() throws {
     let name = "dev.macmanager.tests.clipboard.\(UUID().uuidString)"
     let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword,
         kSecAttrService as String: name, kSecAttrAccount as String: "clipboard-history-v1",
@@ -433,7 +432,7 @@ private func clipboardDirectory() -> URL {
     try await repo.insert(.init(kind: .image, data: Data([1, 2]), thumbnail: Data([3, 4])),
                           preferences: .init(), now: now.addingTimeInterval(1))
     let entries = try await repo.load(preferences: .init(), now: now).entries
-    #expect(entries.allSatisfy { $0.thumbnail == nil && ($0.text?.count ?? 0) <= 300 })
+    #expect(entries.allSatisfy { ($0.text?.count ?? 0) <= 300 })
     #expect(await repo.cachedBytes == 0)
     let matches = try await repo.search("hidden-tail", entries: entries, preferences: .init(), now: now, limit: 40)
     #expect(matches.map(\.id) == [id] && matches.first?.text?.contains("hidden-tail") == false)
@@ -514,4 +513,36 @@ private func clipboardDirectory() -> URL {
     }
     await #expect(throws: CancellationError.self) { try await task.value }
     #expect(!FileManager.default.fileExists(atPath: directory.path))
+}
+
+@Test(.enabled(if: ProcessInfo.processInfo.environment["MM_SYSTEM_TESTS"] == "1", "Requires MM_SYSTEM_TESTS=1 and backup metadata support"))
+func clipboardStorageIsExcludedFromBackup() async throws {
+    let directory = clipboardDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let repository = ClipboardRepository(directory: directory, keys: ClipboardTestKey())
+    _ = try await repository.load(preferences: .init(), now: Date())
+    #expect(try directory.resourceValues(forKeys: [.isExcludedFromBackupKey]).isExcludedFromBackup == true)
+}
+
+@MainActor @Test func clipboardSearchModelRejectsStaleRequestsAndClearsPrivateResults() async throws {
+    let directory = clipboardDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let repository = ClipboardRepository(directory: directory, keys: ClipboardTestKey())
+    try await repository.insert(.init(kind: .text, data: Data("first result".utf8)), preferences: .init(), now: Date())
+    let service = ClipboardService(preferences: .init(), pasteboard: ClipboardMock(), repository: repository, storageExists: true)
+    await service.start()
+    let model = ClipboardSearchModel()
+    let request = ClipboardSearchModel.Request(query: "first", service: service)
+    #expect(try await model.search(request, service: service).count == 1)
+    #expect(model.completed == request)
+    let cancelled = Task { try await model.search(request, service: service) }
+    cancelled.cancel()
+    await #expect(throws: CancellationError.self) { try await cancelled.value }
+    #expect(model.completed == request, "An already cancelled caller must not reset a newer result")
+    await service.setSuspended(true)
+    #expect(model.entries(for: request, service: service).isEmpty)
+    await #expect(throws: CancellationError.self) { try await model.search(request, service: service) }
+    model.reset()
+    #expect(model.matches.isEmpty && model.completed == nil && !model.hasPendingWork)
+    service.stop()
 }

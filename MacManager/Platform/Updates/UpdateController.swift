@@ -10,7 +10,7 @@ final class UpdateController: ApplicationLifecycleParticipant {
     private var wakeNotBefore = Date.distantPast
     private let monitor = NWPathMonitor()
     private var scheduledCheck: Task<Void, Never>?
-    private var observers: [(NotificationCenter, NSObjectProtocol)] = []
+    private let observers = NotificationTokens()
     private var isRunning = false
     private var isSuspended = false
 
@@ -34,21 +34,13 @@ final class UpdateController: ApplicationLifecycleParticipant {
         }
         monitor.start(queue: DispatchQueue(label: "dev.macmanager.update-path"))
 
-        let workspaceCenter = NSWorkspace.shared.notificationCenter
-        for (name, suspended) in [
-            (NSWorkspace.willSleepNotification, true),
-            (NSWorkspace.didWakeNotification, false)
-        ] {
-            let token = workspaceCenter.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
-                MainActor.assumeIsolated {
-                    guard let self else { return }
-                    self.isSuspended = suspended
-                    if !suspended { self.wakeNotBefore = Date().addingTimeInterval(30) }
-                    if suspended { self.service.cancelCheck() }
-                    self.scheduleNextCheck()
-                }
-            }
-            observers.append((workspaceCenter, token))
+        SystemSessionMonitor.shared.subscribe(in: observers) { [weak self] state in
+            guard let self, self.isSuspended != state.sleeping else { return }
+            let wasSuspended = self.isSuspended
+            self.isSuspended = state.sleeping
+            if wasSuspended && !state.sleeping { self.wakeNotBefore = Date().addingTimeInterval(30) }
+            if state.sleeping { self.service.cancelCheck() }
+            self.scheduleNextCheck()
         }
 
         let center = NotificationCenter.default
@@ -70,7 +62,6 @@ final class UpdateController: ApplicationLifecycleParticipant {
         scheduledCheck = nil
         monitor.cancel()
         service.cancelCheck()
-        observers.forEach { center, token in center.removeObserver(token) }
         observers.removeAll()
         MacManagerLog.lifecycle.info("Update lifecycle stopped")
     }

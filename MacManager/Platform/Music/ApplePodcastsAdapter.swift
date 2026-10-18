@@ -1,8 +1,6 @@
 import AppKit
 @preconcurrency import ApplicationServices
 import QuartzCore
-import ImageIO
-import UniformTypeIdentifiers
 import MacManagerCore
 
 /// Public Accessibility actions targeted at Podcasts, never global keys or private MediaRemote.
@@ -97,7 +95,7 @@ actor ApplePodcastsAdapter: MusicPlayerAdapter {
         if artworkKey != key || (cachedEpisode?.artwork == nil && now - artworkAttempt >= 30) {
             artworkKey = key; artworkAttempt = now; cachedEpisode = nil
             if !Task.isCancelled, let local = await artworkAccess.read(title: reading.title, expandedMetadata: reading.expandedMetadata), !Task.isCancelled {
-                cachedEpisode = (local.episodeTitle, local.showTitle, local.episodeID, local.data.flatMap(Self.thumbnail))
+                cachedEpisode = (local.episodeTitle, local.showTitle, local.episodeID, local.data.flatMap { ImageThumbnail.png($0) })
             }
         }
         guard !Task.isCancelled else { return MusicSnapshot() }
@@ -140,17 +138,4 @@ actor ApplePodcastsAdapter: MusicPlayerAdapter {
     }
     func releaseArtwork() { artworkKey = nil; artworkAttempt = 0; cachedEpisode = nil }
 
-    private static func thumbnail(_ data: Data) -> Data? {
-        guard data.count <= 8_000_000, let source = CGImageSourceCreateWithData(data as CFData, nil),
-              let image = CGImageSourceCreateThumbnailAtIndex(source, 0, [
-                kCGImageSourceCreateThumbnailFromImageAlways: true,
-                kCGImageSourceThumbnailMaxPixelSize: 256,
-                kCGImageSourceCreateThumbnailWithTransform: true
-              ] as CFDictionary) else { return nil }
-        let output = NSMutableData()
-        guard let destination = CGImageDestinationCreateWithData(output, UTType.png.identifier as CFString, 1, nil) else { return nil }
-        CGImageDestinationAddImage(destination, image, nil)
-        guard CGImageDestinationFinalize(destination), output.length <= 1_000_000 else { return nil }
-        return output as Data
-    }
 }

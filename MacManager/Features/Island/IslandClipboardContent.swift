@@ -95,7 +95,7 @@ struct IslandClipboardContent: View {
         Button { model.selectedID = entry.id; model.restore(entry.id) } label: {
             VStack(alignment: .leading, spacing: 10) {
                 if entry.record.kind == .image && !entry.damaged {
-                    ClipboardThumbnailView(service: service, id: entry.id)
+                    ClipboardThumbnailView(service: service, id: entry.id, kind: entry.record.kind, damaged: entry.damaged)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .accessibilityHidden(true)
                 } else {

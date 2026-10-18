@@ -101,4 +101,17 @@ struct PodcastLocalArtworkTests {
         }
     }
 
+    @Test func artworkScanHandlesLargeDirectoriesWithoutTruncatingToFirstTenThousand() throws {
+        try fixture { folder, _ in
+            let directory = folder.appendingPathComponent("Library/Cache/Assets/Artwork", isDirectory: true)
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            for index in 0..<10_050 {
+                try Data().write(to: directory.appendingPathComponent("unrelated-\(index).jpg"))
+            }
+            try image(folder, template: "show-template", kind: "Show", payload: "matching cover")
+            let result = PodcastLocalArtworkReader(directory: folder).read(title: "Episode, with comma")
+            #expect(result?.data == Data("matching cover".utf8))
+        }
+    }
+
 }

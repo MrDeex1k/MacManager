@@ -41,13 +41,10 @@ public struct ClipboardRawContent: Sendable {
                 kCGImageSourceCreateThumbnailWithTransform: true
               ] as CFDictionary) else { throw ClipboardFailure.unsupportedImage }
         func png(_ image: CGImage) throws -> Data {
-            let data = NSMutableData()
-            guard let destination = CGImageDestinationCreateWithData(data, UTType.png.identifier as CFString, 1, nil) else {
+            guard let data = ImageThumbnail.encodePNG(image, maximumBytes: Int.max) else {
                 throw ClipboardFailure.unsupportedImage
             }
-            CGImageDestinationAddImage(destination, image, nil)
-            guard CGImageDestinationFinalize(destination) else { throw ClipboardFailure.unsupportedImage }
-            return data as Data
+            return data
         }
         let content = try ClipboardContent(kind: .image, data: png(image), thumbnail: png(thumbnail), sourceBundleID: sourceBundleID)
         guard content.isValid else { throw ClipboardFailure.tooLarge }
