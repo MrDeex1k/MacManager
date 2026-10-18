@@ -12,6 +12,9 @@ DerivedData/
 build/
 .DS_Store
 
+# Local product specifications and development reports (kept on disk only)
+/docs/
+
 ## Obj-C/Swift specific
 *.hmap
 

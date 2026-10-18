@@ -1,64 +1,123 @@
-<div align="center">
+<p align="center">
+  <img src="MacManager/Resources/Assets.xcassets/AppIcon.appiconset/icon_128x128@2x.png" alt="Mac Manager app icon" width="104" height="104">
+</p>
 
-# Mac Manager
+<h1 align="center">Mac Manager</h1>
 
-**Your Mac, at a glance. Your mouse, your way.**
+<p align="center">
+  <strong>Know your Mac. Keep your flow.</strong><br>
+  Live system insights, a private clipboard, a keyboard-first launcher<br>
+  and your media at the top of the screen. One native Mac app.
+</p>
 
-A native macOS utility for live system monitoring, independent mouse scrolling and everyday Mac controls.
+<p align="center">
+  <img src="https://img.shields.io/badge/macOS-26%2B-5EEAD4?style=flat-square&amp;logo=apple&amp;logoColor=111827" alt="macOS 26 or later">
+  <img src="https://img.shields.io/badge/Apple_Silicon-arm64-5EEAD4?style=flat-square&amp;logo=apple&amp;logoColor=111827" alt="Apple Silicon only">
+  <img src="https://img.shields.io/badge/Status-In_development-333333?style=flat-square" alt="In development; no public binary release yet">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-AGPL--3.0--only-5EEAD4?style=flat-square&amp;logo=gnu&amp;logoColor=111827" alt="GNU AGPL version 3 only"></a>
+</p>
 
-[![macOS 26+](https://img.shields.io/badge/macOS-26%2B-5EEAD4?style=flat-square&logo=apple&logoColor=111827)](https://www.apple.com/macos/)
-[![Apple Silicon](https://img.shields.io/badge/Apple_Silicon-only-5EEAD4?style=flat-square&logo=apple&logoColor=111827)](docs/01-produkt.md)
-[![Swift 6](https://img.shields.io/badge/Swift-6-5EEAD4?style=flat-square&logo=swift&logoColor=111827)](https://www.swift.org/)
-[![License AGPL v3](https://img.shields.io/badge/License-AGPL_v3-5EEAD4?style=flat-square&logo=gnu&logoColor=111827)](LICENSE)
+<p align="center">
+  <img src="https://img.shields.io/badge/Xcode-147EFB?style=for-the-badge&amp;logo=xcode&amp;logoColor=white" alt="Xcode">
+  <img src="https://img.shields.io/badge/Swift_6-F05138?style=for-the-badge&amp;logo=swift&amp;logoColor=white" alt="Swift 6">
+  <img src="https://img.shields.io/badge/SwiftUI-007AFF?style=for-the-badge&amp;logo=swift&amp;logoColor=white" alt="SwiftUI">
+  <img src="https://img.shields.io/badge/AppKit-147EFB?style=for-the-badge&amp;logo=apple&amp;logoColor=white" alt="AppKit">
+  <img src="https://img.shields.io/badge/Swift_Charts-34A853?style=for-the-badge" alt="Swift Charts">
+  <img src="https://img.shields.io/badge/SQLite-003B57?style=for-the-badge&amp;logo=sqlite&amp;logoColor=white" alt="SQLite">
+  <img src="https://img.shields.io/badge/CryptoKit-555555?style=for-the-badge" alt="CryptoKit">
+  <img src="https://img.shields.io/badge/Secure_Enclave-333333?style=for-the-badge" alt="Secure Enclave">
+  <img src="https://img.shields.io/badge/Swift_Testing_%2B_XCTest-19585B?style=for-the-badge" alt="Swift Testing and XCTest">
+</p>
 
-[Current status](docs/10-stan-projektu.md) · [Stage 1 roadmap](docs/06-plan-i-testy.md) · [Documentation](docs/README.md) · [Contributing](CONTRIBUTING.md)
+<p align="center">
+  <img src=".github/assets/screenshots/overview.jpg" alt="Mac Manager system overview with live readings and five-minute CPU history">
+</p>
 
-</div>
+<p align="center"><sub>Actual Mac Manager interface on Apple Silicon. Captured from an isolated development build with live local hardware readings.</sub></p>
 
-> [!IMPORTANT]
-> **Hardware monitoring, Stage 3A clipboard history and launcher steps 1-7 are implemented.** The launcher supports applications, commands, selected-folder file search, a local calculator, personalization and shared clipboard search. Responsiveness and background-work improvements are implemented; full launcher acceptance and the first signed, notarized DMG remain pending. There is no public release yet.
+## Your Mac, at a glance
 
-## Built for daily use
+See what your Mac is doing without opening a collection of separate utilities.
 
-| Area | Available now |
-| --- | --- |
-| **System** | Live CPU, GPU and RAM readings with a persistent 1, 2 or 5 second interval. Five-minute Swift Charts history stays in memory and preserves gaps in unavailable data. |
-| **Sensors** | CPU/GPU temperatures in °C or °F, individual fan RPM and five-minute history. Temperature mapping is currently validated on M4 Pro. Read-only sensors, no fan control. |
-| **Clipboard** | Local history of text and images, search, preview and restore; enabled by default, with capture gated by macOS permission. Encrypted storage, app exclusions and configurable count, age and size limits. |
-| **Launcher** | Local app and command search in a floating Liquid Glass palette. Latest valid app copy per folder, symlinked folders, configurable shortcuts and fuzzy ranking adapted from Tinycast. Search focus returns after result menus and personalization. |
-| **Network** | Primary local and public IPv4 addresses, connection status, manual refresh and copy actions. Independent visibility toggles for both addresses in the menu bar panel, hidden by default and configured in Network. |
-| **Scroll** | Independent vertical and horizontal mouse reversal with automatic mouse/trackpad classification. Trackpad direction and momentum remain intact. No device model lists. |
-| **macOS** | Native menu bar panel, configurable Dock icon, persistent background process, one reusable window and launch at login through `SMAppService.mainApp`. |
-| **Interface** | Separate Overview, Sensors, Network, Clipboard, Scroll, Dock and Settings sections. Polish and English content switches immediately in a dark native Liquid Glass interface. |
+- **Follow the load.** Live CPU, GPU and RAM readings, plus an estimated power reading when supported.
+- **See the trend.** Five-minute charts with a choice of 1, 2 or 5 second sampling. Gaps stay visible when readings stop.
+- **Check the hardware.** CPU/GPU temperatures in °C or °F and individual fan speeds. Temperature mapping is currently validated on M4 Pro.
+- **Keep essentials in sight.** Choose the readings shown in the menu bar and open the compact panel for a quick check.
+- **Find your connection.** View and copy your local and public IPv4 addresses, with optional visibility in the menu bar panel.
 
-> [!NOTE]
-> Mac Manager shows a read-only AppleSMC PSTR power estimate when the sensor is available. The estimate may vary between Mac models. Additional VPN egress addresses remain an open technical limitation.
+Sensor support depends on the Mac model. Power is an AppleSMC estimate, and unavailable readings are clearly marked. Fans are monitored in read-only mode.
 
-## Product direction
+## Less searching. More doing.
 
-| Stage | Scope | Status |
-| --- | --- | --- |
-| **1 · Mac essentials** | Metrics and five-minute history, network, mouse scroll, menu bar, Dock, launch at login and GitHub release checks. | Steps 1-8 of 9 complete |
-| **2 · Hardware sensors** | Live temperatures and fan RPM, menu bar values and five-minute history. Validated on M4 Pro; broader chip mapping and optimization remain future work. Fans are never controlled. | Complete on reference hardware |
-| **3 · Private tools and notch area** | Private clipboard, full local launcher for apps/files/commands, hover-operated panel and local Apple Music/Podcasts controls and deferred Spotify integration. One shared architecture supports both TinyCast integration scenarios. | Clipboard, launcher steps 1-7 and island steps 1-5 implemented; Apple Music and window-based Podcasts controls |
+Press **Option-Q** and start typing. Open an app, find a file, jump to a Mac Manager section or work out a calculation from the same floating launcher.
 
-The local calculator distinguishes bit and byte transfer rates (`Mbps` vs `MBps`), including binary units. App scanning preserves configured folder priority and updates saved shortcuts to the selected copy.
+| What you need | What you can do |
+| :--- | :--- |
+| An application | Use fuzzy search, aliases, favorites and custom shortcuts. |
+| A file or folder | Search names through Spotlight within folders you choose. |
+| A quick answer | Calculate `20% of 500`, convert `10 km to mi` or evaluate `tomorrow + 2 days`. |
+| Something you copied | Press **Tab** to search the shared clipboard history. |
 
-The collapsed notch-area panel shows nothing. The expanded panel uses native Liquid Glass with system appearance and accessibility adaptations, and joins the top edge around the camera notch, uses the active built-in MacBook display when available, otherwise the main display, and presents the same clipboard history as the launcher and window. Its 560-point-wide layout uses a compact horizontal clipboard shelf with larger previews, search, click/Enter to restore, context-menu deletion and capture controls. Clipboard height is the camera/menu inset plus 304 points; its status badge uses bright text and an icon. Opening and closing use finite animations with Reduce Motion support; closing releases private content and presentation tasks immediately. The compact 250-point Music tab provides local Apple Music metadata, artwork, progress and playback controls. Switching sections smoothly changes the height while keeping the top edge fixed; Reduce Motion skips this resize animation. Its periodic reads stop when the tab or island is hidden. The selector offers Clipboard, Music, Podcast and Spotify, with per-section visibility switches on the dedicated Island page. Disabling every section turns the island off; turning it back on from that empty selection restores all four. Apple Podcasts uses public Accessibility actions and requires an available player window; it shows real exposed metadata/progress, native skip intervals and artwork from the existing local Podcasts cache, with a visible fallback when unavailable. A one-time folder selection grants read-only access; artwork matching reads the local library without modifying it or searching online. Spotify integration is deferred. See the [scope and verification report](docs/reports/wyspa-podcast-sekcje-2026-10-17.md).
+Arrow keys select, **Enter** opens or copies, and **Escape** clears the query before closing. The shortcut is configurable, and the launcher remains available with the main window closed. Calculator keywords use English syntax; calculations run locally.
 
-**Next:** Full launcher acceptance, including accessibility, IME/Spaces, folder permissions and end-to-end performance profiling. Public distribution remains pending notarization and DMG acceptance. Installed-app launch at login has been confirmed.
+## Copy once. Find it again.
 
-## Requirements
+Keep useful text and images within reach, with search, previews and restore in the main window, launcher and top-edge island. All three use the same history.
 
-- Apple Silicon Mac
-- macOS 26 or later
-- Xcode 26 or later selected with `xcode-select`
+- **Choose what stays.** Pause capture, exclude applications and set limits for age, item count and storage.
+- **Keep it on your Mac.** Text, images and previews are encrypted locally with AES-GCM; the key is protected by Secure Enclave.
+- **Pick up where you left off.** Restore an entry, then paste with **Command-V** in your destination app.
 
-Mac Manager uses Swift, SwiftUI, Swift Charts and focused AppKit integrations. Selected launcher mechanisms are adapted from Tinycast under AGPL v3; see [attributions](THIRD_PARTY_NOTICES.md). The repository has no third-party package dependencies and does not require a project generator.
+The default limits are **50 items, 7 days and 200 MB**. History is enabled on a fresh install, but capture waits for permanent macOS clipboard permission granted through **Check access**. Existing clipboard content is not imported when capture starts. Marked confidential entries are skipped; application exclusions give you further control.
+
+## A little space at the top. A lot within reach.
+
+Move to the notch area to open a native **Liquid Glass** island. On a display without a notch, it lives at the center of the top edge. The collapsed state shows no content.
+
+**Clipboard** gives you a horizontal shelf of recent copies with previews and search. **Apple Music** brings artwork, track information, progress and playback controls into the panel. **Apple Podcasts** adds episode information, play/pause and the player's own skip intervals, with artwork from its existing local cache after you grant folder access.
+
+Choose the sections you want in the dedicated Island settings. Hover leaves your current app's keyboard focus intact; deliberate keyboard interaction lets you search and navigate. Transitions respect Reduce Motion, and hidden media sections stop periodic reads.
+
+Apple Music requires Automation permission. Podcasts requires Accessibility permission and an available player window. Spotify integration is not available yet.
+
+## Your mouse, your way
+
+Reverse mouse scrolling vertically and horizontally while keeping your trackpad direction, gestures and momentum intact. Automatic source classification handles the switch between mouse and trackpad without model lists or per-device profiles.
+
+Enable the feature in **Scroll**, then grant the Accessibility and Input Monitoring permissions shown there.
+
+## Built to live with your Mac
+
+A persistent menu bar, optional Dock icon and launch at login keep the app available throughout the day. Close the main window and continue using the launcher and island.
+
+Background work adapts to the system's Low Power Mode and to which readings are actually visible. Shared hardware sessions, event-driven network updates and on-demand clipboard loading reduce repeated work. Clipboard content and thumbnails share a **16 MB data cache**; this is a cache budget, not a limit on total app memory.
+
+The interface supports **Polish and English**, with an immediate language switch, a dark main workspace and native Liquid Glass controls.
+
+## Private by design
+
+**No accounts. No ads. No telemetry. No application-managed cloud sync.**
+
+Clipboard history, preferences and searches stay local. Locking the session clears private previews and the clipboard data cache. Diagnostics are local and shown before you choose to copy a report.
+
+Public IPv4 discovery contacts **ipify**, and release checks contact **GitHub**. Those services see the request's source IP. Both features have controls in the app; system metrics, clipboard contents and launcher queries are not sent to them. Media controls communicate with local players, which have their own network activity.
 
 ## Build and run
 
-Open `MacManager.xcodeproj`, select the shared **MacManager** scheme and run it on **My Mac**, or build from Terminal:
+**Requirements:** an Apple Silicon Mac, **macOS 26+** and **Xcode 26+** selected through `xcode-select`.
+
+The source is available under AGPL-3.0-only. A public signed, notarized DMG has not been released yet.
+
+```sh
+git clone https://github.com/MrDeex1k/MacManager.git
+cd MacManager
+open MacManager.xcodeproj
+```
+
+Select the shared **MacManager** scheme and run on **My Mac**. No project generator or third-party package installation is needed.
+
+<details>
+<summary><strong>Build from Terminal</strong></summary>
 
 ```sh
 xcodebuild -project MacManager.xcodeproj -scheme MacManager \
@@ -68,105 +127,36 @@ xcodebuild -project MacManager.xcodeproj -scheme MacManager \
 open /tmp/macmanager-app-build/Build/Products/Debug/MacManager.app
 ```
 
-Local builds use ad-hoc signing and the separate development bundle identifier `dev.macmanager.MacManager.Development`. They are development artifacts, not signed or notarized releases.
+Local builds use the **Mac Manager Dev** identity and separate preferences and macOS permissions. A development build is not a notarized distribution artifact.
 
-Development builds (Debug and local Release) use the display name **Mac Manager Dev** and separate preferences and macOS permissions. The DMG release script sets the stable public identifier `dev.macmanager.MacManager`. Install the public app in Applications before enabling scroll permissions. The Scroll screen checks both permissions and offers instructions for repairing a stale entry and revealing the running app in Finder.
+</details>
 
-### Clipboard history
+| Shortcut | Action |
+| :--- | :--- |
+| **Option-Q** | Open the launcher; configurable in Settings. |
+| **Tab** | Switch between application search and clipboard search in the launcher. |
+| **Command-1** / **Command-2** | Open Overview / Network. |
+| **Command-,** | Open Settings. |
+| **Option-1…4** | Select an enabled island section while interacting with the island. |
 
-Clipboard history is enabled by default on a fresh installation; a previously saved disabled choice is preserved. Open **Clipboard** and use **Check access** to grant permanent clipboard access in macOS. Capture remains blocked until access is allowed; the application does not request permission automatically. Recording starts with new copies; existing clipboard content is not imported. Restore an item and press `Command-V` in the destination app.
+## Under the hood
 
-Defaults are **50 items, 7 days and 200 MB**. History settings provide pause/resume, application exclusions and retention controls. Text and normalized PNG images, including thumbnails, are encrypted locally. The encryption key is protected by Secure Enclave with its wrapped representation kept in the nonsynchronizing Keychain. Missing key access never falls back to plaintext. Clearing history leaves the current system clipboard unchanged.
+**Swift 6, native UI and shared services.** SwiftUI and AppKit present the same application state across the window, menu bar, launcher and island. A local Swift package separates domain logic from platform adapters, with actors for hardware reads, storage, search and calculation.
 
-The list keeps short previews; full content and image thumbnails load on demand through a shared 16 MB data cache. Search still covers the complete text without keeping a decrypted search index on disk. Locking the session clears the cache and private previews. [Memory behavior](docs/reports/pamiec-schowka-2026-10-12.md).
+| Area | Technology |
+| :--- | :--- |
+| Interface | SwiftUI, AppKit, Observation, Swift Charts, Liquid Glass |
+| Hardware and input | C adapters, Mach, IOKit, AppleSMC, Quartz event taps |
+| Local data | SQLite, CryptoKit AES-GCM, Secure Enclave, Keychain |
+| Search and integration | Spotlight, LaunchServices, Apple Events, Accessibility, SMAppService |
+| Verification | Swift Testing, XCTest UI, isolated fixtures and opt-in system integrations |
 
-[Implementation and validation](docs/reports/etap-3a-schowek.md) · [Privacy design](docs/05-dane-i-prywatnosc.md)
+Selected launcher and calculator mechanisms are adapted from Tinycast. Scroll Reverser, Stats and Unicode components retain their respective notices. See [third-party attributions](THIRD_PARTY_NOTICES.md).
 
-### Local launcher
+## Make it yours
 
-Open the launcher with `Option-Q`, from the View menu or through Settings. Search installed applications and Mac Manager sections, select with arrow keys and press Enter to open. Escape clears the query first, then closes the palette. The launcher works with the main window closed and does not change Dock visibility.
+[Build Mac Manager](#build-and-run), choose your menu bar readings and configure the tools you use every day.
 
-Queries stay in memory. Application discovery is limited to standard application folders and known embedded tools. No Accessibility permission is required for the global shortcut. Configure or disable it in Settings, including Option + a letter or Space; a failed replacement keeps the previous active binding. Right-click an application or command to set an alias, favorite, visibility or its own shortcut. Edit/reset saved entries in Settings.
+Have an idea or a reproducible bug? [Open an issue](https://github.com/MrDeex1k/MacManager/issues). Want to contribute? Read [CONTRIBUTING.md](CONTRIBUTING.md). Report security concerns privately through [SECURITY.md](SECURITY.md).
 
-Enable file search and choose folders in Settings to search names through Spotlight, with file-type filters. The inline calculator supports arithmetic, percentages, units and date/time expressions such as `20% of 500`, `10 km to mi` and `tomorrow + 2 days`; Enter copies the answer. Calculator keywords use English syntax, with no exchange-rate downloads or calculation history.
-
-Press **Tab** to switch to the shared clipboard history. Enter restores an item for manual `Command-V`; clipboard content stays out of ordinary application searches. [Implementation and remaining acceptance work](docs/reports/etap-3b-launcher-4-7.md).
-
-The application catalog is cached across openings, results remain visible while the next query runs, and clipboard filtering runs outside the UI thread. Spotlight searches can be cancelled. The calculator follows the system's 12/24-hour preference. Shortcuts for removed applications are released; moved applications keep their shortcuts when resolved through LaunchServices. [Optimization results and limitations](docs/reports/wdrozenie-optymalizacji-2026-10-03.md).
-
-### Keyboard shortcuts
-
-| Shortcut | Destination |
-| --- | --- |
-| `Option-Q` | Launcher (configurable in Settings) |
-| `Command-1` | Overview |
-| `Command-2` | Network |
-| `Command-,` | Settings |
-
-## Verify the project
-
-Run the Core and macOS UI test suites:
-
-```sh
-swift test --package-path Packages/MacManagerCore
-
-xcodebuild -project MacManager.xcodeproj -scheme MacManager \
-  -configuration Debug -destination 'platform=macOS,arch=arm64' \
-  -derivedDataPath /tmp/macmanager-app-build \
-  -parallel-testing-enabled NO test
-```
-
-UI tests use an isolated preferences domain. Clipboard tests use synthetic data and a separate named pasteboard, never the general clipboard. Network services remain stopped, and scroll tests use permission and driver fixtures without installing global event taps or changing macOS permissions. The live-metrics test reads local hardware. One Core test creates and removes its own random Keychain item to verify Secure Enclave key persistence. macOS may ask for permission to let the Xcode test runner control the Mac.
-
-Hardware and input feasibility probes are separate from the app:
-
-```sh
-swift test --package-path Prototypes/Stage1
-swift run --package-path Prototypes/Stage1 mac-manager-probe metrics
-```
-
-See the [prototype guide](Prototypes/Stage1/README.md) and [initial findings](docs/reports/etap-1-krok-1.md) before interpreting probe results.
-
-## Architecture
-
-| Path | Responsibility |
-| --- | --- |
-| `MacManager/` | SwiftUI application, AppKit integrations and resources |
-| `Packages/MacManagerCore/` | Testable domain models, formatting and shared logic |
-| `MacManagerUITests/` | End-to-end macOS UI flows |
-| `Prototypes/Stage1/` | Hardware and input feasibility probes |
-| `Design/AppIcon/` | Reproducible application icon source and export notes |
-| `docs/` | Polish product, architecture, privacy, release and validation documentation |
-
-Detailed implementation reports cover [network](docs/reports/etap-1-krok-5.md), [metrics](docs/reports/etap-1-krok-3.md), [history](docs/reports/etap-1-krok-4.md), [scroll](docs/reports/etap-1-krok-6.md), [menu bar](docs/reports/etap-1-krok-7b.md), [Dock and window behavior](docs/reports/etap-1-krok-7c.md), [launch at login](docs/reports/etap-1-krok-7d.md), [current navigation](docs/reports/etap-1-krok-7e.md) and [updates, diagnostics and privacy](docs/reports/etap-1-krok-8.md).
-
-## Privacy
-
-Mac Manager has no accounts, ads, telemetry, automatic crash-report uploads or application-managed cloud sync. Settings and metric history stay on the Mac.
-
-Public IPv4 discovery and release checks contact external HTTPS services, which can see the request's source IP. The app does not send system metrics or user content. Read the complete [privacy and data design](docs/05-dane-i-prywatnosc.md).
-
-## Distribution
-
-The first public build will be a signed and notarized arm64 DMG published through GitHub Releases. A Homebrew Cask may later install the same DMG.
-
-The local `scripts/build-release-dmg.sh` workflow archives the arm64 app, validates Developer ID and Hardened Runtime, includes the project license, creates and signs the DMG, submits it for notarization, staples the ticket and writes a SHA-256 checksum. It requires the release identity, Apple Team ID and a configured `notarytool` Keychain profile; it does not publish a GitHub Release.
-
-Mac Manager will check stable GitHub Releases at most once a week by default, with a manual action and an option to disable automatic checks. It will open the selected release page for manual installation. It will not use Homebrew, Sparkle or a silent installer as an update mechanism. See the [release plan](docs/07-wydania.md).
-
-## Contributing
-
-Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request. Then enable and verify the repository-local Git hooks:
-
-```sh
-./scripts/install-git-hooks.sh
-./scripts/test-git-hooks.sh
-```
-
-The hooks enforce [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) and reject the prohibited Unicode em dash. They use native Git and shell tools, with no Husky, Node.js or global Git configuration. The exact behavior is documented in the [repository workflow](docs/09-praca-z-repozytorium.md).
-
-Report security issues according to [SECURITY.md](SECURITY.md).
-
-## License
-
-Mac Manager is available under the [GNU Affero General Public License v3.0 only](LICENSE). Scroll Reverser adaptations retain Apache-2.0 and the Stats GPU key mapping retains MIT; see [third-party attributions](THIRD_PARTY_NOTICES.md). Official releases will always remain free.
+Mac Manager is available under [GNU AGPL v3.0 only](LICENSE). Official releases will always remain free.

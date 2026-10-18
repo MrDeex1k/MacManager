@@ -65,7 +65,7 @@ Lista IOHID przedstawia kolekcje usage, nie unikalne fizyczne urządzenia, i nie
 | P03 | Osobne sesje: tylko gładzik, tylko mysz z kółkiem, mysz z płynnym scrollem, oba urządzenia. | Rzeczywisty dowód klasyfikacji lub jawny brak dowodu. |
 | P04 | Bez VPN, zwykły VPN, split tunnel, kilka tuneli. | Publiczny adres opisany zakresem dowodu, bez ujawniania adresu poza VPN. |
 
-Po próbach zapisać tylko zredagowane podsumowanie w docs/reports. Raport bieżącego uruchomienia: [etap 1, krok 1](../../docs/reports/etap-1-krok-1.md).
+Po próbach zapisać tylko zredagowane podsumowanie lokalnie. Wewnętrzne raporty nie są częścią publicznego repozytorium; bieżące możliwości i ograniczenia opisuje [README aplikacji](../../README.md#your-mac-at-a-glance).
 
 ## Granica ukończenia
 
