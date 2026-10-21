@@ -198,12 +198,14 @@ private func clipboardDirectory() -> URL {
     var requests = 0
     var text = "initial"
     var restored: Data?
+    var writeFails = false
     func requestAccess() { requests += 1 }
     func capture(exclusions: Set<String>) -> ClipboardCapture {
         captures += 1
         return .content(ClipboardRawContent(kind: .text, data: Data(text.utf8)))
     }
-    func restore(_ content: ClipboardRestoredContent) throws { restored = content.data; changeCount += 1 }
+    func restore(_ content: ClipboardRestoredContent) throws {
+        if writeFails { throw ClipboardFailure.writeFailed }; restored = content.data; changeCount += 1 }
     func copy(_ text: String) { self.text = text; changeCount += 1 }
 }
 
@@ -544,5 +546,23 @@ func clipboardStorageIsExcludedFromBackup() async throws {
     await #expect(throws: CancellationError.self) { try await model.search(request, service: service) }
     model.reset()
     #expect(model.matches.isEmpty && model.completed == nil && !model.hasPendingWork)
+    service.stop()
+}
+
+@MainActor @Test func clipboardRestoreReportsFailureAndCanRetry() async throws {
+    let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString); defer { try? FileManager.default.removeItem(at: directory) }
+    let repository = ClipboardRepository(directory: directory, keys: ClipboardTestKey())
+    let mock = ClipboardMock()
+    let service = ClipboardService(preferences: .init(), pasteboard: mock, repository: repository, storageExists: false)
+    await service.start()
+    mock.copy("retry me"); service.poll()
+    #expect(await waitUntil { service.entries.count == 1 })
+    let id = try #require(service.entries.first?.id)
+    mock.writeFails = true
+    #expect(await service.restore(id) == false)
+    #expect(service.failure == .writeFailed && service.restoredID == nil)
+    mock.writeFails = false
+    #expect(await service.restore(id))
+    #expect(service.failure == nil && service.restoredID == id)
     service.stop()
 }

@@ -33,6 +33,7 @@ struct ClipboardDetailView: View {
     let close: () -> Void
     @State private var content: ClipboardRestoredContent?
     @State private var loading = true
+    @State private var restoreTask: Task<Void, Never>?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -51,8 +52,21 @@ struct ClipboardDetailView: View {
                     }
                 } else { Text(strings("clipboard.error.damagedEntry")) }
             }
-            Button(strings("clipboard.restore")) { Task { await service.restore(entry.id); close() } }
-                .buttonStyle(.glassProminent).disabled(content == nil)
+            if let failure = service.failure {
+                Label(strings("clipboard.error.\(failure.rawValue)"), systemImage: "exclamationmark.triangle")
+                    .foregroundStyle(.orange).accessibilityIdentifier("clipboard.detail.error")
+            }
+            Button(strings("clipboard.restore")) {
+                restoreTask = Task {
+                    let succeeded = await service.restore(entry.id)
+                    guard !Task.isCancelled else { return }
+                    restoreTask = nil
+                    if succeeded { close() }
+                }
+            }
+            .buttonStyle(.glassProminent)
+            .disabled(content == nil || restoreTask != nil || service.suspended)
+            .accessibilityIdentifier("clipboard.detail.restore")
         }
         .padding(28).frame(width: 560, height: 430)
         .task(id: entry.id) {
@@ -60,7 +74,7 @@ struct ClipboardDetailView: View {
             if Task.isCancelled || service.suspended { content = nil }
             loading = false
         }
-        .onDisappear { content = nil }
+        .onDisappear { restoreTask?.cancel(); restoreTask = nil; content = nil }
         .onChange(of: service.suspended) { _, suspended in if suspended { content = nil; close() } }
     }
 }
