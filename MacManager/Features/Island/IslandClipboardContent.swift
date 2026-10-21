@@ -94,6 +94,22 @@ struct IslandClipboardContent: View {
 
     private func card(_ entry: ClipboardEntry) -> some View {
         Button { model.selectedID = entry.id; model.restore(entry.id) } label: {
+            cardLabel(entry)
+        }
+        .buttonStyle(.plain)
+        .disabled(entry.damaged || model.restoringID != nil || service.suspended)
+        .accessibilityIdentifier("island.clipboard.restore.\(entry.id)")
+        .accessibilityLabel(entry.record.kind == .image ? strings("clipboard.image") : entry.text.map { String($0.prefix(200)) } ?? strings("clipboard.text"))
+        .accessibilityAddTraits(model.selectedID == entry.id ? .isSelected : [])
+        .accessibilityValue(model.copiedID == entry.id ? strings("island.clipboard.copied") : "")
+        .help(strings("clipboard.restore"))
+        .contextMenu {
+            Button(strings("clipboard.delete"), role: .destructive) { model.delete(entry.id) }
+                .accessibilityIdentifier("island.clipboard.delete.\(entry.id)")
+        }
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: model.selectedID)
+    }
+    private func cardLabel(_ entry: ClipboardEntry) -> some View {
             VStack(alignment: .leading, spacing: 10) {
                 if entry.record.kind == .image && !entry.damaged {
                     ClipboardThumbnailView(service: service, id: entry.id, kind: entry.record.kind, damaged: entry.damaged)
@@ -121,18 +137,6 @@ struct IslandClipboardContent: View {
             .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(
                 model.selectedID == entry.id ? AppTheme.accent.opacity(0.7) : Color.white.opacity(0.08), lineWidth: 1))
             .contentShape(RoundedRectangle(cornerRadius: 12))
-        }
-        .buttonStyle(.plain)
-        .disabled(entry.damaged || model.restoringID != nil || service.suspended)
-        .accessibilityIdentifier("island.clipboard.restore.\(entry.id)")
-        .accessibilityLabel(entry.record.kind == .image ? strings("clipboard.image") : entry.text.map { String($0.prefix(200)) } ?? strings("clipboard.text"))
-        .accessibilityAddTraits(model.selectedID == entry.id ? .isSelected : [])
-        .accessibilityValue(model.copiedID == entry.id ? strings("island.clipboard.copied") : "")
-        .help(strings("clipboard.restore"))
-        .contextMenu {
-            Button(strings("clipboard.delete"), role: .destructive) { model.delete(entry.id) }
-                .accessibilityIdentifier("island.clipboard.delete.\(entry.id)")
-        }
-        .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: model.selectedID)
     }
+
 }
