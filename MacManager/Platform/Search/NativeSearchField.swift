@@ -19,6 +19,11 @@ struct NativeSearchField: NSViewRepresentable {
         field.focusRingType = .none
         field.identifier = .init(identifier)
         field.setAccessibilityIdentifier(identifier)
+        // Export the editable control once; the legacy cell otherwise leaves
+        // a second, inconsistent AX parent chain while the field editor is active.
+        field.setAccessibilityElement(true)
+        field.setAccessibilityRole(.textField)
+        field.cell?.setAccessibilityElement(false)
         if style == .launcher {
             field.isBezeled = false; field.drawsBackground = false
             field.font = .systemFont(ofSize: 23); field.textColor = .labelColor

@@ -93,25 +93,29 @@ final class ClipboardTests: AppUITestSupport {
         try performAccessibilityAudit(in: app, for: auditTypes)
         detail.click()
         XCTAssertTrue(app.buttons["clipboard.detail.restore"].waitForExistence(timeout: 3))
-        try performAccessibilityAudit(in: app, for: auditTypes)
+        try performAccessibilityAudit(in: app, for: auditTypes, within: app.sheets.firstMatch)
         app.buttons["clipboard.detail.restore"].click()
+        XCTAssertTrue(app.buttons["clipboard.detail.restore"].waitForNonExistence(timeout: 3))
         app.menuBars.menuBarItems["View"].click()
         app.menuItems["Open launcher"].click()
         XCTAssertTrue(app.textFields["launcher.search"].waitForExistence(timeout: 3))
         app.textFields["launcher.search"].typeKey(.tab, modifierFlags: [])
         let launcherCopy = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "launcher.result.clipboard:")).firstMatch
         XCTAssertTrue(launcherCopy.waitForExistence(timeout: 3))
-        try performAccessibilityAudit(in: app, for: auditTypes)
+        XCTAssertTrue(element("launcher.progress", in: app).waitForNonExistence(timeout: 10))
+        XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "enabled == true"), object: launcherCopy)], timeout: 5), .completed)
+        try performAccessibilityAudit(in: app, for: auditTypes, within: element("launcher.panel", in: app))
         app.textFields["launcher.search"].typeKey(.escape, modifierFlags: [])
         app.menuBars.menuBarItems["View"].click()
         app.menuItems["Open Island"].click()
         let card = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "island.clipboard.restore.")).firstMatch
         XCTAssertTrue(card.waitForExistence(timeout: 3))
-        try performAccessibilityAudit(in: app, for: auditTypes)
+        try performAccessibilityAudit(in: app, for: auditTypes, within: element("island.panel", in: app))
         card.click()
         let copied = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "Copied"), object: card)
         XCTAssertEqual(XCTWaiter.wait(for: [copied], timeout: 3), .completed)
-        try performAccessibilityAudit(in: app, for: auditTypes)
+        try performAccessibilityAudit(in: app, for: auditTypes, within: element("island.panel", in: app))
         app.buttons["island.close"].click()
     }
 

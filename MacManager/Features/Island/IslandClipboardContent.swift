@@ -34,6 +34,9 @@ struct IslandClipboardContent: View {
                         LazyHStack(spacing: 10) {
                             ForEach(model.entries) { entry in card(entry).id(entry.id) }
                         }
+                        .accessibilityElement(children: .contain)
+                        .accessibilityLabel(strings("clipboard.title"))
+                        .accessibilityIdentifier("island.clipboard.entries")
                         .frame(height: 140, alignment: .top)
                         .padding(.vertical, 4)
                         .frame(height: 160, alignment: .top)

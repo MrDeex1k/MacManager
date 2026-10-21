@@ -20,8 +20,10 @@ struct LauncherView: View {
                 NativeSearchField(text: model.query, placeholder: controller.strings(controller.clipboardMode ? "clipboard.search" : "launcher.placeholder"),
                                   identifier: "launcher.search", style: .launcher, onChange: model.search)
                     .frame(height: 32)
-                if model.isLoading || model.isSearching { ProgressView().controlSize(.small) }
-                Text("esc").font(.caption).foregroundStyle(.secondary)
+                if model.isLoading || model.isSearching {
+                    ProgressView().controlSize(.small).accessibilityIdentifier("launcher.progress")
+                }
+                Text("esc").font(.caption).foregroundStyle(.primary)
             }
             .padding(.horizontal, 24).frame(height: 90)
             if controller.showsResults {
@@ -61,16 +63,20 @@ struct LauncherView: View {
                             }
                         }
                         .padding(.horizontal, 12)
+                        .accessibilityElement(children: .contain)
+                        .accessibilityLabel(controller.strings("launcher.results"))
+                        .accessibilityIdentifier("launcher.results")
                     }
                     .onChange(of: model.selectedID) { _, id in if let id { proxy.scrollTo(id) } }
                 }
                 HStack {
                     Text(controller.strings(controller.actionFailed ? "launcher.actionFailed" :
                         model.failed ? "launcher.partial" : "launcher.keyboard"))
-                        .foregroundStyle(controller.actionFailed || model.failed ? .orange : .secondary)
+                        .foregroundStyle(controller.actionFailed || model.failed ? .orange : .primary)
                     Spacer()
                     if controller.clipboardMode {
                         Text(controller.strings("clipboard.status.\(controller.clipboard?.status.rawValue ?? "disabled")"))
+                            .foregroundStyle(Color.white)
                     } else if controller.options.filesEnabled {
                         Picker(controller.strings("launcher.files.filter"), selection: Binding(
                             get: { controller.fileFilter }, set: { controller.fileFilter = $0; controller.refreshResults() })) {
@@ -80,10 +86,15 @@ struct LauncherView: View {
                         }.labelsHidden().fixedSize()
                     }
                 }
-                .font(.caption).padding(.horizontal, 24).frame(height: 30)
+                .font(.caption.weight(.medium)).padding(.horizontal, 24).frame(height: 30)
+                .background(AppTheme.canvas, in:
+                    UnevenRoundedRectangle(bottomLeadingRadius: 24, bottomTrailingRadius: 24))
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(controller.strings("launcher.title"))
+        .accessibilityIdentifier("launcher.content")
         .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 24))
         .popover(item: Binding(get: { controller.customizationEntry }, set: { controller.customizationEntry = $0 })) { entry in
             let presentation = controller.focusPresentationID

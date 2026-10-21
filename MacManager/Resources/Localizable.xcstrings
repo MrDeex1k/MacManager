@@ -3520,6 +3520,23 @@
         }
       }
     },
+    "launcher.results": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search results"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wyniki wyszukiwania"
+          }
+        }
+      }
+    },
     "launcher.title": {
       "extractionState": "manual",
       "localizations": {

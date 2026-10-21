@@ -77,11 +77,27 @@ class AppUITestSupport: XCTestCase {
     @MainActor
     func performAccessibilityAudit(
         in app: XCUIApplication,
-        for auditTypes: XCUIAccessibilityAuditType
+        for auditTypes: XCUIAccessibilityAuditType,
+        within surface: XCUIElement? = nil
     ) throws {
+        // XCTest audits the whole process, including dimmed windows behind sheets.
+        // Keep checks on the visible surface being exercised, not its backdrop.
+        let surfaceSnapshot = try surface?.snapshot()
+        func contains(_ snapshot: any XCUIElementSnapshot, _ element: XCUIElement) -> Bool {
+            if snapshot.elementType == element.elementType,
+               snapshot.identifier == element.identifier,
+               snapshot.label == element.label,
+               !snapshot.identifier.isEmpty || snapshot.frame == element.frame {
+                return true
+            }
+            return snapshot.children.contains { contains($0, element) }
+        }
         try app.performAccessibilityAudit(for: auditTypes) { issue in
             guard let element = issue.element else {
                 return false
+            }
+            if let surfaceSnapshot, element.exists, !contains(surfaceSnapshot, element) {
+                return true
             }
 
             let isAnonymousDisabledGroup = element.elementType == .group

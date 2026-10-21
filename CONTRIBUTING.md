@@ -68,6 +68,8 @@ Use the repository issue forms. Include macOS version, Mac model class, reproduc
 
 ## Test sets and optimization measurements
 
+Run `./scripts/verify.sh` for the default pre-release checks, or select `quick`, `ui` or `system`. See [RELEASING.md](RELEASING.md) for profile boundaries, CI setup, data invariants and signed-update acceptance. Signing and publication remain separate actions.
+
 `swift test --package-path Packages/MacManagerCore` runs local logic and storage checks. Tests requiring macOS services explicitly report a skip unless enabled:
 
 - `MM_SYSTEM_TESTS=1`: named synthetic pasteboards, a dedicated test Keychain item and backup metadata. Run outside a restricted sandbox with the required system access.

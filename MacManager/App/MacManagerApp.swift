@@ -23,6 +23,7 @@ struct MacManagerApp: App {
         .restorationBehavior(.disabled)
         .defaultSize(width: 1080, height: 740)
         .windowResizability(.contentMinSize)
+        .windowToolbarStyle(.unified(showsTitle: false))
         .commands {
             SidebarCommands()
             AppCommands(state: state)
