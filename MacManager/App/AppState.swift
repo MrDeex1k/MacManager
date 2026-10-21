@@ -56,7 +56,7 @@ final class AppState {
         let initiallyShowsMainWindow = launchContext != .loginItem
         mainWindowVisible = initiallyShowsMainWindow
         diagnostics = DiagnosticsStore()
-        let appVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.8.9"
+        let appVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.8.10"
         let dependencies = AppDependencies(energy: energy, diagnostics: diagnostics, artworkAccess: podcastArtworkAccess,
                                            showsMainWindow: initiallyShowsMainWindow, appVersion: appVersion)
         preferences = dependencies.preferences

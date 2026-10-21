@@ -11,7 +11,7 @@ struct TestUpdateFixture: Sendable {
     }
 
     let mode: Mode
-    let currentVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.8.9"
+    let currentVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.8.10"
 
     init(arguments: [String]) {
         if arguments.contains("--update-available") {
