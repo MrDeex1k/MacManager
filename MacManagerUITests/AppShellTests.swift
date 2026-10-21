@@ -17,6 +17,11 @@ final class AppShellTests: AppUITestSupport {
         try performAccessibilityAudit(in: app, for: auditTypes)
         for section in ["sensors", "network", "scroll", "dock", "settings"] {
             element("navigation.\(section)", in: app).click()
+            if section == "sensors" {
+                // The initial viewport cuts the fan heading in half. Audit the lower
+                // section only after scrolling its whole chart and heading into view.
+                scrollTo(element("sensors.history.fanChart", in: app), in: app)
+            }
             try performAccessibilityAudit(in: app, for: auditTypes)
         }
         app.terminate()
