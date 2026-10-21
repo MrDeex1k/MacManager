@@ -266,7 +266,7 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
         #endif
         // The shelf has a fixed card/indicator height; reserve only its actual
         // controls and spacing below the camera strip, rather than a target ratio.
-        return topInset + 308
+        return topInset + 306
     }
 
     private func resizeForSection() {

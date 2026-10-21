@@ -267,7 +267,7 @@ final class IslandTests: AppUITestSupport {
         XCTAssertTrue(field.waitForExistence(timeout: 3))
         let panel = element("island.panel", in: app)
         XCTAssertEqual(panel.frame.minY, top, accuracy: 1, "Island must reach the physical screen edge, including the menu strip")
-        XCTAssertEqual(panel.frame.height, inset + 304, accuracy: 1, "Hover must not expand the panel to screen height")
+        XCTAssertEqual(panel.frame.height, inset + 306, accuracy: 1, "Hover must not expand the panel to screen height")
         XCTAssertEqual(panel.frame.width, min(560, screen.frame.width - 32), accuracy: 1)
         let layers = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] ?? []
         let islandInfo = layers.first {
@@ -281,12 +281,12 @@ final class IslandTests: AppUITestSupport {
         // Cross from the narrow activation strip into the wider panel without a click.
         field.hover()
         XCTAssertTrue(field.exists)
-        XCTAssertEqual(panel.frame.height, inset + 304, accuracy: 1)
+        XCTAssertEqual(panel.frame.height, inset + 306, accuracy: 1)
         outside.hover()
         XCTAssertTrue(field.waitForNonExistence(timeout: 3))
         activation.hover()
         XCTAssertTrue(field.waitForExistence(timeout: 3))
-        XCTAssertEqual(panel.frame.height, inset + 304, accuracy: 1, "Reopening must retain the bounded height")
+        XCTAssertEqual(panel.frame.height, inset + 306, accuracy: 1, "Reopening must retain the bounded height")
         outside.hover()
         XCTAssertTrue(field.waitForNonExistence(timeout: 3))
         app.terminate()

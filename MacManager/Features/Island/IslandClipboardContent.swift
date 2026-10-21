@@ -67,7 +67,7 @@ struct IslandClipboardContent: View {
                 .disabled(service.suspended)
                 .accessibilityIdentifier("island.clipboard.capture")
             }
-            .padding(.top, 4)
+            .padding(.top, 2)
         }
         .task(id: model.request) { await model.search(model.request) }
     }
