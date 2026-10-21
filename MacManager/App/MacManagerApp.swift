@@ -73,7 +73,7 @@ struct AppCommands: Commands {
                 .disabled(!state.preferences.island.enabled)
                 .accessibilityIdentifier("island.menu")
             #if DEBUG
-            if ProcessInfo.processInfo.arguments.contains("--ui-testing") {
+            if UITestConfiguration.current.contains("--ui-testing") {
                 Button("Suspend Island Session") { state.island.setSessionSuspendedForTesting(true) }
                 Button("Resume Island Session") { state.island.setSessionSuspendedForTesting(false) }
             }

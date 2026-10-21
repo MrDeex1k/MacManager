@@ -16,17 +16,19 @@ final class ClipboardController: ApplicationLifecycleParticipant {
     private var suspendedReasons: Set<String> = []
 
     init(preferences: PreferencesStore, testing: Bool = false, diagnostics: DiagnosticsStore? = nil) {
+        let testing = testing && UITestConfiguration.current.enabled
         self.testing = testing
-        fixture = testing && ProcessInfo.processInfo.arguments.contains("--clipboard-fixture")
+        fixture = testing && UITestConfiguration.current.contains("--clipboard-fixture")
         let directory: URL
         let provider: any ClipboardKeyProviding
         let pasteboard: any ClipboardPasteboard
         if testing {
             directory = FileManager.default.temporaryDirectory.appendingPathComponent("MacManagerClipboardUITests-\(UUID().uuidString)")
-            provider = EphemeralClipboardKey()
             #if DEBUG
-            pasteboard = FixtureClipboardPasteboard(failFirstWrite: ProcessInfo.processInfo.arguments.contains("--clipboard-write-failure"))
+            provider = EphemeralClipboardKey()
+            pasteboard = FixtureClipboardPasteboard(failFirstWrite: UITestConfiguration.current.contains("--clipboard-write-failure"))
             #else
+            provider = ClipboardKeychain(service: "dev.macmanager.MacManager.clipboard")
             pasteboard = SystemClipboardPasteboard()
             #endif
         } else {
@@ -68,31 +70,9 @@ final class ClipboardController: ApplicationLifecycleParticipant {
         observers.append((clockCenter, clockToken))
         loop = Task { [weak self] in
             guard let self, !Task.isCancelled else { return }
-            if self.fixture {
-                if ProcessInfo.processInfo.arguments.contains("--island-dense-clipboard-fixture") {
-                    // Exercise a full default history, not just the two visible text cards.
-                    for index in 0..<47 {
-                        _ = try? await self.repository.insert(ClipboardContent(kind: .text,
-                            data: Data(("History item \(index) " + String(repeating: "Long preview text. ", count: 100)).utf8)),
-                            preferences: self.service.preferences, now: Date().addingTimeInterval(-Double(index + 1)))
-                    }
-                }
-                _ = try? await self.repository.insert(ClipboardContent(kind: .text, data: Data("Project notes\nLocal clipboard history".utf8)),
-                                                  preferences: self.service.preferences, now: Date())
-                _ = try? await self.repository.insert(ClipboardContent(kind: .text, data: Data("Zażółć gęślą jaźń".utf8)),
-                                                  preferences: self.service.preferences, now: Date().addingTimeInterval(1))
-                if ProcessInfo.processInfo.arguments.contains("--island-clipboard-fixture"),
-                   let bitmap = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: 16, pixelsHigh: 16,
-                       bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
-                       colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0) {
-                    let blue = NSColor(calibratedRed: 0.15, green: 0.45, blue: 1, alpha: 1)
-                    for x in 0..<16 { for y in 0..<16 { bitmap.setColor(blue, atX: x, y: y) } }
-                    if let data = bitmap.representation(using: .png, properties: [:]) {
-                        _ = try? await self.repository.insert(ClipboardContent(kind: .image, data: data, thumbnail: data),
-                            preferences: self.service.preferences, now: Date().addingTimeInterval(2))
-                    }
-                }
-            }
+            #if DEBUG
+            if self.fixture { await ClipboardFixture.seed(repository: self.repository, preferences: self.service.preferences) }
+            #endif
             await self.service.setSuspended(!self.suspendedReasons.isEmpty)
             guard !Task.isCancelled else { return }
             await self.service.start()
@@ -165,9 +145,4 @@ final class ClipboardController: ApplicationLifecycleParticipant {
             }
         }
     }
-}
-
-private struct EphemeralClipboardKey: ClipboardKeyProviding {
-    let value = SymmetricKey(size: .bits256)
-    func key(createIfMissing: Bool) throws -> SymmetricKey { value }
 }

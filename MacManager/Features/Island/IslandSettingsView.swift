@@ -80,7 +80,7 @@ struct IslandSettingsView: View {
                 Button(state.strings("launcher.retry")) { state.island.updateShortcut(shortcut) }
             }
             #if DEBUG
-            if ProcessInfo.processInfo.arguments.contains("--ui-testing") {
+            if UITestConfiguration.current.contains("--ui-testing") {
                 Text(state.island.debugPresentationState)
                     .accessibilityIdentifier("island.debug.presentation")
                 Text(state.island.debugMusicState)
