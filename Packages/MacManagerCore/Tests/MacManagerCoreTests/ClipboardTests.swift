@@ -566,3 +566,70 @@ func clipboardStorageIsExcludedFromBackup() async throws {
     #expect(service.failure == nil && service.restoredID == id)
     service.stop()
 }
+
+@MainActor @Test func localClipboardWriterAppliesExplicitHistoryPolicyAndReportsFailure() throws {
+    var prepared = false
+    var captured: [NSPasteboardItem] = []
+    let writer = LocalClipboardWriter(prepare: { prepared = true }, write: { captured = $0; return true })
+    try writer.writeText("synthetic IP", history: .allowCapture)
+    #expect(prepared && captured.first?.string(forType: .string) == "synthetic IP")
+    #expect(captured.first?.types.contains(SystemClipboardPasteboard.restoredType) == false)
+    try writer.writeText("synthetic report", history: .excludeFromHistory)
+    #expect(captured.first?.types.contains(SystemClipboardPasteboard.restoredType) == true)
+    #expect(captured.first?.types.contains(.init("org.nspasteboard.RestoredType")) == true)
+    let failing = LocalClipboardWriter(prepare: {}, write: { _ in false })
+    #expect(throws: ClipboardFailure.writeFailed) { try failing.writeText("retry", history: .allowCapture) }
+}
+
+private final class RecoverableClipboardKey: ClipboardKeyProviding, @unchecked Sendable {
+    private let lock = NSLock()
+    private let value = SymmetricKey(size: .bits256)
+    private var unavailable = false
+    private var requests: [Bool] = []
+    func setUnavailable(_ value: Bool) { lock.withLock { unavailable = value } }
+    var creationRequests: [Bool] { lock.withLock { requests } }
+    func key(createIfMissing: Bool) throws -> SymmetricKey {
+        try lock.withLock {
+            requests.append(createIfMissing)
+            if unavailable { throw ClipboardFailure.keyUnavailable }
+            return value
+        }
+    }
+}
+
+@MainActor @Test func clipboardTransientKeyFailurePreservesFilesAndRecoversAfterLock() async throws {
+    let directory = clipboardDirectory(); defer { try? FileManager.default.removeItem(at: directory) }
+    let keys = RecoverableClipboardKey()
+    let repository = ClipboardRepository(directory: directory, keys: keys)
+    let mock = ClipboardMock()
+    let service = ClipboardService(preferences: .init(), pasteboard: mock, repository: repository, storageExists: false)
+    await service.start()
+    mock.copy("synthetic private text"); service.poll()
+    #expect(await waitUntil { service.entries.count == 1 })
+    let id = try #require(service.entries.first?.id)
+    let ciphertext = directory.appendingPathComponent("\(id.uuidString).payload")
+    let before = try Data(contentsOf: ciphertext)
+    keys.setUnavailable(true)
+    await service.setSuspended(true)
+    #expect(await service.restore(id) == false)
+    await service.setSuspended(false)
+    #expect(service.failure == .keyUnavailable && service.entries.isEmpty)
+    #expect(try Data(contentsOf: ciphertext) == before)
+    keys.setUnavailable(false)
+    await service.refresh()
+    #expect(service.entries.first?.id == id && service.failure == nil)
+    #expect(await service.restore(id))
+    service.stop()
+    // Reopening with fresh preferences must reuse the original key and ciphertext.
+    let reopened = ClipboardRepository(directory: directory, keys: keys)
+    #expect(try await reopened.restore(id, preferences: .init(), now: Date()).data == Data("synthetic private text".utf8))
+    #expect(keys.creationRequests.suffix(3).allSatisfy { !$0 })
+}
+
+@Test func clipboardKeyDiagnosticsDistinguishRecoverableErrors() {
+    #expect(ClipboardKeychain.readDiagnostic(errSecItemNotFound) == .keyMissing)
+    #expect(ClipboardKeychain.readDiagnostic(errSecInteractionNotAllowed) == .keyTemporarilyUnavailable)
+    #expect(ClipboardKeychain.readDiagnostic(errSecNotAvailable) == .keyTemporarilyUnavailable)
+    #expect(ClipboardKeychain.readDiagnostic(errSecAuthFailed) == .keyAccessDenied)
+    #expect(ClipboardKeychain.readDiagnostic(errSecDecode) == .keyReadFailed)
+}

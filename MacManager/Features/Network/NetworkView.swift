@@ -83,8 +83,12 @@ struct NetworkView: View {
             Text(address ?? state.strings("value.unavailable")).monospacedDigit()
             if let address {
                 Button {
-                    NSPasteboard.general.clearContents()
-                    if NSPasteboard.general.setString(address, forType: .string) { copiedAddress = address }
+                    copiedAddress = nil
+                    // User-requested IP copies remain eligible for local history.
+                    do {
+                        try LocalClipboardWriter().writeText(address, history: .allowCapture)
+                        copiedAddress = address
+                    } catch { /* Leave the copy action available for retry. */ }
                 } label: {
                     Label(state.strings(copiedAddress == address ? "network.copied" : "network.copy"),
                           systemImage: copiedAddress == address ? "checkmark" : "doc.on.doc")

@@ -56,7 +56,7 @@ import MacManagerCore
         music = MusicService(adapter: musicAdapter)
         podcasts = MusicService(adapter: podcastAdapter)
         launcher = LauncherController(preferences: preferences, testing: testing)
-        clipboardController = ClipboardController(preferences: preferences, testing: testing)
+        clipboardController = ClipboardController(preferences: preferences, testing: testing, diagnostics: diagnostics)
         scroll = ScrollService(enabled: preferences.reverseMouseScroll, driver: scrollDriver)
         network = NetworkService(enabled: !testing && preferences.publicIPEnabled)
         metrics = MetricsService(interval: preferences.samplingInterval)

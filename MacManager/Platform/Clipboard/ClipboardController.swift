@@ -15,21 +15,27 @@ final class ClipboardController: ApplicationLifecycleParticipant {
     private let fixture: Bool
     private var suspendedReasons: Set<String> = []
 
-    init(preferences: PreferencesStore, testing: Bool = false) {
+    init(preferences: PreferencesStore, testing: Bool = false, diagnostics: DiagnosticsStore? = nil) {
         self.testing = testing
         fixture = testing && ProcessInfo.processInfo.arguments.contains("--clipboard-fixture")
         let directory: URL
         let provider: any ClipboardKeyProviding
-        let pasteboard: SystemClipboardPasteboard
+        let pasteboard: any ClipboardPasteboard
         if testing {
             directory = FileManager.default.temporaryDirectory.appendingPathComponent("MacManagerClipboardUITests-\(UUID().uuidString)")
             provider = EphemeralClipboardKey()
-            pasteboard = SystemClipboardPasteboard(pasteboard: NSPasteboard(name: .init("MacManagerClipboardUITests-\(UUID().uuidString)")), foregroundBundleID: { nil })
+            #if DEBUG
+            pasteboard = FixtureClipboardPasteboard(failFirstWrite: ProcessInfo.processInfo.arguments.contains("--clipboard-write-failure"))
+            #else
+            pasteboard = SystemClipboardPasteboard()
+            #endif
         } else {
             let identity = Bundle.main.bundleIdentifier ?? "dev.macmanager.MacManager"
             directory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
                 .appendingPathComponent(identity).appendingPathComponent("Clipboard", isDirectory: true)
-            provider = ClipboardKeychain(service: "\(identity).clipboard")
+            provider = ClipboardKeychain(service: "\(identity).clipboard") { kind in
+                Task { @MainActor in diagnostics?.record(.clipboard, kind: kind.rawValue) }
+            }
             pasteboard = SystemClipboardPasteboard()
         }
         repository = ClipboardRepository(directory: directory, keys: provider)

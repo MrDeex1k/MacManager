@@ -1,4 +1,5 @@
 import AppKit
+import MacManagerCore
 import SwiftUI
 
 struct DiagnosticsView: View {
@@ -45,7 +46,10 @@ struct DiagnosticsView: View {
 
     private func copyReport(_ report: String) {
         let pasteboard = NSPasteboard.general
-        pasteboard.prepareForNewContents(with: [.currentHostOnly])
-        copied = pasteboard.setString(report, forType: .string)
+        copied = false
+        do {
+            try LocalClipboardWriter(pasteboard: pasteboard).writeText(report, history: .excludeFromHistory)
+            copied = true
+        } catch { /* Do not report success when the pasteboard rejects the write. */ }
     }
 }

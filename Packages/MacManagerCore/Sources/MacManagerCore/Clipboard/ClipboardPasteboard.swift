@@ -118,11 +118,6 @@ public final class SystemClipboardPasteboard: ClipboardPasteboard {
         return .content(ClipboardRawContent(kind: kind, data: data, sourceBundleID: source))
     }
     public func restore(_ content: ClipboardRestoredContent) throws {
-        let item = NSPasteboardItem()
-        guard item.setData(content.data, forType: content.kind == .text ? .string : .png),
-              item.setData(Data(), forType: Self.restoredType),
-              item.setData(Data(), forType: .init("org.nspasteboard.RestoredType")) else { throw ClipboardFailure.writeFailed }
-        pasteboard.prepareForNewContents(with: .currentHostOnly)
-        guard pasteboard.writeObjects([item]) else { throw ClipboardFailure.writeFailed }
+        try LocalClipboardWriter(pasteboard: pasteboard).write(content, history: .excludeFromHistory)
     }
 }
