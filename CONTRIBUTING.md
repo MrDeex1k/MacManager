@@ -67,8 +67,6 @@ Use the repository issue forms. Include macOS version, Mac model class, reproduc
 
 ## Test sets and optimization measurements
 
-Verification runs locally; this repository has no GitHub Actions workflows. See [RELEASING.md](RELEASING.md) for build commands, data invariants and signed-update acceptance. The ignored `scripts/` directory may contain optional local helpers, but they are not distributed with the repository. Signing and publication remain separate actions.
-
 `swift test --package-path Packages/MacManagerCore` runs local logic and storage checks. Tests requiring macOS services explicitly report a skip unless enabled:
 
 - `MM_SYSTEM_TESTS=1`: named synthetic pasteboards, a dedicated test Keychain item and backup metadata. Run outside a restricted sandbox with the required system access.
@@ -76,19 +74,3 @@ Verification runs locally; this repository has no GitHub Actions workflows. See 
 - `MM_BENCHMARKS=1`: synthetic launcher ranking benchmark; run with `-c release --filter launcherRankingBenchmark` separately from other tests.
 
 UI tests are grouped by feature and share AppUITestSupport. Run the MacManager scheme on macOS. Fixture launches use isolated preferences and clipboard data. Performance reports must distinguish engine timings from end-to-end UI latency and record skipped or unavailable checks explicitly.
-
-### Focused performance measurements
-
-Use Release builds for engine, image and key timings:
-
-```sh
-MM_BENCHMARKS=1 swift test --package-path Packages/MacManagerCore -c release --filter launcherRankingBenchmark
-MM_BENCHMARKS=1 swift test --package-path Packages/MacManagerCore -c release --filter imageNormalizationBenchmark
-MM_BENCHMARKS=1 MM_SYSTEM_TESTS=1 swift test --package-path Packages/MacManagerCore -c release --filter hardwareKeyDerivationBenchmark
-```
-
-The ranking benchmark separates cold indexing, a stable catalog revision and personalization changes. Image measurements print whole-process peak RSS, including fixture allocation and previous cases; that value is not the normalizer's isolated allocation peak. Hardware tests use a dedicated synthetic Keychain item and temporary history.
-
-The opt-in `LauncherTests.testQueryToVisibleResultBenchmark` reads `MM_UI_BENCHMARKS=1` in the test runner environment. Configure it in the Xcode test environment before running that test. Its elapsed time includes XCTest input and observation overhead; compare the same machine and configuration.
-
-In Instruments, filter Points of Interest by subsystem `dev.macmanager.MacManager`. Intervals identify pasteboard reads, image normalization/encoding, key derivation, Music reads/Apple Events and Podcasts reads/AX scans. They contain no clipboard content or media metadata. Attribute QoS warnings to a captured stack before changing queues or locks. Use live players for media IPC measurements; fixture players validate lifecycle behavior only.
