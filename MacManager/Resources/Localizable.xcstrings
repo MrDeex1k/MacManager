@@ -3610,13 +3610,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "↑↓ Select · ↵ Open/copy · Tab Clipboard · esc Clear/close"
+            "value": "↑↓ Select · ↵ Open/copy · Tab Clipboard · ⇧Tab Controls · esc Clear/close"
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "↑↓ Wybór · ↵ Otwórz/kopiuj · Tab Schowek · esc Wyczyść/zamknij"
+            "value": "↑↓ Wybór · ↵ Otwórz/kopiuj · Tab Schowek · ⇧Tab Kontrolki · esc Wyczyść/zamknij"
           }
         }
       }

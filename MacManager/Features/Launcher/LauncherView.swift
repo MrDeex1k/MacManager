@@ -4,6 +4,7 @@ import SwiftUI
 
 struct LauncherView: View {
     let controller: LauncherController
+    @FocusState private var modeFocused: Bool
     private var model: LauncherSearchModel { controller.model }
     var body: some View {
         VStack(spacing: 0) {
@@ -13,6 +14,9 @@ struct LauncherView: View {
                 }.buttonStyle(.plain).foregroundStyle(AppTheme.accent)
                     .accessibilityLabel(controller.strings("launcher.switchMode"))
                     .accessibilityIdentifier("launcher.switchMode")
+                    .focusable().focused($modeFocused)
+                    .onKeyPress(.return) { controller.toggleMode(); return .handled }
+                    .onKeyPress(.space) { controller.toggleMode(); return .handled }
                 NativeSearchField(text: model.query, placeholder: controller.strings(controller.clipboardMode ? "clipboard.search" : "launcher.placeholder"),
                                   identifier: "launcher.search", style: .launcher, onChange: model.search)
                     .frame(height: 32)
@@ -89,6 +93,7 @@ struct LauncherView: View {
                 }
                 .onDisappear { controller.restoreSearchFocus(after: presentation) }
         }
+        .onChange(of: controller.focusControlsRequest) { _, _ in modeFocused = true }
         .onChange(of: controller.clipboard?.revision) { _, _ in
             if controller.clipboardMode { controller.refreshResults() }
         }

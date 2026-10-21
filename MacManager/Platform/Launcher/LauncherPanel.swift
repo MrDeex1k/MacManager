@@ -7,6 +7,7 @@ import AppKit
     let rowMenus = LauncherRowMenuMonitor()
     var navigationEnabled: (() -> Bool)?
     var onTab: (() -> Void)?
+    var onFocusControls: (() -> Void)?
     var onEscape: (() -> Void)?
     var onArrow: ((Int) -> Void)?
     var onSubmit: (() -> Void)?
@@ -48,6 +49,12 @@ import AppKit
     override func resignKey() { super.resignKey(); onResign?() }
     override func sendEvent(_ event: NSEvent) {
         let composing = (firstResponder as? NSTextView)?.hasMarkedText() == true
+        if event.type == .keyDown, !composing, navigationEnabled?() != false,
+           event.keyCode == 48,
+           event.modifierFlags.intersection([.command, .control, .option, .shift]) == .shift,
+           let field = searchField, field.currentEditor() === firstResponder {
+            onFocusControls?(); return
+        }
         if event.type == .keyDown, !composing, navigationEnabled?() != false,
            event.modifierFlags.intersection([.command, .control, .option, .shift]).isEmpty {
             if event.keyCode == 53 { onEscape?(); return }

@@ -11,6 +11,7 @@ final class LauncherController: ApplicationLifecycleParticipant {
     var clipboard: ClipboardService?
     private(set) var clipboardMode = false
     var fileFilter = LauncherFileFilter.all
+    var focusControlsRequest = 0
     var customizationEntry: LauncherEntry? {
         didSet {
             if oldValue != nil && customizationEntry == nil { restoreSearchFocus(after: presentationID) }
@@ -134,6 +135,7 @@ final class LauncherController: ApplicationLifecycleParticipant {
         }
         panel.navigationEnabled = { [weak self] in self?.customizationEntry == nil && self?.rowMenuOpen == false }
         panel.onTab = { [weak self] in self?.toggleMode() }
+        panel.onFocusControls = { [weak self] in self?.focusControlsRequest += 1 }
         panel.onArrow = { [weak self] in self?.model.moveSelection($0) }
         panel.onSubmit = { [weak self] in self?.performSelected() }
         panel.onResign = { [weak self] in if self?.customizationEntry == nil && self?.rowMenuOpen == false { self?.hide(restoreFocus: false) } }
