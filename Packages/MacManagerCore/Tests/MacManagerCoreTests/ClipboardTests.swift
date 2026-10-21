@@ -1,6 +1,7 @@
 import AppKit
 import CryptoKit
 import Foundation
+import ImageIO
 import Security
 import Testing
 @testable import MacManagerCore
@@ -222,7 +223,7 @@ private func clipboardDirectory() -> URL {
     let id = try #require(service.entries.first?.id)
     let task = Task { await service.restore(id) }
     task.cancel()
-    await task.value
+    _ = await task.value
     #expect(mock.restored == nil && service.restoredID == nil && service.failure == nil)
     await service.restore(id); service.poll()
     #expect(mock.restored == Data("cancelled restore".utf8) && service.entries.count == 1)
@@ -632,4 +633,33 @@ private final class RecoverableClipboardKey: ClipboardKeyProviding, @unchecked S
     #expect(ClipboardKeychain.readDiagnostic(errSecNotAvailable) == .keyTemporarilyUnavailable)
     #expect(ClipboardKeychain.readDiagnostic(errSecAuthFailed) == .keyAccessDenied)
     #expect(ClipboardKeychain.readDiagnostic(errSecDecode) == .keyReadFailed)
+}
+
+@Test func clipboardRejectsMalformedImagesAndInvalidUTF8() throws {
+    for data in [Data(), Data("not an image".utf8), Data([0x89, 0x50, 0x4e, 0x47])] {
+        #expect(throws: ClipboardFailure.self) { try ClipboardRawContent(kind: .image, data: data).normalized() }
+    }
+    #expect(!ClipboardContent(kind: .text, data: Data([0xff, 0xfe])).isValid)
+}
+
+@MainActor @Test func clipboardCancelledNormalizationDoesNotDecode() async {
+    let task = Task { try ClipboardRawContent(kind: .image, data: Data("invalid image".utf8)).normalized() }
+    task.cancel()
+    await #expect(throws: CancellationError.self) { try await task.value }
+}
+
+@Test func clipboardNormalizationKeepsFullResolutionAndBoundsPreview() throws {
+    let bitmap = try #require(NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: 640, pixelsHigh: 480,
+        bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
+        colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0))
+    memset(try #require(bitmap.bitmapData), 127, bitmap.bytesPerRow * bitmap.pixelsHigh)
+    let input = try #require(bitmap.representation(using: .png, properties: [:]))
+    let normalized = try ClipboardRawContent(kind: .image, data: input).normalized()
+    let full = try #require(CGImageSourceCreateWithData(normalized.data as CFData, nil))
+    let previewData = try #require(normalized.thumbnail)
+    let preview = try #require(CGImageSourceCreateWithData(previewData as CFData, nil))
+    let image = try #require(CGImageSourceCreateImageAtIndex(full, 0, nil))
+    let thumbnail = try #require(CGImageSourceCreateImageAtIndex(preview, 0, nil))
+    #expect(image.width == 640 && image.height == 480)
+    #expect(thumbnail.width <= 320 && thumbnail.height <= 320)
 }

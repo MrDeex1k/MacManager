@@ -1,4 +1,5 @@
 import AppKit
+import OSLog
 import ApplicationServices
 import Foundation
 import MacManagerCore
@@ -52,6 +53,9 @@ actor AppleMusicAdapter: MusicPlayerAdapter {
         let event = NSAppleEventDescriptor(eventClass: eventClass, eventID: eventID, targetDescriptor: target,
                                           returnID: AEReturnID(kAutoGenerateReturnID), transactionID: AETransactionID(kAnyTransactionID))
         if let object { event.setParam(object, forKeyword: AEKeyword(keyDirectObject)) }
+        let signposter = OSSignposter(subsystem: "dev.macmanager.MacManager", category: "PointsOfInterest")
+        let interval = signposter.beginInterval("AppleEvent", id: signposter.makeSignpostID())
+        defer { signposter.endInterval("AppleEvent", interval) }
         let reply = try event.sendEvent(options: [.waitForReply, .neverInteract, .dontRecord], timeout: 2)
         try Task.checkCancellation()
         if let error = reply.paramDescriptor(forKeyword: AEKeyword(keyErrorNumber)), error.int32Value != 0 {
@@ -82,6 +86,9 @@ actor AppleMusicAdapter: MusicPlayerAdapter {
         } catch { return availability(error) }
     }
     func read() async -> MusicSnapshot {
+        let signposter = OSSignposter(subsystem: "dev.macmanager.MacManager", category: "PointsOfInterest")
+        let interval = signposter.beginInterval("MusicRead", id: signposter.makeSignpostID())
+        defer { signposter.endInterval("MusicRead", interval) }
         guard !Task.isCancelled, let target = target() else { return MusicSnapshot(availability: .notRunning) }
         let access = permission(target, ask: false)
         guard access == .ready else { return MusicSnapshot(availability: access) }

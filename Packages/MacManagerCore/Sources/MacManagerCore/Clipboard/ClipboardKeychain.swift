@@ -2,6 +2,7 @@ import CryptoKit
 import Foundation
 import LocalAuthentication
 import Security
+import OSLog
 
 public protocol ClipboardKeyProviding: Sendable {
     func key(createIfMissing: Bool) throws -> SymmetricKey
@@ -34,6 +35,9 @@ public struct ClipboardKeychain: ClipboardKeyProviding {
     }
 
     public func key(createIfMissing: Bool) throws -> SymmetricKey {
+        let signposter = OSSignposter(subsystem: "dev.macmanager.MacManager", category: "PointsOfInterest")
+        let interval = signposter.beginInterval("ClipboardReadAndDeriveKey", id: signposter.makeSignpostID())
+        defer { signposter.endInterval("ClipboardReadAndDeriveKey", interval) }
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,

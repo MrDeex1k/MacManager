@@ -1,6 +1,7 @@
 import AppKit
 import Foundation
 import ImageIO
+import OSLog
 import UniformTypeIdentifiers
 
 public enum ClipboardAccess: Sendable { case allowed, needsPermission, denied }
@@ -18,35 +19,55 @@ public struct ClipboardRawContent: Sendable {
         self.kind = kind; self.data = data; self.sourceBundleID = sourceBundleID
     }
     public func normalized() throws -> ClipboardContent {
+        try Task.checkCancellation()
+        let signposter = OSSignposter(subsystem: "dev.macmanager.MacManager", category: "PointsOfInterest")
+        let interval = signposter.beginInterval("ClipboardNormalize", id: signposter.makeSignpostID())
+        defer { signposter.endInterval("ClipboardNormalize", interval) }
         if kind == .text {
             let content = ClipboardContent(kind: .text, data: data, sourceBundleID: sourceBundleID)
             guard content.isValid else { throw ClipboardFailure.tooLarge }
             return content
         }
-        guard data.count <= 40_000_000,
-              let source = CGImageSourceCreateWithData(data as CFData, [kCGImageSourceShouldCache: false] as CFDictionary),
+        guard data.count <= 40_000_000 else { throw ClipboardFailure.tooLarge }
+        guard let source = CGImageSourceCreateWithData(data as CFData, [kCGImageSourceShouldCache: false] as CFDictionary),
               let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
               let width = properties[kCGImagePropertyPixelWidth] as? NSNumber,
               let height = properties[kCGImagePropertyPixelHeight] as? NSNumber else { throw ClipboardFailure.unsupportedImage }
         let w = width.doubleValue, h = height.doubleValue
         guard w.isFinite, h.isFinite, w > 0, h > 0, w * h <= 40_000_000 else { throw ClipboardFailure.tooLarge }
-        guard let image = CGImageSourceCreateThumbnailAtIndex(source, 0, [
-                kCGImageSourceCreateThumbnailFromImageAlways: true,
-                kCGImageSourceThumbnailMaxPixelSize: max(w, h),
-                kCGImageSourceCreateThumbnailWithTransform: true
-              ] as CFDictionary),
-              let thumbnail = CGImageSourceCreateThumbnailAtIndex(source, 0, [
-                kCGImageSourceCreateThumbnailFromImageAlways: true,
-                kCGImageSourceThumbnailMaxPixelSize: 320,
-                kCGImageSourceCreateThumbnailWithTransform: true
-              ] as CFDictionary) else { throw ClipboardFailure.unsupportedImage }
-        func png(_ image: CGImage) throws -> Data {
+        try Task.checkCancellation()
+        func png(_ image: CGImage, maximumBytes: Int) throws -> Data {
+            let encoding = signposter.beginInterval("ClipboardEncodePNG", id: signposter.makeSignpostID())
+            defer { signposter.endInterval("ClipboardEncodePNG", encoding) }
             guard let data = ImageThumbnail.encodePNG(image, maximumBytes: Int.max) else {
                 throw ClipboardFailure.unsupportedImage
             }
+            try Task.checkCancellation()
+            guard data.count <= maximumBytes else { throw ClipboardFailure.tooLarge }
             return data
         }
-        let content = try ClipboardContent(kind: .image, data: png(image), thumbnail: png(thumbnail), sourceBundleID: sourceBundleID)
+        // Keep one full-resolution decode alive at a time. The returned PNG owns
+        // its bytes; ImageIO temporaries are released before decoding the preview.
+        let full = try autoreleasepool {
+            guard let image = CGImageSourceCreateThumbnailAtIndex(source, 0, [
+                kCGImageSourceCreateThumbnailFromImageAlways: true,
+                kCGImageSourceThumbnailMaxPixelSize: max(w, h),
+                kCGImageSourceCreateThumbnailWithTransform: true
+            ] as CFDictionary) else { throw ClipboardFailure.unsupportedImage }
+            try Task.checkCancellation()
+            return try png(image, maximumBytes: ClipboardContent.maximumImageBytes)
+        }
+        try Task.checkCancellation()
+        let preview = try autoreleasepool {
+            guard let thumbnail = CGImageSourceCreateThumbnailAtIndex(source, 0, [
+                kCGImageSourceCreateThumbnailFromImageAlways: true,
+                kCGImageSourceThumbnailMaxPixelSize: 320,
+                kCGImageSourceCreateThumbnailWithTransform: true
+            ] as CFDictionary) else { throw ClipboardFailure.unsupportedImage }
+            try Task.checkCancellation()
+            return try png(thumbnail, maximumBytes: 1_000_000)
+        }
+        let content = ClipboardContent(kind: .image, data: full, thumbnail: preview, sourceBundleID: sourceBundleID)
         guard content.isValid else { throw ClipboardFailure.tooLarge }
         return content
     }
@@ -85,6 +106,9 @@ public final class SystemClipboardPasteboard: ClipboardPasteboard {
         _ = pasteboard.string(forType: .string)
     }
     public func capture(exclusions: Set<String>) -> ClipboardCapture {
+        let signposter = OSSignposter(subsystem: "dev.macmanager.MacManager", category: "PointsOfInterest")
+        let interval = signposter.beginInterval("ClipboardPasteboardRead", id: signposter.makeSignpostID())
+        defer { signposter.endInterval("ClipboardPasteboardRead", interval) }
         guard access == .allowed else { return .skipped }
         let count = pasteboard.changeCount
         let foreground = foregroundBundleID()
