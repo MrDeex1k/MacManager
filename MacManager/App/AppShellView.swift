@@ -75,13 +75,6 @@ struct AppShellView: View {
             .background(AppTheme.canvas)
             .navigationTitle(state.strings((state.section ?? .overview).titleKey))
             .toolbar {
-                ToolbarItem(placement: .principal) {
-                    Text(state.strings((state.section ?? .overview).titleKey))
-                        .font(.headline)
-                        .foregroundStyle(.primary)
-                        .fixedSize()
-                        .accessibilityIdentifier("main.sectionTitle")
-                }
                 ToolbarItem(placement: .primaryAction) {
                     Button {
                         state.section = .settings
