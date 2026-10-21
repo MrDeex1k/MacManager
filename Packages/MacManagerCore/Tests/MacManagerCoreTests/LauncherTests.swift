@@ -393,3 +393,21 @@ private func launcherEntry(_ id: String, _ title: String, alternate: [String] = 
     #expect(model.results == [entry])
     model.cancel()
 }
+
+@Test func launcherRechecksRetargetedSymlinkBeforeOpening() throws {
+    let fm = FileManager.default
+    let root = fm.temporaryDirectory.appendingPathComponent("LauncherBoundary-\(UUID())")
+    defer { try? fm.removeItem(at: root) }
+    let allowed = root.appendingPathComponent("allowed")
+    let outside = root.appendingPathComponent("outside")
+    try fm.createDirectory(at: allowed, withIntermediateDirectories: true)
+    try fm.createDirectory(at: outside, withIntermediateDirectories: true)
+    try Data("local".utf8).write(to: allowed.appendingPathComponent("local.txt"))
+    try Data("outside".utf8).write(to: outside.appendingPathComponent("private.txt"))
+    let link = allowed.appendingPathComponent("result")
+    try fm.createSymbolicLink(at: link, withDestinationURL: allowed.appendingPathComponent("local.txt"))
+    #expect(LauncherFileSearch.isWithinRoots(link, roots: [allowed]))
+    try fm.removeItem(at: link)
+    try fm.createSymbolicLink(at: link, withDestinationURL: outside.appendingPathComponent("private.txt"))
+    #expect(!LauncherFileSearch.isWithinRoots(link, roots: [allowed]))
+}

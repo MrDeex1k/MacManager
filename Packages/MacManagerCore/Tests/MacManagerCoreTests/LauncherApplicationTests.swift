@@ -113,3 +113,19 @@ private struct AppScanFixture {
         }
     }
 }
+
+@Test(.enabled(if: ProcessInfo.processInfo.environment["MM_SYSTEM_TESTS"] == "1", "Reads installed macOS application metadata"))
+func launcherFindsInstalledSystemAppsByPolishNames() async throws {
+    let entries = try await ApplicationProvider(scopes: ["/System/Applications"]).entries(language: "pl")
+    for (id, polish, english) in [("com.apple.MobileSMS", "Wiadomości", "Messages"),
+                                  ("com.apple.mobilephone", "Telefon", "Phone"),
+                                  ("com.apple.clock", "Zegar", "Clock")] {
+        if let entry = entries.first(where: { $0.bundleID?.lowercased() == id.lowercased() }) {
+            #expect(entry.title == polish)
+            #expect(entry.alternateNames.contains(english))
+        }
+    }
+    #expect(entries.contains { $0.title == "Wiadomości" })
+    #expect(entries.contains { $0.title == "Telefon" })
+    #expect(entries.contains { $0.title == "Zegar" })
+}
