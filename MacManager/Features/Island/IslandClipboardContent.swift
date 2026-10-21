@@ -67,6 +67,7 @@ struct IslandClipboardContent: View {
                 .disabled(service.suspended)
                 .accessibilityIdentifier("island.clipboard.capture")
             }
+            .padding(.top, 4)
         }
         .task(id: model.request) { await model.search(model.request) }
     }
@@ -125,6 +126,8 @@ struct IslandClipboardContent: View {
         .disabled(entry.damaged || model.restoringID != nil || service.suspended)
         .accessibilityIdentifier("island.clipboard.restore.\(entry.id)")
         .accessibilityLabel(entry.record.kind == .image ? strings("clipboard.image") : entry.text.map { String($0.prefix(200)) } ?? strings("clipboard.text"))
+        .accessibilityAddTraits(model.selectedID == entry.id ? .isSelected : [])
+        .accessibilityValue(model.copiedID == entry.id ? strings("island.clipboard.copied") : "")
         .help(strings("clipboard.restore"))
         .contextMenu {
             Button(strings("clipboard.delete"), role: .destructive) { model.delete(entry.id) }
