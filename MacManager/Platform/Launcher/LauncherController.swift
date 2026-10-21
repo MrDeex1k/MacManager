@@ -11,6 +11,7 @@ final class LauncherController: ApplicationLifecycleParticipant {
     var clipboard: ClipboardService?
     private(set) var clipboardMode = false
     var fileFilter = LauncherFileFilter.all
+    var focusControlsRequest = 0
     var customizationEntry: LauncherEntry? {
         didSet {
             if oldValue != nil && customizationEntry == nil { restoreSearchFocus(after: presentationID) }
@@ -36,14 +37,14 @@ final class LauncherController: ApplicationLifecycleParticipant {
     @ObservationIgnored var openMainWindow: (() -> Void)?
     @ObservationIgnored var navigate: ((String) -> Void)?
     @ObservationIgnored private let preferences: PreferencesStore
-    @ObservationIgnored private let resultPasteboard: SystemClipboardPasteboard
+    @ObservationIgnored private let actionExecutor: LauncherActionExecutor
     @ObservationIgnored private let hotKey = LauncherHotKey()
     @ObservationIgnored private var panel: LauncherPanel?
     @ObservationIgnored private var hosting: NSHostingView<AnyView>?
     @ObservationIgnored private var previousApplication: NSRunningApplication?
     @ObservationIgnored private let observers = NotificationTokens()
     @ObservationIgnored private let testing: Bool
-    private var usesRealShortcut: Bool { !testing || ProcessInfo.processInfo.arguments.contains("--launcher-live-testing") }
+    private var usesRealShortcut: Bool { !testing || UITestConfiguration.current.contains("--launcher-live-testing") }
     @ObservationIgnored private var running = false
     @ObservationIgnored private var presentationID = UUID()
     private(set) var executing = false
@@ -51,8 +52,7 @@ final class LauncherController: ApplicationLifecycleParticipant {
 
     init(preferences: PreferencesStore, testing: Bool = false) {
         self.preferences = preferences; self.testing = testing
-        resultPasteboard = SystemClipboardPasteboard(pasteboard: testing
-            ? NSPasteboard(name: .init("MacManagerLauncherTests-\(UUID().uuidString)")) : .general)
+        actionExecutor = LauncherActionExecutor(testing: testing)
     }
     func start() {
         guard !running else { return }; running = true
@@ -93,6 +93,7 @@ final class LauncherController: ApplicationLifecycleParticipant {
     }
     func stop() {
         running = false; hide(restoreFocus: false); hotKey.stop()
+        presentationID = UUID(); executing = false
         model.cancel(); shortcutCleanup?.cancel(); shortcutCleanup = nil
         applicationIcons.clear()
         panel?.rowMenus.stop()
@@ -118,14 +119,9 @@ final class LauncherController: ApplicationLifecycleParticipant {
         applicationIcons.refreshIfNeeded(after: catalogRefreshSeconds)
         previousApplication = NSWorkspace.shared.frontmostApplication
         actionFailed = false; executing = false; presentationID = UUID()
-        let commands = AppSection.allCases.map { section in
-            LauncherEntry(id: "command:" + section.rawValue, title: strings(section.titleKey),
-                subtitle: "Mac Manager", symbol: section.symbol, action: .section(section.rawValue),
-                alternateNames: [AppStrings(languageCode: "en")(section.titleKey), AppStrings(languageCode: "pl")(section.titleKey)])
-        }
         model.preferences = preferences.launcher
-        model.load(providers: testing && !usesRealShortcut ? [] : [ApplicationProvider(), SystemSettingsProvider()],
-                   language: preferences.language.resolvedCode(), commands: commands)
+        model.load(providers: [ApplicationProvider(), SystemSettingsProvider()],
+                   language: preferences.language.resolvedCode(), commands: [])
         let panel = self.panel ?? LauncherPanel()
         self.panel = panel
         panel.onEscape = { [weak self] in
@@ -134,6 +130,7 @@ final class LauncherController: ApplicationLifecycleParticipant {
         }
         panel.navigationEnabled = { [weak self] in self?.customizationEntry == nil && self?.rowMenuOpen == false }
         panel.onTab = { [weak self] in self?.toggleMode() }
+        panel.onFocusControls = { [weak self] in self?.focusControlsRequest += 1 }
         panel.onArrow = { [weak self] in self?.model.moveSelection($0) }
         panel.onSubmit = { [weak self] in self?.performSelected() }
         panel.onResign = { [weak self] in if self?.customizationEntry == nil && self?.rowMenuOpen == false { self?.hide(restoreFocus: false) } }
@@ -334,44 +331,23 @@ final class LauncherController: ApplicationLifecycleParticipant {
         execute(entry)
     }
     private func execute(_ entry: LauncherEntry) {
-        switch entry.action {
-        case .clipboard(let id):
-            guard let clipboard, !clipboard.suspended else { return }
-            let token = presentationID
-            executing = true
-            Task {
-                await clipboard.restore(id)
-        guard token == presentationID else { return }
-                executing = false
-                if clipboard.failure == nil { hide() } else { actionFailed = true }
-            }
-        case .copy(let text):
-            do {
-                try resultPasteboard.restore(ClipboardRestoredContent(kind: .text, data: Data(text.utf8)))
-                hide()
-            } catch { actionFailed = true }
-        case .file(let url):
-            guard preferences.launcher.filesEnabled,
-                  LauncherFileSearch.isWithinRoots(url, roots: preferences.launcher.folders),
-                  NSWorkspace.shared.open(url) else { actionFailed = true; return }
-            hide(restoreFocus: false)
-        case .section(let section):
-            if section == "clipboard" { if !visible { show() }; toggleMode(clipboard: true); return }
-            hide(restoreFocus: false); navigate?(section); openMainWindow?(); NSApp.activate()
-        case .systemSettings(let url):
-            guard NSWorkspace.shared.open(url) else { actionFailed = true; return }
-            hide(restoreFocus: false)
-        case .application(let url):
-            guard FileManager.default.fileExists(atPath: url.path) else { actionFailed = true; return }
-            executing = true
-            let token = presentationID
-            let configuration = NSWorkspace.OpenConfiguration()
-            configuration.activates = true
-            NSWorkspace.shared.openApplication(at: url, configuration: configuration) { [weak self] _, error in
-                Task { @MainActor in
-                    guard let self, self.presentationID == token else { return }
-                    self.executing = false
-                    if error == nil { self.hide(restoreFocus: false) } else { self.actionFailed = true }
+        guard running, !executing else { return }
+        executing = true
+        let token = presentationID
+        Task {
+            let outcome = await actionExecutor.execute(entry, options: preferences.launcher, clipboard: clipboard)
+            guard running, token == presentationID else { return }
+            executing = false
+            switch outcome {
+            case .copied: hide()
+            case .opened: hide(restoreFocus: false)
+            case .failed: actionFailed = true
+            case .section(let section):
+                if section == "clipboard" {
+                    if !visible { show() }
+                    toggleMode(clipboard: true)
+                } else {
+                    hide(restoreFocus: false); navigate?(section); openMainWindow?(); NSApp.activate()
                 }
             }
         }

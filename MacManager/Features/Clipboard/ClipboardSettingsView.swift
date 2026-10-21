@@ -66,6 +66,7 @@ struct ClipboardSettingsView: View {
         .alert(state.strings("clipboard.retention.confirm"), isPresented: $confirming) {
             Button(state.strings("clipboard.cancel"), role: .cancel) {}
             Button(state.strings("clipboard.save"), role: .destructive) { save() }
+                .accessibilityIdentifier("clipboard.retention.confirm")
         } message: { Text(String(format: state.strings("clipboard.retention.removals"), removalCount)) }
     }
 

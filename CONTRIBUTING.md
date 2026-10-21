@@ -19,11 +19,10 @@ Keep these product constraints intact:
 After cloning, enable the versioned commit hook:
 
 ```sh
-./scripts/install-git-hooks.sh
-./scripts/test-git-hooks.sh
+git config --local core.hooksPath .githooks
 ```
 
-The hook configures `core.hooksPath` only for this repository, without changing global Git settings. The scripts use native Git and shell tools. Hooks are opt-in after cloning; run the test script to verify installation and commit validation.
+This changes only this repository's Git configuration. Hooks are opt-in after cloning and validate commits locally.
 
 Use an Apple Silicon Mac with macOS 26+ and Xcode 26+ selected through `xcode-select`. See [Build and run](README.md#build-and-run) for the shared scheme and build commands.
 

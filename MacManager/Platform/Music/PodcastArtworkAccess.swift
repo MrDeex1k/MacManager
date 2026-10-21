@@ -6,7 +6,7 @@ import MacManagerCore
 actor PodcastArtworkAccess {
     private let defaults = UserDefaults.standard
     private let bookmarkKey = "podcastArtwork.readOnlyFolderBookmark"
-    private let testing = ProcessInfo.processInfo.arguments.contains("--ui-testing")
+    private let testing = UITestConfiguration.current.contains("--ui-testing")
     private var expectedDirectory: URL {
         FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent("Library/Group Containers/243LU875E5.groups.com.apple.podcasts", isDirectory: true)

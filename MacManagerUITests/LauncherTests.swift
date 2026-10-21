@@ -10,14 +10,24 @@ final class LauncherTests: AppUITestSupport {
         let field = app.textFields["launcher.search"]
         XCTAssertTrue(field.waitForExistence(timeout: 5))
         field.click(); field.typeText("netw")
-        XCTAssertTrue(app.buttons["launcher.result.command:network"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["launcher.result.system:com.apple.Network-Settings.extension"].waitForExistence(timeout: 5))
         field.typeKey(.escape, modifierFlags: [])
         XCTAssertEqual(field.value as? String, "")
         field.typeText("siec")
-        XCTAssertTrue(app.buttons["launcher.result.command:network"].waitForExistence(timeout: 5))
+        let network = app.buttons["launcher.result.system:com.apple.Network-Settings.extension"]
+        XCTAssertTrue(network.waitForExistence(timeout: 5))
+        XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == true"), object: network)], timeout: 5), .completed)
+        // System and application providers can both match the Polish query.
+        // Navigate to the intended row instead of assuming its ranking position.
+        for _ in 0..<40 {
+            if network.isSelected { break }
+            field.typeKey(.downArrow, modifierFlags: [])
+        }
+        XCTAssertTrue(network.isSelected)
         field.typeKey(.return, modifierFlags: [])
-        XCTAssertTrue(element("network.unavailable", in: app).waitForExistence(timeout: 5))
+        XCTAssertTrue(XCUIApplication(bundleIdentifier: "com.apple.systempreferences").wait(for: .runningForeground, timeout: 5))
         XCTAssertFalse(field.exists)
+        app.activate()
         element("navigation.settings", in: app).click()
         app.buttons["launcher.open"].click()
         XCTAssertTrue(field.waitForExistence(timeout: 5))
@@ -49,9 +59,13 @@ final class LauncherTests: AppUITestSupport {
         finder.typeKey("q", modifierFlags: [.option])
         XCTAssertTrue(field.waitForExistence(timeout: 5))
         field.typeText("settings")
-        let settings = app.buttons["launcher.result.command:settings"]
+        let settings = app.buttons["launcher.result.app:com.apple.systempreferences"]
         XCTAssertTrue(settings.waitForExistence(timeout: 5))
         settings.click()
+        XCTAssertTrue(field.waitForNonExistence(timeout: 5))
+        XCTAssertTrue(XCUIApplication(bundleIdentifier: "com.apple.systempreferences").wait(for: .runningForeground, timeout: 5))
+        app.activate()
+        app.typeKey(",", modifierFlags: .command)
         XCTAssertTrue(app.buttons["launcher.open"].waitForExistence(timeout: 5))
         app.popUpButtons["launcher.key"].click()
         app.menuItems["K"].click()
@@ -114,7 +128,7 @@ final class LauncherTests: AppUITestSupport {
         let field = app.textFields["launcher.search"]
         XCTAssertTrue(field.waitForExistence(timeout: 5))
         field.typeText("net")
-        let result = app.buttons["launcher.result.command:network"]
+        let result = app.buttons["launcher.result.system:com.apple.Network-Settings.extension"]
         XCTAssertTrue(result.waitForExistence(timeout: 5))
         result.rightClick()
         XCTAssertTrue(app.menuItems["Customize"].waitForExistence(timeout: 5))
@@ -161,7 +175,7 @@ final class LauncherTests: AppUITestSupport {
         let field = app.textFields["launcher.search"]
         XCTAssertTrue(field.waitForExistence(timeout: 5))
         field.typeText("network")
-        let result = app.buttons["launcher.result.command:network"]
+        let result = app.buttons["launcher.result.system:com.apple.Network-Settings.extension"]
         XCTAssertTrue(result.waitForExistence(timeout: 5))
         result.rightClick()
         app.menuItems["Customize"].click()
@@ -183,13 +197,74 @@ final class LauncherTests: AppUITestSupport {
         field.click(); field.typeKey("a", modifierFlags: .command); field.typeText("myconnection")
         XCTAssertEqual(field.value as? String, "myconnection")
         XCTAssertTrue(result.waitForExistence(timeout: 5))
+        XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == true"), object: result)], timeout: 5), .completed)
         app.typeKey(.return, modifierFlags: [])
-        XCTAssertTrue(element("network.unavailable", in: app).waitForExistence(timeout: 5))
+        XCTAssertTrue(XCUIApplication(bundleIdentifier: "com.apple.systempreferences").wait(for: .runningForeground, timeout: 5))
         app.windows.firstMatch.buttons[XCUIIdentifierCloseWindow].click()
         let finder = XCUIApplication(bundleIdentifier: "com.apple.finder")
         finder.activate()
         finder.typeKey("n", modifierFlags: [.option])
-        XCTAssertTrue(element("network.unavailable", in: app).waitForExistence(timeout: 5))
+        XCTAssertTrue(XCUIApplication(bundleIdentifier: "com.apple.systempreferences").wait(for: .runningForeground, timeout: 5))
     }
 
+}
+
+extension LauncherTests {
+    @MainActor func testSettingsResultsExcludeMacManagerSections() throws {
+        let app = launch(reset: true)
+        defer { app.terminate() }
+        app.menuBars.menuBarItems["View"].click()
+        app.menuItems["Open launcher"].click()
+        let field = app.textFields["launcher.search"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.typeText("Settings")
+        XCTAssertTrue(app.buttons["launcher.result.app:com.apple.systempreferences"].waitForExistence(timeout: 10))
+        let internalSections = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "launcher.result.command:"))
+        XCTAssertEqual(internalSections.count, 0)
+        field.typeKey("a", modifierFlags: .command)
+        field.typeText("network")
+        XCTAssertTrue(app.buttons["launcher.result.system:com.apple.Network-Settings.extension"].waitForExistence(timeout: 5))
+        XCTAssertEqual(internalSections.count, 0)
+    }
+
+    @MainActor func testQueryToVisibleResultBenchmark() throws {
+        guard ProcessInfo.processInfo.environment["MM_UI_BENCHMARKS"] == "1" else {
+            throw XCTSkip("Opt-in UI latency measurement; includes XCTest input and observation overhead")
+        }
+        let app = launch(reset: true)
+        defer { app.terminate() }
+        element("navigation.settings", in: app).click()
+        app.buttons["launcher.open"].click()
+        let field = app.textFields["launcher.search"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        measure(metrics: [XCTClockMetric()]) {
+            field.typeKey("a", modifierFlags: .command)
+            field.typeText("network")
+            XCTAssertTrue(app.buttons["launcher.result.system:com.apple.Network-Settings.extension"].waitForExistence(timeout: 3))
+            field.typeKey("a", modifierFlags: .command)
+            field.typeText("settings")
+            XCTAssertTrue(app.buttons["launcher.result.app:com.apple.systempreferences"].waitForExistence(timeout: 3))
+        }
+    }
+}
+
+extension LauncherTests {
+    @MainActor func testShiftTabReachesModeControlAndReturnDoesNotRestoreSelection() throws {
+        let app = launch(reset: true, clipboardFixture: true)
+        defer { app.terminate() }
+        element("navigation.settings", in: app).click()
+        app.buttons["launcher.open"].click()
+        let field = app.textFields["launcher.search"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.typeKey(.tab, modifierFlags: .shift)
+        app.typeKey(.return, modifierFlags: [])
+        let copy = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "launcher.result.clipboard:")).firstMatch
+        XCTAssertTrue(copy.waitForExistence(timeout: 3))
+        XCTAssertTrue(field.exists)
+        app.typeKey(" ", modifierFlags: [])
+        XCTAssertTrue(copy.waitForNonExistence(timeout: 3))
+        app.typeKey(.tab, modifierFlags: [])
+        field.typeText("network")
+        XCTAssertTrue(app.buttons["launcher.result.system:com.apple.Network-Settings.extension"].waitForExistence(timeout: 3))
+    }
 }

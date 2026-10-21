@@ -63,10 +63,10 @@ final class IslandClipboardModel {
             guard let self, !Task.isCancelled else { return }
             let token = self.presentation
             defer { if self.actionID == identifier { self.action = nil; self.actionID = nil } }
-            await self.service.restore(id)
+            let succeeded = await self.service.restore(id)
             guard self.active, token == self.presentation, !Task.isCancelled, !self.service.suspended else { return }
             self.restoringID = nil
-            guard self.service.failure == nil, self.service.restoredID == id else { return }
+            guard succeeded, self.service.restoredID == id else { return }
             self.copiedID = id
             self.confirmation = Task { [weak self] in
                 try? await Task.sleep(for: .seconds(2))

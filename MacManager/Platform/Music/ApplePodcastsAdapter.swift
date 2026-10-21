@@ -1,4 +1,5 @@
 import AppKit
+import OSLog
 @preconcurrency import ApplicationServices
 import QuartzCore
 import MacManagerCore
@@ -37,6 +38,9 @@ actor ApplePodcastsAdapter: MusicPlayerAdapter {
         var fallbackTitle = ""
     }
     private func player(_ root: AXUIElement) -> Player {
+        let signposter = OSSignposter(subsystem: "dev.macmanager.MacManager", category: "PointsOfInterest")
+        let interval = signposter.beginInterval("AXPlayerScan", id: signposter.makeSignpostID())
+        defer { signposter.endInterval("AXPlayerScan", interval) }
         let deadline = CACurrentMediaTime() + 0.35
         var result = Player()
         // The application children include a large menu tree, often before windows.
@@ -63,6 +67,9 @@ actor ApplePodcastsAdapter: MusicPlayerAdapter {
         return result
     }
     func read() async -> MusicSnapshot {
+        let signposter = OSSignposter(subsystem: "dev.macmanager.MacManager", category: "PointsOfInterest")
+        let interval = signposter.beginInterval("PodcastsRead", id: signposter.makeSignpostID())
+        defer { signposter.endInterval("PodcastsRead", interval) }
         guard !Task.isCancelled, let app = application() else { return MusicSnapshot(availability: .notRunning) }
         guard AXIsProcessTrusted() else { return MusicSnapshot(availability: .accessibilityRequired) }
         let value = player(app)

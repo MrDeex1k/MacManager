@@ -267,7 +267,7 @@ final class IslandTests: AppUITestSupport {
         XCTAssertTrue(field.waitForExistence(timeout: 3))
         let panel = element("island.panel", in: app)
         XCTAssertEqual(panel.frame.minY, top, accuracy: 1, "Island must reach the physical screen edge, including the menu strip")
-        XCTAssertEqual(panel.frame.height, inset + 304, accuracy: 1, "Hover must not expand the panel to screen height")
+        XCTAssertEqual(panel.frame.height, inset + 306, accuracy: 1, "Hover must not expand the panel to screen height")
         XCTAssertEqual(panel.frame.width, min(560, screen.frame.width - 32), accuracy: 1)
         let layers = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] ?? []
         let islandInfo = layers.first {
@@ -281,12 +281,12 @@ final class IslandTests: AppUITestSupport {
         // Cross from the narrow activation strip into the wider panel without a click.
         field.hover()
         XCTAssertTrue(field.exists)
-        XCTAssertEqual(panel.frame.height, inset + 304, accuracy: 1)
+        XCTAssertEqual(panel.frame.height, inset + 306, accuracy: 1)
         outside.hover()
         XCTAssertTrue(field.waitForNonExistence(timeout: 3))
         activation.hover()
         XCTAssertTrue(field.waitForExistence(timeout: 3))
-        XCTAssertEqual(panel.frame.height, inset + 304, accuracy: 1, "Reopening must retain the bounded height")
+        XCTAssertEqual(panel.frame.height, inset + 306, accuracy: 1, "Reopening must retain the bounded height")
         outside.hover()
         XCTAssertTrue(field.waitForNonExistence(timeout: 3))
         app.terminate()
@@ -311,7 +311,8 @@ final class IslandTests: AppUITestSupport {
         let firstCard = cards.element(boundBy: 0)
         XCTAssertLessThanOrEqual(firstCard.frame.minY - field.frame.maxY, 18, "Filter and cards should form a compact stack")
         let capture = app.buttons["island.clipboard.capture"]
-        XCTAssertLessThanOrEqual(capture.frame.minY - firstCard.frame.maxY, 24, "Footer should sit directly below the shelf")
+        // The footer includes the extra 2 pt requested above its controls.
+        XCTAssertLessThanOrEqual(capture.frame.minY - firstCard.frame.maxY, 26, "Footer should sit directly below the shelf with scrollbar clearance")
         XCTAssertLessThanOrEqual(capture.frame.maxY, element("island.panel", in: app).frame.maxY - 8)
         let compactProof = XCTAttachment(screenshot: element("island.panel", in: app).screenshot())
         compactProof.name = "Compact clipboard shelf and readable paused status"

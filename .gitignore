@@ -15,6 +15,9 @@ build/
 # Local product specifications and development reports (kept on disk only)
 /docs/
 
+# Local scripts
+/scripts/
+
 ## Obj-C/Swift specific
 *.hmap
 

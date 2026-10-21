@@ -19,8 +19,8 @@ extension IslandSection {
 final class IslandCoordinator: ApplicationLifecycleParticipant {
     let preferences: PreferencesStore
     private(set) var visible = false
-    private(set) var closing = false
-    private(set) var transitioning = false
+    var closing: Bool { presentation.closing }
+    var transitioning: Bool { presentation.transitioning }
     private(set) var shortcutFailed = false
     private(set) var clipboardModel: IslandClipboardModel?
     private var players: [MediaSource: MusicService] = [:]
@@ -90,7 +90,7 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
     }
     #if DEBUG
     func setSessionSuspendedForTesting(_ value: Bool) {
-        guard ProcessInfo.processInfo.arguments.contains("--ui-testing") else { return }
+        guard UITestConfiguration.current.contains("--ui-testing") else { return }
         if value { suspend("test-session") } else { resume("test-session") }
     }
     #endif
@@ -105,13 +105,12 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
     private var suspended: Bool { !suspensionReasons.isEmpty }
     @ObservationIgnored private var menuTracking = false
     @ObservationIgnored private var interaction = IslandInteraction()
-    @ObservationIgnored private var panel: IslandPanel?
-    @ObservationIgnored private var transitionHost: IslandTransitionHost?
-    @ObservationIgnored private var transitionTask: Task<Void, Never>?
-    @ObservationIgnored private var transitionGeneration = 0
+    private let presentation = IslandPresentation()
+    private var panel: IslandPanel? { presentation.panel }
+    private var transitionHost: IslandTransitionHost? { presentation.transitionHost }
     private var reduceMotion: Bool {
         NSWorkspace.shared.accessibilityDisplayShouldReduceMotion ||
-            (ProcessInfo.processInfo.arguments.contains("--ui-testing") && ProcessInfo.processInfo.arguments.contains("--island-reduce-motion"))
+            (UITestConfiguration.current.contains("--ui-testing") && UITestConfiguration.current.contains("--island-reduce-motion"))
     }
     var debugPresentationState: String {
         "\(visible ? "visible" : closing ? "closing" : "hidden");host=\(transitionHost == nil ? 0 : 1);work=\(clipboardModel?.hasPendingWork == true ? 1 : 0);active=\(clipboardModel?.active == true ? 1 : 0);transition=\(transitioning || sectionTask != nil ? 1 : 0);history=\(clipboardModel?.service.entries.count ?? 0)"
@@ -262,61 +261,21 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
         if section != .clipboard { return 250 }
         #if DEBUG
         // Reproduce the constrained layout encountered while expanding from Music.
-        if ProcessInfo.processInfo.arguments.contains("--ui-testing"),
-           ProcessInfo.processInfo.arguments.contains("--island-constrained-layout") { return 250 }
+        if UITestConfiguration.current.contains("--ui-testing"),
+           UITestConfiguration.current.contains("--island-constrained-layout") { return 250 }
         #endif
         // The shelf has a fixed card/indicator height; reserve only its actual
         // controls and spacing below the camera strip, rather than a target ratio.
-        return topInset + 304
+        return topInset + 306
     }
 
     private func resizeForSection() {
-        guard let screen, let panel, let transitionHost else { return }
-        cancelTransition()
-        let start = panel.frame
+        guard let screen else { return }
         let height = sectionHeight(width: panelFrame.width)
         panelFrame.origin.y = screen.frame.maxY - height
         panelFrame.size.height = height
-        let target = panelFrame
-        panel.minSize = .zero
-        panel.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
-        // Keep one observed SwiftUI tree (and one Glass surface) across section changes.
-        transitionHost.stopAnimations()
-        // Glass supplies its own rim/shadow. A WindowServer shadow adds a second,
-        // stale silhouette when the transparent panel changes height.
-        panel.hasShadow = false
-        if reduceMotion || abs(start.height - target.height) < 0.5 {
-            applySectionFrame(target)
-            panel.minSize = target.size; panel.maxSize = target.size
-            revealSectionContent()
-            return
-        }
-        transitioning = true
-        let token = transitionGeneration
-        let scale = screen.backingScaleFactor
-        transitionHost.animateResize(duration: 0.28, maximumFPS: screen.maximumFramesPerSecond) { [weak self] progress in
-            guard let self, self.visible, token == self.transitionGeneration else { return }
-            // The new subtree had a run-loop turn to mount. Reveal it on the
-            // first display-paced frame, rather than waiting another 160 ms.
-            self.revealSectionContent()
-            let eased = progress * progress * progress * (progress * (progress * 6 - 15) + 10)
-            let height = ((start.height + (target.height - start.height) * eased) * scale).rounded() / scale
-            // Both bounds share their top edge; only the bottom edge moves.
-            self.applySectionFrame(NSRect(x: target.minX, y: target.maxY - height,
-                                           width: target.width, height: height))
-        } completion: { [weak self] in
-            guard let self, self.visible, token == self.transitionGeneration else { return }
-            panel.minSize = target.size; panel.maxSize = target.size
-            self.transitioning = false
-        }
-    }
-
-    private func applySectionFrame(_ frame: NSRect) {
-        guard panel?.frame != frame else { return }
-        CATransaction.begin(); CATransaction.setDisableActions(true)
-        panel?.setFrame(frame, display: false)
-        transitionHost?.resizeGeometry(size: frame.size, topInset: topInset, collapsedWidth: activationFrame.width)
-        CATransaction.commit()
+        presentation.resize(to: panelFrame, topInset: topInset, collapsedWidth: activationFrame.width,
+                            screen: screen, reduceMotion: reduceMotion) { [weak self] in self?.revealSectionContent() }
     }
 
     private func handlePointer(_ event: NSEvent) {
@@ -370,8 +329,7 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
                 panelFrame.origin.y = screen.frame.maxY - height
                 panelFrame.size.height = height
             }
-            let panel = panel ?? IslandPanel()
-            self.panel = panel
+            let panel = presentation.preparePanel()
             panel.title = strings("island.title")
             panel.onSectionSelect = { [weak self] index in
                 guard IslandSection.allCases.indices.contains(index) else { return }
@@ -398,7 +356,7 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
                 .preferredColorScheme(.dark))
             let host = IslandTransitionHost(root: root, size: panelFrame.size,
                                             topInset: topInset, collapsedWidth: activationFrame.width)
-            transitionHost = host
+            presentation.mount(host)
             panel.contentView = host
             panel.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
             panel.minSize = panelFrame.size
@@ -428,31 +386,8 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
         }
     }
 
-    private func cancelTransition() {
-        transitionHost?.stopResizeAnimation()
-        transitionGeneration += 1; transitionTask?.cancel(); transitionTask = nil; transitioning = false
-    }
-
-    private func beginTransition(opening: Bool) {
-        cancelTransition()
-        guard let transitionHost else { return }
-        transitioning = true
-        panel?.hasShadow = false
-        let token = transitionGeneration
-        let duration = transitionHost.animate(opening: opening, reduceMotion: reduceMotion)
-        transitionTask = Task { [weak self] in
-            try? await Task.sleep(for: .seconds(duration))
-            guard !Task.isCancelled, let self, token == self.transitionGeneration else { return }
-            if opening {
-                self.transitionHost?.stopAnimations(); self.transitioning = false; self.transitionTask = nil
-            } else { self.finishClosing() }
-        }
-    }
-
-    private func finishClosing() {
-        cancelTransition(); panel?.orderOut(nil); transitionHost?.stopAnimations()
-        panel?.contentView = nil; transitionHost = nil; closing = false
-    }
+    private func beginTransition(opening: Bool) { presentation.beginTransition(opening: opening, reduceMotion: reduceMotion) }
+    private func finishClosing() { presentation.finishClosing() }
 
     func dismiss(restoreFocus: Bool, animated: Bool = true) {
         wakeup?.cancel(); wakeup = nil; generation += 1
@@ -467,7 +402,7 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
         panel?.makeFirstResponder(nil)
         panel?.ignoresMouseEvents = true
         if animated, let transitionHost {
-            closing = true; transitionHost.clearPrivateContent(); beginTransition(opening: false)
+            presentation.closing = true; transitionHost.clearPrivateContent(); beginTransition(opening: false)
         } else { finishClosing() }
         if restoreFocus && hadFocus {
             if let previousApplication, previousApplication.processIdentifier != ProcessInfo.processInfo.processIdentifier,

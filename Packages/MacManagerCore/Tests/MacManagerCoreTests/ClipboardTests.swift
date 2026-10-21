@@ -1,6 +1,7 @@
 import AppKit
 import CryptoKit
 import Foundation
+import ImageIO
 import Security
 import Testing
 @testable import MacManagerCore
@@ -198,12 +199,14 @@ private func clipboardDirectory() -> URL {
     var requests = 0
     var text = "initial"
     var restored: Data?
+    var writeFails = false
     func requestAccess() { requests += 1 }
     func capture(exclusions: Set<String>) -> ClipboardCapture {
         captures += 1
         return .content(ClipboardRawContent(kind: .text, data: Data(text.utf8)))
     }
-    func restore(_ content: ClipboardRestoredContent) throws { restored = content.data; changeCount += 1 }
+    func restore(_ content: ClipboardRestoredContent) throws {
+        if writeFails { throw ClipboardFailure.writeFailed }; restored = content.data; changeCount += 1 }
     func copy(_ text: String) { self.text = text; changeCount += 1 }
 }
 
@@ -220,7 +223,7 @@ private func clipboardDirectory() -> URL {
     let id = try #require(service.entries.first?.id)
     let task = Task { await service.restore(id) }
     task.cancel()
-    await task.value
+    _ = await task.value
     #expect(mock.restored == nil && service.restoredID == nil && service.failure == nil)
     await service.restore(id); service.poll()
     #expect(mock.restored == Data("cancelled restore".utf8) && service.entries.count == 1)
@@ -545,4 +548,118 @@ func clipboardStorageIsExcludedFromBackup() async throws {
     model.reset()
     #expect(model.matches.isEmpty && model.completed == nil && !model.hasPendingWork)
     service.stop()
+}
+
+@MainActor @Test func clipboardRestoreReportsFailureAndCanRetry() async throws {
+    let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString); defer { try? FileManager.default.removeItem(at: directory) }
+    let repository = ClipboardRepository(directory: directory, keys: ClipboardTestKey())
+    let mock = ClipboardMock()
+    let service = ClipboardService(preferences: .init(), pasteboard: mock, repository: repository, storageExists: false)
+    await service.start()
+    mock.copy("retry me"); service.poll()
+    #expect(await waitUntil { service.entries.count == 1 })
+    let id = try #require(service.entries.first?.id)
+    mock.writeFails = true
+    #expect(await service.restore(id) == false)
+    #expect(service.failure == .writeFailed && service.restoredID == nil)
+    mock.writeFails = false
+    #expect(await service.restore(id))
+    #expect(service.failure == nil && service.restoredID == id)
+    service.stop()
+}
+
+@MainActor @Test func localClipboardWriterAppliesExplicitHistoryPolicyAndReportsFailure() throws {
+    var prepared = false
+    var captured: [NSPasteboardItem] = []
+    let writer = LocalClipboardWriter(prepare: { prepared = true }, write: { captured = $0; return true })
+    try writer.writeText("synthetic IP", history: .allowCapture)
+    #expect(prepared && captured.first?.string(forType: .string) == "synthetic IP")
+    #expect(captured.first?.types.contains(SystemClipboardPasteboard.restoredType) == false)
+    try writer.writeText("synthetic report", history: .excludeFromHistory)
+    #expect(captured.first?.types.contains(SystemClipboardPasteboard.restoredType) == true)
+    #expect(captured.first?.types.contains(.init("org.nspasteboard.RestoredType")) == true)
+    let failing = LocalClipboardWriter(prepare: {}, write: { _ in false })
+    #expect(throws: ClipboardFailure.writeFailed) { try failing.writeText("retry", history: .allowCapture) }
+}
+
+private final class RecoverableClipboardKey: ClipboardKeyProviding, @unchecked Sendable {
+    private let lock = NSLock()
+    private let value = SymmetricKey(size: .bits256)
+    private var unavailable = false
+    private var requests: [Bool] = []
+    func setUnavailable(_ value: Bool) { lock.withLock { unavailable = value } }
+    var creationRequests: [Bool] { lock.withLock { requests } }
+    func key(createIfMissing: Bool) throws -> SymmetricKey {
+        try lock.withLock {
+            requests.append(createIfMissing)
+            if unavailable { throw ClipboardFailure.keyUnavailable }
+            return value
+        }
+    }
+}
+
+@MainActor @Test func clipboardTransientKeyFailurePreservesFilesAndRecoversAfterLock() async throws {
+    let directory = clipboardDirectory(); defer { try? FileManager.default.removeItem(at: directory) }
+    let keys = RecoverableClipboardKey()
+    let repository = ClipboardRepository(directory: directory, keys: keys)
+    let mock = ClipboardMock()
+    let service = ClipboardService(preferences: .init(), pasteboard: mock, repository: repository, storageExists: false)
+    await service.start()
+    mock.copy("synthetic private text"); service.poll()
+    #expect(await waitUntil { service.entries.count == 1 })
+    let id = try #require(service.entries.first?.id)
+    let ciphertext = directory.appendingPathComponent("\(id.uuidString).payload")
+    let before = try Data(contentsOf: ciphertext)
+    keys.setUnavailable(true)
+    await service.setSuspended(true)
+    #expect(await service.restore(id) == false)
+    await service.setSuspended(false)
+    #expect(service.failure == .keyUnavailable && service.entries.isEmpty)
+    #expect(try Data(contentsOf: ciphertext) == before)
+    keys.setUnavailable(false)
+    await service.refresh()
+    #expect(service.entries.first?.id == id && service.failure == nil)
+    #expect(await service.restore(id))
+    service.stop()
+    // Reopening with fresh preferences must reuse the original key and ciphertext.
+    let reopened = ClipboardRepository(directory: directory, keys: keys)
+    #expect(try await reopened.restore(id, preferences: .init(), now: Date()).data == Data("synthetic private text".utf8))
+    #expect(keys.creationRequests.suffix(3).allSatisfy { !$0 })
+}
+
+@Test func clipboardKeyDiagnosticsDistinguishRecoverableErrors() {
+    #expect(ClipboardKeychain.readDiagnostic(errSecItemNotFound) == .keyMissing)
+    #expect(ClipboardKeychain.readDiagnostic(errSecInteractionNotAllowed) == .keyTemporarilyUnavailable)
+    #expect(ClipboardKeychain.readDiagnostic(errSecNotAvailable) == .keyTemporarilyUnavailable)
+    #expect(ClipboardKeychain.readDiagnostic(errSecAuthFailed) == .keyAccessDenied)
+    #expect(ClipboardKeychain.readDiagnostic(errSecDecode) == .keyReadFailed)
+}
+
+@Test func clipboardRejectsMalformedImagesAndInvalidUTF8() throws {
+    for data in [Data(), Data("not an image".utf8), Data([0x89, 0x50, 0x4e, 0x47])] {
+        #expect(throws: ClipboardFailure.self) { try ClipboardRawContent(kind: .image, data: data).normalized() }
+    }
+    #expect(!ClipboardContent(kind: .text, data: Data([0xff, 0xfe])).isValid)
+}
+
+@MainActor @Test func clipboardCancelledNormalizationDoesNotDecode() async {
+    let task = Task { try ClipboardRawContent(kind: .image, data: Data("invalid image".utf8)).normalized() }
+    task.cancel()
+    await #expect(throws: CancellationError.self) { try await task.value }
+}
+
+@Test func clipboardNormalizationKeepsFullResolutionAndBoundsPreview() throws {
+    let bitmap = try #require(NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: 640, pixelsHigh: 480,
+        bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
+        colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0))
+    memset(try #require(bitmap.bitmapData), 127, bitmap.bytesPerRow * bitmap.pixelsHigh)
+    let input = try #require(bitmap.representation(using: .png, properties: [:]))
+    let normalized = try ClipboardRawContent(kind: .image, data: input).normalized()
+    let full = try #require(CGImageSourceCreateWithData(normalized.data as CFData, nil))
+    let previewData = try #require(normalized.thumbnail)
+    let preview = try #require(CGImageSourceCreateWithData(previewData as CFData, nil))
+    let image = try #require(CGImageSourceCreateImageAtIndex(full, 0, nil))
+    let thumbnail = try #require(CGImageSourceCreateImageAtIndex(preview, 0, nil))
+    #expect(image.width == 640 && image.height == 480)
+    #expect(thumbnail.width <= 320 && thumbnail.height <= 320)
 }

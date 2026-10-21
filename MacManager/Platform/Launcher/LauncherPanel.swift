@@ -7,6 +7,7 @@ import AppKit
     let rowMenus = LauncherRowMenuMonitor()
     var navigationEnabled: (() -> Bool)?
     var onTab: (() -> Void)?
+    var onFocusControls: (() -> Void)?
     var onEscape: (() -> Void)?
     var onArrow: ((Int) -> Void)?
     var onSubmit: (() -> Void)?
@@ -49,7 +50,20 @@ import AppKit
     override func sendEvent(_ event: NSEvent) {
         let composing = (firstResponder as? NSTextView)?.hasMarkedText() == true
         if event.type == .keyDown, !composing, navigationEnabled?() != false,
+           event.keyCode == 48,
+           event.modifierFlags.intersection([.command, .control, .option, .shift]) == .shift,
+           let field = searchField, field.currentEditor() === firstResponder {
+            onFocusControls?(); return
+        }
+        if event.type == .keyDown, !composing, navigationEnabled?() != false,
            event.modifierFlags.intersection([.command, .control, .option, .shift]).isEmpty {
+            if event.keyCode == 53 { onEscape?(); return }
+            // Only the search editor owns result navigation. Native controls keep
+            // Return, arrows and Tab when focus has moved out of the search field.
+            guard let field = searchField, field.currentEditor() === firstResponder else {
+                super.sendEvent(event)
+                return
+            }
             switch event.keyCode {
             case 48: onTab?(); return
             case 53: onEscape?(); return

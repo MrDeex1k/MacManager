@@ -8,6 +8,7 @@ public enum DiagnosticCategory: String, CaseIterable, Codable, Sendable {
     case network
     case scroll
     case updates
+    case clipboard
 }
 
 public struct DiagnosticErrorRecord: Codable, Equatable, Sendable {
@@ -31,7 +32,8 @@ public final class DiagnosticsStore {
         let allowed = [
             "offline", "timeout", "rateLimited", "server", "http", "invalidResponse", "transport",
             "sampleFailed", "requestFailed", "driverFailed", "interrupted"
-        ]
+        ] + ClipboardKeyDiagnostic.allCases.map(\.rawValue)
+
         lastErrors[category] = DiagnosticErrorRecord(
             kind: allowed.contains(kind) ? kind : "redacted",
             date: date

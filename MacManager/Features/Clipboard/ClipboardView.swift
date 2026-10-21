@@ -81,8 +81,10 @@ struct ClipboardView: View {
                 HStack(spacing: 16) {
                     HStack {
                         Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
+                            .accessibilityHidden(true)
                         TextField(state.strings("clipboard.search"), text: $query)
                             .textFieldStyle(.plain)
+                            .accessibilityLabel(state.strings("clipboard.search"))
                             .accessibilityIdentifier("clipboard.search")
                         if !query.isEmpty {
                             Button { query = "" } label: { Image(systemName: "xmark.circle.fill") }
@@ -122,6 +124,9 @@ struct ClipboardView: View {
                             Divider()
                         }
                     }
+                    .accessibilityElement(children: .contain)
+                    .accessibilityLabel(state.strings("clipboard.title"))
+                    .accessibilityIdentifier("clipboard.entries")
                 }
             }
         }
@@ -145,6 +150,7 @@ struct ClipboardView: View {
         .alert(state.strings("clipboard.clear.confirm"), isPresented: $confirmingClear) {
             Button(state.strings("clipboard.cancel"), role: .cancel) {}
             Button(state.strings("clipboard.clear"), role: .destructive) { Task { await service.clear() } }
+                .accessibilityIdentifier("clipboard.clear.confirm")
         } message: { Text(state.strings("clipboard.clear.note")) }
     }
 
@@ -174,6 +180,7 @@ struct ClipboardView: View {
             }
             .buttonStyle(.plain)
             .disabled(entry.damaged)
+            .accessibilityIdentifier("clipboard.detail.\(entry.id)")
             Button {
                 Task { await service.restore(entry.id) }
             } label: {

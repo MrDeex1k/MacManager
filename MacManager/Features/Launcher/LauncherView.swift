@@ -4,6 +4,7 @@ import SwiftUI
 
 struct LauncherView: View {
     let controller: LauncherController
+    @FocusState private var modeFocused: Bool
     private var model: LauncherSearchModel { controller.model }
     var body: some View {
         VStack(spacing: 0) {
@@ -13,10 +14,16 @@ struct LauncherView: View {
                 }.buttonStyle(.plain).foregroundStyle(AppTheme.accent)
                     .accessibilityLabel(controller.strings("launcher.switchMode"))
                     .accessibilityIdentifier("launcher.switchMode")
-                LauncherSearchField(model: model, placeholder: controller.strings(controller.clipboardMode ? "clipboard.search" : "launcher.placeholder"))
+                    .focusable().focused($modeFocused)
+                    .onKeyPress(.return) { controller.toggleMode(); return .handled }
+                    .onKeyPress(.space) { controller.toggleMode(); return .handled }
+                NativeSearchField(text: model.query, placeholder: controller.strings(controller.clipboardMode ? "clipboard.search" : "launcher.placeholder"),
+                                  identifier: "launcher.search", style: .launcher, onChange: model.search)
                     .frame(height: 32)
-                if model.isLoading || model.isSearching { ProgressView().controlSize(.small) }
-                Text("esc").font(.caption).foregroundStyle(.secondary)
+                if model.isLoading || model.isSearching {
+                    ProgressView().controlSize(.small).accessibilityIdentifier("launcher.progress")
+                }
+                Text("esc").font(.caption).foregroundStyle(.primary)
             }
             .padding(.horizontal, 24).frame(height: 90)
             if controller.showsResults {
@@ -56,16 +63,20 @@ struct LauncherView: View {
                             }
                         }
                         .padding(.horizontal, 12)
+                        .accessibilityElement(children: .contain)
+                        .accessibilityLabel(controller.strings("launcher.results"))
+                        .accessibilityIdentifier("launcher.results")
                     }
                     .onChange(of: model.selectedID) { _, id in if let id { proxy.scrollTo(id) } }
                 }
                 HStack {
                     Text(controller.strings(controller.actionFailed ? "launcher.actionFailed" :
                         model.failed ? "launcher.partial" : "launcher.keyboard"))
-                        .foregroundStyle(controller.actionFailed || model.failed ? .orange : .secondary)
+                        .foregroundStyle(controller.actionFailed || model.failed ? .orange : .primary)
                     Spacer()
                     if controller.clipboardMode {
                         Text(controller.strings("clipboard.status.\(controller.clipboard?.status.rawValue ?? "disabled")"))
+                            .foregroundStyle(Color.white)
                     } else if controller.options.filesEnabled {
                         Picker(controller.strings("launcher.files.filter"), selection: Binding(
                             get: { controller.fileFilter }, set: { controller.fileFilter = $0; controller.refreshResults() })) {
@@ -75,10 +86,15 @@ struct LauncherView: View {
                         }.labelsHidden().fixedSize()
                     }
                 }
-                .font(.caption).padding(.horizontal, 24).frame(height: 30)
+                .font(.caption.weight(.medium)).padding(.horizontal, 24).frame(height: 30)
+                .background(AppTheme.canvas, in:
+                    UnevenRoundedRectangle(bottomLeadingRadius: 24, bottomTrailingRadius: 24))
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(controller.strings("launcher.title"))
+        .accessibilityIdentifier("launcher.content")
         .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 24))
         .popover(item: Binding(get: { controller.customizationEntry }, set: { controller.customizationEntry = $0 })) { entry in
             let presentation = controller.focusPresentationID
@@ -88,6 +104,7 @@ struct LauncherView: View {
                 }
                 .onDisappear { controller.restoreSearchFocus(after: presentation) }
         }
+        .onChange(of: controller.focusControlsRequest) { _, _ in modeFocused = true }
         .onChange(of: controller.clipboard?.revision) { _, _ in
             if controller.clipboardMode { controller.refreshResults() }
         }
@@ -107,49 +124,6 @@ struct LauncherView: View {
     }
 }
 
-
-private struct LauncherSearchField: NSViewRepresentable {
-    let model: LauncherSearchModel
-    let placeholder: String
-    func makeCoordinator() -> Coordinator { Coordinator(model: model) }
-    func makeNSView(context: Context) -> FocusedSearchField {
-        let field = FocusedSearchField()
-        field.delegate = context.coordinator
-        field.isBezeled = false; field.drawsBackground = false
-        field.focusRingType = .none; field.font = .systemFont(ofSize: 23)
-        field.textColor = .labelColor; field.isEditable = true; field.isSelectable = true
-        field.usesSingleLineMode = true
-        field.identifier = .init("launcher.search")
-        field.setAccessibilityIdentifier("launcher.search")
-        field.setAccessibilityLabel(placeholder)
-        return field
-    }
-    func updateNSView(_ field: FocusedSearchField, context: Context) {
-        field.placeholderString = placeholder
-        field.setAccessibilityLabel(placeholder)
-        if (field.currentEditor() as? NSTextView)?.hasMarkedText() != true, field.stringValue != model.query {
-            field.stringValue = model.query
-        }
-    }
-    @MainActor final class Coordinator: NSObject, NSTextFieldDelegate {
-        let model: LauncherSearchModel
-        init(model: LauncherSearchModel) { self.model = model }
-        func controlTextDidChange(_ notification: Notification) {
-            guard let field = notification.object as? NSTextField,
-                  (field.currentEditor() as? NSTextView)?.hasMarkedText() != true else { return }
-            model.search(field.stringValue)
-        }
-    }
-    @MainActor final class FocusedSearchField: NSTextField {
-        override func viewDidMoveToWindow() {
-            super.viewDidMoveToWindow()
-            DispatchQueue.main.async { [weak self] in
-                guard let self, let window = self.window, window.isVisible, window.isKeyWindow else { return }
-                window.makeFirstResponder(self)
-            }
-        }
-    }
-}
 
 private struct LauncherRowActions: ViewModifier {
     let controller: LauncherController

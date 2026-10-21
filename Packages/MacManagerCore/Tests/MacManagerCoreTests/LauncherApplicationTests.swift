@@ -92,3 +92,40 @@ private struct AppScanFixture {
     let embeddedIDs = try await fixture.entries([fixture.root.appendingPathComponent("Host.app")]).map(\.bundleID)
     #expect(Set(embeddedIDs) == ["test.host", "test.embedded"])
 }
+
+@Test func launcherResolvesSystemLoctablesAndKeepsBothLanguageAliases() async throws {
+    let fixture = AppScanFixture(); defer { fixture.clean() }
+    for (base, polish) in [("Messages", "Wiadomości"), ("Phone", "Telefon"), ("Clock", "Zegar")] {
+        let app = try fixture.app("Apps/\(base).app", id: "test.\(base)")
+        let resources = app.appendingPathComponent("Contents/Resources")
+        try FileManager.default.createDirectory(at: resources, withIntermediateDirectories: true)
+        let table = ["pl": ["CFBundleDisplayName": polish], "en": ["CFBundleDisplayName": base]]
+        try PropertyListSerialization.data(fromPropertyList: table, format: .binary, options: 0)
+            .write(to: resources.appendingPathComponent("InfoPlist.loctable"))
+    }
+    for language in ["pl", "en"] {
+        let entries = try await ApplicationProvider(scopes: [fixture.root.appendingPathComponent("Apps").path]).entries(language: language)
+        #expect(entries.count == 3)
+        for (base, polish) in [("Messages", "Wiadomości"), ("Phone", "Telefon"), ("Clock", "Zegar")] {
+            let entry = try #require(entries.first { $0.bundleID == "test.\(base)" })
+            #expect(entry.title == (language == "pl" ? polish : base))
+            #expect(entry.alternateNames.contains(polish) && entry.alternateNames.contains(base))
+        }
+    }
+}
+
+@Test(.enabled(if: ProcessInfo.processInfo.environment["MM_SYSTEM_TESTS"] == "1", "Reads installed macOS application metadata"))
+func launcherFindsInstalledSystemAppsByPolishNames() async throws {
+    let entries = try await ApplicationProvider(scopes: ["/System/Applications"]).entries(language: "pl")
+    for (id, polish, english) in [("com.apple.MobileSMS", "Wiadomości", "Messages"),
+                                  ("com.apple.mobilephone", "Telefon", "Phone"),
+                                  ("com.apple.clock", "Zegar", "Clock")] {
+        if let entry = entries.first(where: { $0.bundleID?.lowercased() == id.lowercased() }) {
+            #expect(entry.title == polish)
+            #expect(entry.alternateNames.contains(english))
+        }
+    }
+    #expect(entries.contains { $0.title == "Wiadomości" })
+    #expect(entries.contains { $0.title == "Telefon" })
+    #expect(entries.contains { $0.title == "Zegar" })
+}

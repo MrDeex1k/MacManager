@@ -8,7 +8,7 @@ class AppUITestSupport: XCTestCase {
             guard let id = candidate.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber else { return false }
             return CGDisplayIsBuiltin(id.uint32Value) != 0
         } ?? NSScreen.main!
-        return max(screen.safeAreaInsets.top, screen.frame.maxY - screen.visibleFrame.maxY, 24) + 304
+        return max(screen.safeAreaInsets.top, screen.frame.maxY - screen.visibleFrame.maxY, 24) + 306
     }
 
     @MainActor
@@ -77,11 +77,27 @@ class AppUITestSupport: XCTestCase {
     @MainActor
     func performAccessibilityAudit(
         in app: XCUIApplication,
-        for auditTypes: XCUIAccessibilityAuditType
+        for auditTypes: XCUIAccessibilityAuditType,
+        within surface: XCUIElement? = nil
     ) throws {
+        // XCTest audits the whole process, including dimmed windows behind sheets.
+        // Keep checks on the visible surface being exercised, not its backdrop.
+        let surfaceSnapshot = try surface?.snapshot()
+        func contains(_ snapshot: any XCUIElementSnapshot, _ element: XCUIElement) -> Bool {
+            if snapshot.elementType == element.elementType,
+               snapshot.identifier == element.identifier,
+               snapshot.label == element.label,
+               !snapshot.identifier.isEmpty || snapshot.frame == element.frame {
+                return true
+            }
+            return snapshot.children.contains { contains($0, element) }
+        }
         try app.performAccessibilityAudit(for: auditTypes) { issue in
             guard let element = issue.element else {
                 return false
+            }
+            if let surfaceSnapshot, element.exists, !contains(surfaceSnapshot, element) {
+                return true
             }
 
             let isAnonymousDisabledGroup = element.elementType == .group
@@ -97,7 +113,7 @@ class AppUITestSupport: XCTestCase {
             let isNativePickerAction = issue.auditType == .action
                 && issue.compactDescription == "Action is missing"
                 && element.elementType == .popUpButton
-                && ["settings.language", "metrics.interval"].contains(element.identifier)
+                && ["settings.language", "metrics.interval", "launcher.modifiers", "launcher.key"].contains(element.identifier)
             let isWindowControlContainer = issue.auditType == .parentChild
                 && isAnonymousDisabledGroup
             let isSystemTouchBar = issue.auditType == .sufficientElementDescription
@@ -113,9 +129,15 @@ class AppUITestSupport: XCTestCase {
 
             // XCTest reports framework-owned SwiftUI, Liquid Glass and window chrome as findings.
             // Their actionable descendants and labels remain subject to every audit.
-            return isLayoutGroup || isSidebarNavigationLink || isNativePickerAction
+            let isFrameworkIssue = isLayoutGroup || isSidebarNavigationLink || isNativePickerAction
                 || isWindowControlContainer || isSystemTouchBar
                 || isNativeSidebarSelectionContrast
+            if !isFrameworkIssue {
+                // Keep enough context even if XCTest cannot attach a screenshot.
+                print("AX audit: \(issue.compactDescription); type=\(element.elementType); id=\(element.identifier)")
+                print(element.debugDescription)
+            }
+            return isFrameworkIssue
         }
     }
 
@@ -124,6 +146,7 @@ class AppUITestSupport: XCTestCase {
         reset: Bool,
         liveMetrics: Bool = false,
         clipboardFixture: Bool = false,
+        clipboardWriteFailure: Bool = false,
         islandClipboardFixture: Bool = false,
         islandDenseClipboardFixture: Bool = false,
         islandReduceMotion: Bool = false,
@@ -145,6 +168,7 @@ class AppUITestSupport: XCTestCase {
         if liveMetrics { app.launchArguments.append("--live-metrics") }
         if launcherLiveTesting { app.launchArguments.append("--launcher-live-testing") }
         if clipboardFixture { app.launchArguments.append("--clipboard-fixture") }
+        if clipboardWriteFailure { app.launchArguments.append("--clipboard-write-failure") }
         if islandClipboardFixture { app.launchArguments.append("--island-clipboard-fixture") }
         if islandDenseClipboardFixture { app.launchArguments.append("--island-dense-clipboard-fixture") }
         if islandReduceMotion { app.launchArguments.append("--island-reduce-motion") }
