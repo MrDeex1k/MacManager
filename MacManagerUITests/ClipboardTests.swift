@@ -56,4 +56,53 @@ final class ClipboardTests: AppUITestSupport {
         )], timeout: 5), .completed)
     }
 
+    @MainActor
+    func testDetailsKeepWriteFailureAndRetrySuccessfully() throws {
+        let app = launch(reset: true, clipboardFixture: true, clipboardWriteFailure: true)
+        defer { app.terminate() }
+        element("navigation.clipboard", in: app).click()
+        let detail = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "clipboard.detail.")).firstMatch
+        XCTAssertTrue(detail.waitForExistence(timeout: 5))
+        detail.click()
+        app.buttons["clipboard.detail.restore"].click()
+        XCTAssertTrue(element("clipboard.detail.error", in: app).waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["clipboard.detail.restore"].isEnabled)
+        try performAccessibilityAudit(in: app, for: [.action, .sufficientElementDescription, .parentChild])
+        app.buttons["clipboard.detail.restore"].click()
+        XCTAssertTrue(app.buttons["clipboard.detail.restore"].waitForNonExistence(timeout: 3))
+    }
+
+    @MainActor
+    func testClipboardAndPanelsAccessibility() throws {
+        let app = launch(reset: true, clipboardFixture: true)
+        defer { app.terminate() }
+        let types: XCUIAccessibilityAuditType = [.action, .sufficientElementDescription, .parentChild, .contrast]
+        element("navigation.clipboard", in: app).click()
+        let detail = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "clipboard.detail.")).firstMatch
+        XCTAssertTrue(detail.waitForExistence(timeout: 5))
+        try performAccessibilityAudit(in: app, for: types)
+        detail.click()
+        XCTAssertTrue(app.buttons["clipboard.detail.restore"].waitForExistence(timeout: 3))
+        try performAccessibilityAudit(in: app, for: types)
+        app.buttons["clipboard.detail.restore"].click()
+        app.menuBars.menuBarItems["View"].click()
+        app.menuItems["Open launcher"].click()
+        XCTAssertTrue(app.textFields["launcher.search"].waitForExistence(timeout: 3))
+        app.textFields["launcher.search"].typeKey(.tab, modifierFlags: [])
+        let launcherCopy = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "launcher.result.clipboard:")).firstMatch
+        XCTAssertTrue(launcherCopy.waitForExistence(timeout: 3))
+        try performAccessibilityAudit(in: app, for: types)
+        app.textFields["launcher.search"].typeKey(.escape, modifierFlags: [])
+        app.menuBars.menuBarItems["View"].click()
+        app.menuItems["Open Island"].click()
+        let card = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "island.clipboard.restore.")).firstMatch
+        XCTAssertTrue(card.waitForExistence(timeout: 3))
+        try performAccessibilityAudit(in: app, for: types)
+        card.click()
+        let copied = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "Copied"), object: card)
+        XCTAssertEqual(XCTWaiter.wait(for: [copied], timeout: 3), .completed)
+        try performAccessibilityAudit(in: app, for: types)
+        app.buttons["island.close"].click()
+    }
+
 }

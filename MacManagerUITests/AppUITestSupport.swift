@@ -8,7 +8,7 @@ class AppUITestSupport: XCTestCase {
             guard let id = candidate.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber else { return false }
             return CGDisplayIsBuiltin(id.uint32Value) != 0
         } ?? NSScreen.main!
-        return max(screen.safeAreaInsets.top, screen.frame.maxY - screen.visibleFrame.maxY, 24) + 304
+        return max(screen.safeAreaInsets.top, screen.frame.maxY - screen.visibleFrame.maxY, 24) + 308
     }
 
     @MainActor
@@ -124,6 +124,7 @@ class AppUITestSupport: XCTestCase {
         reset: Bool,
         liveMetrics: Bool = false,
         clipboardFixture: Bool = false,
+        clipboardWriteFailure: Bool = false,
         islandClipboardFixture: Bool = false,
         islandDenseClipboardFixture: Bool = false,
         islandReduceMotion: Bool = false,
@@ -145,6 +146,7 @@ class AppUITestSupport: XCTestCase {
         if liveMetrics { app.launchArguments.append("--live-metrics") }
         if launcherLiveTesting { app.launchArguments.append("--launcher-live-testing") }
         if clipboardFixture { app.launchArguments.append("--clipboard-fixture") }
+        if clipboardWriteFailure { app.launchArguments.append("--clipboard-write-failure") }
         if islandClipboardFixture { app.launchArguments.append("--island-clipboard-fixture") }
         if islandDenseClipboardFixture { app.launchArguments.append("--island-dense-clipboard-fixture") }
         if islandReduceMotion { app.launchArguments.append("--island-reduce-motion") }

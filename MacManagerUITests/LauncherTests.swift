@@ -193,3 +193,46 @@ final class LauncherTests: AppUITestSupport {
     }
 
 }
+
+extension LauncherTests {
+    @MainActor func testQueryToVisibleResultBenchmark() throws {
+        guard ProcessInfo.processInfo.environment["MM_UI_BENCHMARKS"] == "1" else {
+            throw XCTSkip("Opt-in UI latency measurement; includes XCTest input and observation overhead")
+        }
+        let app = launch(reset: true)
+        defer { app.terminate() }
+        element("navigation.settings", in: app).click()
+        app.buttons["launcher.open"].click()
+        let field = app.textFields["launcher.search"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        measure(metrics: [XCTClockMetric()]) {
+            field.typeKey("a", modifierFlags: .command)
+            field.typeText("network")
+            XCTAssertTrue(app.buttons["launcher.result.command:network"].waitForExistence(timeout: 3))
+            field.typeKey("a", modifierFlags: .command)
+            field.typeText("settings")
+            XCTAssertTrue(app.buttons["launcher.result.command:settings"].waitForExistence(timeout: 3))
+        }
+    }
+}
+
+extension LauncherTests {
+    @MainActor func testShiftTabReachesModeControlAndReturnDoesNotRestoreSelection() throws {
+        let app = launch(reset: true, clipboardFixture: true)
+        defer { app.terminate() }
+        element("navigation.settings", in: app).click()
+        app.buttons["launcher.open"].click()
+        let field = app.textFields["launcher.search"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.typeKey(.tab, modifierFlags: .shift)
+        app.typeKey(.return, modifierFlags: [])
+        let copy = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "launcher.result.clipboard:")).firstMatch
+        XCTAssertTrue(copy.waitForExistence(timeout: 3))
+        XCTAssertTrue(field.exists)
+        app.typeKey(" ", modifierFlags: [])
+        XCTAssertTrue(copy.waitForNonExistence(timeout: 3))
+        app.typeKey(.tab, modifierFlags: [])
+        field.typeText("network")
+        XCTAssertTrue(app.buttons["launcher.result.command:network"].waitForExistence(timeout: 3))
+    }
+}
