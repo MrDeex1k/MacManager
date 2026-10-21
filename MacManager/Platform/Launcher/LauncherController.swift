@@ -119,14 +119,9 @@ final class LauncherController: ApplicationLifecycleParticipant {
         applicationIcons.refreshIfNeeded(after: catalogRefreshSeconds)
         previousApplication = NSWorkspace.shared.frontmostApplication
         actionFailed = false; executing = false; presentationID = UUID()
-        let commands = AppSection.allCases.map { section in
-            LauncherEntry(id: "command:" + section.rawValue, title: strings(section.titleKey),
-                subtitle: "Mac Manager", symbol: section.symbol, action: .section(section.rawValue),
-                alternateNames: [AppStrings(languageCode: "en")(section.titleKey), AppStrings(languageCode: "pl")(section.titleKey)])
-        }
         model.preferences = preferences.launcher
-        model.load(providers: testing && !usesRealShortcut ? [] : [ApplicationProvider(), SystemSettingsProvider()],
-                   language: preferences.language.resolvedCode(), commands: commands)
+        model.load(providers: [ApplicationProvider(), SystemSettingsProvider()],
+                   language: preferences.language.resolvedCode(), commands: [])
         let panel = self.panel ?? LauncherPanel()
         self.panel = panel
         panel.onEscape = { [weak self] in

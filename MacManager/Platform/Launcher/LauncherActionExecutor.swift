@@ -24,7 +24,16 @@ import MacManagerCore
                   NSWorkspace.shared.open(url) else { return .failed }
             return .opened
         case .section(let section): return .section(section)
-        case .systemSettings(let url): return NSWorkspace.shared.open(url) ? .opened : .failed
+        case .systemSettings(let url):
+            guard let application = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.systempreferences") else { return .failed }
+            let configuration = NSWorkspace.OpenConfiguration()
+            configuration.activates = true
+            let opened: Bool = await withCheckedContinuation { continuation in
+                NSWorkspace.shared.open([url], withApplicationAt: application, configuration: configuration) { _, error in
+                    continuation.resume(returning: error == nil)
+                }
+            }
+            return opened ? .opened : .failed
         case .application(let url):
             guard FileManager.default.fileExists(atPath: url.path) else { return .failed }
             let configuration = NSWorkspace.OpenConfiguration()

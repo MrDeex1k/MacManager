@@ -53,6 +53,7 @@ public struct SystemSettingsProvider: LauncherProvider {
         let task = Task.detached(priority: .utility) { () throws -> [LauncherEntry] in
             // Existing AppKit routes used by Mac Manager. Only advertise a pane installed on this OS.
             let candidates = [
+                ("com.apple.Network-Settings.extension", "com.apple.Network-Settings.extension", "Network", "Sieć"),
                 ("com.apple.settings.PrivacySecurity.extension", "com.apple.preference.security", "Privacy & Security", "Prywatność i ochrona"),
                 ("com.apple.LoginItems-Settings.extension", "com.apple.LoginItems-Settings.extension", "Login Items & Extensions", "Rzeczy otwierane podczas logowania i rozszerzenia")
             ]
