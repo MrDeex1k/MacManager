@@ -19,12 +19,13 @@ final class ClipboardTests: AppUITestSupport {
         XCTAssertTrue(limit.waitForExistence(timeout: 5))
         limit.click(); limit.typeKey("a", modifierFlags: .command); limit.typeText("1")
         app.buttons["clipboard.settings.save"].click()
-        XCTAssertTrue(app.sheets.buttons["action-button-1"].waitForExistence(timeout: 5))
-        app.sheets.buttons["action-button-1"].click()
+        let confirmLimits = app.buttons["clipboard.retention.confirm"]
+        XCTAssertTrue(confirmLimits.waitForExistence(timeout: 5))
+        confirmLimits.click()
         XCTAssertTrue(app.staticTexts["No matching text"].waitForExistence(timeout: 5))
         search.click(); search.typeKey("a", modifierFlags: .command); search.typeKey(.delete, modifierFlags: [])
         app.buttons["clipboard.clear"].click()
-        app.sheets.buttons["action-button-1"].click()
+        app.buttons["clipboard.clear.confirm"].click()
         XCTAssertTrue(app.staticTexts["No saved copies yet"].waitForExistence(timeout: 5))
         app.terminate()
     }
@@ -74,16 +75,25 @@ final class ClipboardTests: AppUITestSupport {
 
     @MainActor
     func testClipboardAndPanelsAccessibility() throws {
+        try checkClipboardPanels(auditTypes: [.action, .sufficientElementDescription, .parentChild])
+    }
+
+    @MainActor
+    func testClipboardAndPanelsContrast() throws {
+        try checkClipboardPanels(auditTypes: [.contrast])
+    }
+
+    @MainActor
+    private func checkClipboardPanels(auditTypes: XCUIAccessibilityAuditType) throws {
         let app = launch(reset: true, clipboardFixture: true)
         defer { app.terminate() }
-        let types: XCUIAccessibilityAuditType = [.action, .sufficientElementDescription, .parentChild, .contrast]
         element("navigation.clipboard", in: app).click()
         let detail = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "clipboard.detail.")).firstMatch
         XCTAssertTrue(detail.waitForExistence(timeout: 5))
-        try performAccessibilityAudit(in: app, for: types)
+        try performAccessibilityAudit(in: app, for: auditTypes)
         detail.click()
         XCTAssertTrue(app.buttons["clipboard.detail.restore"].waitForExistence(timeout: 3))
-        try performAccessibilityAudit(in: app, for: types)
+        try performAccessibilityAudit(in: app, for: auditTypes)
         app.buttons["clipboard.detail.restore"].click()
         app.menuBars.menuBarItems["View"].click()
         app.menuItems["Open launcher"].click()
@@ -91,17 +101,17 @@ final class ClipboardTests: AppUITestSupport {
         app.textFields["launcher.search"].typeKey(.tab, modifierFlags: [])
         let launcherCopy = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "launcher.result.clipboard:")).firstMatch
         XCTAssertTrue(launcherCopy.waitForExistence(timeout: 3))
-        try performAccessibilityAudit(in: app, for: types)
+        try performAccessibilityAudit(in: app, for: auditTypes)
         app.textFields["launcher.search"].typeKey(.escape, modifierFlags: [])
         app.menuBars.menuBarItems["View"].click()
         app.menuItems["Open Island"].click()
         let card = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "island.clipboard.restore.")).firstMatch
         XCTAssertTrue(card.waitForExistence(timeout: 3))
-        try performAccessibilityAudit(in: app, for: types)
+        try performAccessibilityAudit(in: app, for: auditTypes)
         card.click()
         let copied = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "Copied"), object: card)
         XCTAssertEqual(XCTWaiter.wait(for: [copied], timeout: 3), .completed)
-        try performAccessibilityAudit(in: app, for: types)
+        try performAccessibilityAudit(in: app, for: auditTypes)
         app.buttons["island.close"].click()
     }
 

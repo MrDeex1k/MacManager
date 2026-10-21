@@ -311,7 +311,8 @@ final class IslandTests: AppUITestSupport {
         let firstCard = cards.element(boundBy: 0)
         XCTAssertLessThanOrEqual(firstCard.frame.minY - field.frame.maxY, 18, "Filter and cards should form a compact stack")
         let capture = app.buttons["island.clipboard.capture"]
-        XCTAssertLessThanOrEqual(capture.frame.minY - firstCard.frame.maxY, 24, "Footer should sit directly below the shelf")
+        // The footer includes the extra 2 pt requested above its controls.
+        XCTAssertLessThanOrEqual(capture.frame.minY - firstCard.frame.maxY, 26, "Footer should sit directly below the shelf with scrollbar clearance")
         XCTAssertLessThanOrEqual(capture.frame.maxY, element("island.panel", in: app).frame.maxY - 8)
         let compactProof = XCTAttachment(screenshot: element("island.panel", in: app).screenshot())
         compactProof.name = "Compact clipboard shelf and readable paused status"

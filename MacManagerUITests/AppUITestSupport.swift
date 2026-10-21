@@ -97,7 +97,7 @@ class AppUITestSupport: XCTestCase {
             let isNativePickerAction = issue.auditType == .action
                 && issue.compactDescription == "Action is missing"
                 && element.elementType == .popUpButton
-                && ["settings.language", "metrics.interval"].contains(element.identifier)
+                && ["settings.language", "metrics.interval", "launcher.modifiers", "launcher.key"].contains(element.identifier)
             let isWindowControlContainer = issue.auditType == .parentChild
                 && isAnonymousDisabledGroup
             let isSystemTouchBar = issue.auditType == .sufficientElementDescription
@@ -113,9 +113,15 @@ class AppUITestSupport: XCTestCase {
 
             // XCTest reports framework-owned SwiftUI, Liquid Glass and window chrome as findings.
             // Their actionable descendants and labels remain subject to every audit.
-            return isLayoutGroup || isSidebarNavigationLink || isNativePickerAction
+            let isFrameworkIssue = isLayoutGroup || isSidebarNavigationLink || isNativePickerAction
                 || isWindowControlContainer || isSystemTouchBar
                 || isNativeSidebarSelectionContrast
+            if !isFrameworkIssue {
+                // Keep enough context even if XCTest cannot attach a screenshot.
+                print("AX audit: \(issue.compactDescription); type=\(element.elementType); id=\(element.identifier)")
+                print(element.debugDescription)
+            }
+            return isFrameworkIssue
         }
     }
 
