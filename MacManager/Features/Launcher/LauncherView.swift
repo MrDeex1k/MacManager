@@ -13,7 +13,8 @@ struct LauncherView: View {
                 }.buttonStyle(.plain).foregroundStyle(AppTheme.accent)
                     .accessibilityLabel(controller.strings("launcher.switchMode"))
                     .accessibilityIdentifier("launcher.switchMode")
-                LauncherSearchField(model: model, placeholder: controller.strings(controller.clipboardMode ? "clipboard.search" : "launcher.placeholder"))
+                NativeSearchField(text: model.query, placeholder: controller.strings(controller.clipboardMode ? "clipboard.search" : "launcher.placeholder"),
+                                  identifier: "launcher.search", style: .launcher, onChange: model.search)
                     .frame(height: 32)
                 if model.isLoading || model.isSearching { ProgressView().controlSize(.small) }
                 Text("esc").font(.caption).foregroundStyle(.secondary)
@@ -107,49 +108,6 @@ struct LauncherView: View {
     }
 }
 
-
-private struct LauncherSearchField: NSViewRepresentable {
-    let model: LauncherSearchModel
-    let placeholder: String
-    func makeCoordinator() -> Coordinator { Coordinator(model: model) }
-    func makeNSView(context: Context) -> FocusedSearchField {
-        let field = FocusedSearchField()
-        field.delegate = context.coordinator
-        field.isBezeled = false; field.drawsBackground = false
-        field.focusRingType = .none; field.font = .systemFont(ofSize: 23)
-        field.textColor = .labelColor; field.isEditable = true; field.isSelectable = true
-        field.usesSingleLineMode = true
-        field.identifier = .init("launcher.search")
-        field.setAccessibilityIdentifier("launcher.search")
-        field.setAccessibilityLabel(placeholder)
-        return field
-    }
-    func updateNSView(_ field: FocusedSearchField, context: Context) {
-        field.placeholderString = placeholder
-        field.setAccessibilityLabel(placeholder)
-        if (field.currentEditor() as? NSTextView)?.hasMarkedText() != true, field.stringValue != model.query {
-            field.stringValue = model.query
-        }
-    }
-    @MainActor final class Coordinator: NSObject, NSTextFieldDelegate {
-        let model: LauncherSearchModel
-        init(model: LauncherSearchModel) { self.model = model }
-        func controlTextDidChange(_ notification: Notification) {
-            guard let field = notification.object as? NSTextField,
-                  (field.currentEditor() as? NSTextView)?.hasMarkedText() != true else { return }
-            model.search(field.stringValue)
-        }
-    }
-    @MainActor final class FocusedSearchField: NSTextField {
-        override func viewDidMoveToWindow() {
-            super.viewDidMoveToWindow()
-            DispatchQueue.main.async { [weak self] in
-                guard let self, let window = self.window, window.isVisible, window.isKeyWindow else { return }
-                window.makeFirstResponder(self)
-            }
-        }
-    }
-}
 
 private struct LauncherRowActions: ViewModifier {
     let controller: LauncherController

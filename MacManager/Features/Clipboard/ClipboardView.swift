@@ -174,6 +174,7 @@ struct ClipboardView: View {
             }
             .buttonStyle(.plain)
             .disabled(entry.damaged)
+            .accessibilityIdentifier("clipboard.detail.\(entry.id)")
             Button {
                 Task { await service.restore(entry.id) }
             } label: {

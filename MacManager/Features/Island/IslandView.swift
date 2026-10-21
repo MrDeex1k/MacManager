@@ -36,7 +36,9 @@ struct IslandView: View {
             Group {
             if coordinator.displayedSection == .clipboard {
               HStack {
-                IslandSearchField(coordinator: coordinator).frame(height: 30)
+                NativeSearchField(text: coordinator.query, placeholder: coordinator.strings("clipboard.search"),
+                                  identifier: "island.search", style: .island) { coordinator.query = $0 }
+                    .frame(height: 30)
                 if !coordinator.query.isEmpty {
                     Button { coordinator.query = "" } label: { Image(systemName: "xmark.circle.fill") }
                         .buttonStyle(.plain)
@@ -115,34 +117,6 @@ struct IslandSilhouette: Shape {
                           control: CGPoint(x: left, y: rect.minY))
         path.closeSubpath()
         return path
-    }
-}
-
-private struct IslandSearchField: NSViewRepresentable {
-    let coordinator: IslandCoordinator
-    func makeNSView(context: Context) -> NSTextField {
-        let field = NSTextField()
-        field.identifier = .init("island.search")
-        field.setAccessibilityIdentifier("island.search")
-        field.delegate = context.coordinator
-        field.isEditable = true; field.isSelectable = true
-        field.focusRingType = .none
-        field.bezelStyle = .roundedBezel
-        return field
-    }
-    func updateNSView(_ field: NSTextField, context: Context) {
-        field.placeholderString = coordinator.strings("clipboard.search")
-        field.setAccessibilityLabel(coordinator.strings("clipboard.search"))
-        if (field.currentEditor() as? NSTextView)?.hasMarkedText() != true,
-           field.stringValue != coordinator.query { field.stringValue = coordinator.query }
-    }
-    func makeCoordinator() -> Delegate { Delegate(owner: coordinator) }
-    @MainActor final class Delegate: NSObject, NSTextFieldDelegate {
-        let owner: IslandCoordinator
-        init(owner: IslandCoordinator) { self.owner = owner }
-        func controlTextDidChange(_ notification: Notification) {
-            if let field = notification.object as? NSTextField { owner.query = field.stringValue }
-        }
     }
 }
 
