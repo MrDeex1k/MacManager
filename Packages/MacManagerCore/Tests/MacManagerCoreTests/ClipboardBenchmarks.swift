@@ -46,6 +46,34 @@ struct ClipboardBenchmarks {
         }
     }
 
+    @MainActor
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["MM_SYSTEM_TESTS"] == "1", "Uses a named synthetic pasteboard"))
+    func pasteboardCaptureBenchmark() throws {
+        let bitmap = try #require(NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: 2_048, pixelsHigh: 2_048,
+            bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
+            colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0))
+        memset(try #require(bitmap.bitmapData), 127, bitmap.bytesPerRow * bitmap.pixelsHigh)
+        let board = NSPasteboard(name: .init("MacManagerCaptureBenchmark-\(UUID())"))
+        defer { board.releaseGlobally() }
+        let adapter = SystemClipboardPasteboard(pasteboard: board, foregroundBundleID: { nil })
+        for (label, format, type) in [("PNG", NSBitmapImageRep.FileType.png, NSPasteboard.PasteboardType.png), ("TIFF", .tiff, .tiff)] {
+            let bytes = try #require(bitmap.representation(using: format, properties: [:]))
+            var samples: [Double] = []
+            for _ in 0..<10 {
+                board.prepareForNewContents(with: .currentHostOnly)
+                #expect(board.setData(bytes, forType: type))
+                let start = ContinuousClock.now
+                guard case .content(let raw) = adapter.capture(exclusions: []) else {
+                    Issue.record("Synthetic image capture failed"); return
+                }
+                samples.append(elapsedMilliseconds(start))
+                #expect(raw.data.count == bytes.count)
+            }
+            samples.sort()
+            print("MainActor pasteboard \(label): bytes=\(bytes.count) p50Ms=\(samples[5]) p95Ms=\(samples[9])")
+        }
+    }
+
     @Test(.enabled(if: ProcessInfo.processInfo.environment["MM_SYSTEM_TESTS"] == "1", "Requires hardware Keychain access"))
     func hardwareKeyDerivationBenchmark() async throws {
         let service = "MacManagerKeyBenchmark-\(UUID())"
