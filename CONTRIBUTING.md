@@ -19,11 +19,10 @@ Keep these product constraints intact:
 After cloning, enable the versioned commit hook:
 
 ```sh
-./scripts/install-git-hooks.sh
-./scripts/test-git-hooks.sh
+git config --local core.hooksPath .githooks
 ```
 
-The hook configures `core.hooksPath` only for this repository, without changing global Git settings. The scripts use native Git and shell tools. Hooks are opt-in after cloning; run the test script to verify installation and commit validation.
+This changes only this repository's Git configuration. Hooks are opt-in after cloning and validate commits locally.
 
 Use an Apple Silicon Mac with macOS 26+ and Xcode 26+ selected through `xcode-select`. See [Build and run](README.md#build-and-run) for the shared scheme and build commands.
 
@@ -68,7 +67,7 @@ Use the repository issue forms. Include macOS version, Mac model class, reproduc
 
 ## Test sets and optimization measurements
 
-Run `./scripts/verify.sh` for the default pre-release checks, or select `quick`, `ui` or `system`. See [RELEASING.md](RELEASING.md) for profile boundaries, CI setup, data invariants and signed-update acceptance. Signing and publication remain separate actions.
+Verification runs locally; this repository has no GitHub Actions workflows. See [RELEASING.md](RELEASING.md) for build commands, data invariants and signed-update acceptance. The ignored `scripts/` directory may contain optional local helpers, but they are not distributed with the repository. Signing and publication remain separate actions.
 
 `swift test --package-path Packages/MacManagerCore` runs local logic and storage checks. Tests requiring macOS services explicitly report a skip unless enabled:
 

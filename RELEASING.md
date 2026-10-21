@@ -2,25 +2,20 @@
 
 Use an Apple Silicon Mac, macOS 26+ and a selected Xcode with SDK 26+. Record the source commit, macOS/Xcode versions, test results and explicit skips for each candidate. A local development build or a green logic test does not establish that a signed update preserves data.
 
-## One verification entry point
+## Local verification
+
+This repository has no GitHub Actions workflows. Run verification on a trusted local Mac and retain the logs with the candidate commit.
 
 ```sh
-./scripts/verify.sh
+swift test --package-path Packages/MacManagerCore
+xcodebuild -project MacManager.xcodeproj -scheme MacManager -configuration Debug -destination 'platform=macOS,arch=arm64' build-for-testing CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual CODE_SIGNING_ALLOWED=YES
+xcodebuild -project MacManager.xcodeproj -scheme MacManager -configuration Release -destination 'platform=macOS,arch=arm64' build CODE_SIGNING_ALLOWED=NO
+xcodebuild -project MacManager.xcodeproj -scheme MacManager -configuration Debug -destination 'platform=macOS,arch=arm64' -parallel-testing-enabled NO test CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual CODE_SIGNING_ALLOWED=YES
 ```
 
-The default `all` profile runs `quick` and `ui`, sequentially. Every invocation creates a fresh directory under `.build/verification/` containing environment information, logs and UI result bundles. `MM_VERIFY_OUTPUT` can select another results directory. A failed command stops verification and returns a nonzero status; inspect skips in the logs even after success.
+UI tests require an interactive desktop and the appropriate permissions. Inspect hardware and live-integration prerequisites before running the whole suite. Core hardware tests, benchmarks and Spotlight are separately opt-in as described in [CONTRIBUTING.md](CONTRIBUTING.md). Record explicit skips and unavailable checks rather than treating them as passes.
 
-| Profile | Checks | Environment |
-|---|---|---|
-| `quick` | Commit-hook regression, Core logic/storage tests, local session notifications, Debug and UI-target compilation, Release build and absence of fixture implementations in Release | No hardware opt-ins, signing identity or GUI interaction |
-| `ui` | XCTest UI suite, including AX and contrast audits, isolated preferences/history and fixture media | Interactive macOS desktop; ad hoc development signing; no production clipboard history |
-| `system` | Core with `MM_SYSTEM_TESTS=1`, live metrics, real launcher shortcuts/application launches and UI latency benchmark | Dedicated trusted Apple Silicon Mac with required permissions and hardware |
-
-`ui` explicitly excludes the six live/hardware/performance tests run by `system`; it does not exclude the accessibility or contrast tests. Engine benchmarks and Spotlight are separately opt-in as described in [CONTRIBUTING.md](CONTRIBUTING.md). Physical session locking, signing/notarization, signed upgrades, VoiceOver, Voice Control and IME composition require the manual checks below. Process-local notification tests do not lock the computer.
-
-The Verify workflow runs `quick` and `ui` independently on GitHub's [`macos-26` image](https://github.com/actions/runner-images/blob/main/images/macos/macos-26-arm64-Readme.md). Action implementations are pinned to commits, repository access is read-only and checkout credentials are not retained. No release secrets are required. Configure both jobs as required branch checks in repository settings; adding a workflow alone does not enable branch protection.
-
-The `system` job runs only from an explicit workflow dispatch with `system_tests` selected. Provision a dedicated self-hosted runner labelled `macmanager-system-tests` and protect the `system-verification` environment with trusted reviewers and allowed branches. Do not use a personal workstation or run fork code on that runner. Keep signing credentials off it. Its logs stay on that Mac for redaction rather than being uploaded as public artifacts. Hosted failure artifacts expire after seven days; review them before sharing.
+The ignored `scripts/` directory may contain optional local verification and packaging helpers. These files are not distributed with a fresh checkout. If available locally, `./scripts/verify.sh` runs its default `quick` and `ui` profiles; `system` is a separate opt-in profile for a dedicated trusted Mac. Physical session locking, signing/notarization, signed upgrades, VoiceOver, Voice Control and IME composition still require manual acceptance.
 
 ## Data and trust invariants
 
@@ -32,8 +27,8 @@ The `system` job runs only from an explicit workflow dispatch with `system_tests
 
 ## Build and independently verify a candidate
 
-1. Check out the reviewed commit in a clean checkout. Run `./scripts/verify.sh` and the `system` profile on the dedicated Mac. Record any unavailable checks rather than treating them as passes.
-2. On a separate signing machine, use the existing packaging command with an exact Developer ID identity, team and Keychain notary profile:
+1. Check out the reviewed commit in a clean checkout. Run the local verification commands above, including the required live integrations on a dedicated Mac. Record any unavailable checks rather than treating them as passes.
+2. On a separate signing machine, archive Release in Xcode using the exact Developer ID identity, team and production bundle identifier. Export a Developer ID application, package it into a DMG, submit it using `xcrun notarytool`, then staple and verify the artifact. If the optional local packaging helper is available, it automates these steps:
 
    ```sh
    DEVELOPER_ID_APPLICATION='Developer ID Application: ...' APPLE_TEAM_ID='...' NOTARY_PROFILE='...' ./scripts/build-release-dmg.sh 0.8.0
