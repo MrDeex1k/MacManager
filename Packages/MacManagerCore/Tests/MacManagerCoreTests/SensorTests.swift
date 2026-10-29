@@ -12,7 +12,22 @@ import MMHardware
     #expect(HardwareSensorReading(sensor: temperature, rawValue: -4).value == nil)
     #expect(HardwareSensorReading(sensor: temperature, rawValue: .infinity).value == nil)
     #expect(HardwareSensorReading(sensor: temperature, rawValue: 151).value == nil)
+    #expect(HardwareSensorReading(sensor: temperature, rawValue: 120).value == 120)
+    #expect(HardwareSensorReading(sensor: temperature, rawValue: 120.nextUp).value == nil)
+    #expect(HardwareSensorReading(sensor: temperature, rawValue: 0.1).value == 0.1)
+    #expect(HardwareSensorReading(sensor: temperature, rawValue: .nan).value == nil)
     #expect(HardwareSensorReading(sensor: temperature, rawValue: 54.5).value == 54.5)
+}
+
+@Test func temperatureAveragesExcludeReadingsAbove120() {
+    let catalog = SensorCatalog(processor: "Apple M4 Pro")
+    let snapshot = HardwareSensorSnapshot(uptime: 1, fans: .passive, readings: [
+        .init(sensor: .init(key: "Tg1U", kind: .temperature), rawValue: 60),
+        .init(sensor: .init(key: "Tg1k", kind: .temperature), rawValue: 121),
+        .init(sensor: .init(key: "TCMb", kind: .temperature), rawValue: 121)
+    ], catalog: catalog)
+    #expect(snapshot.gpuTemperature == 60)
+    #expect(snapshot.cpuTemperature == nil)
 }
 
 @Test func fanInventoryDoesNotTreatFailureAsPassiveCooling() {

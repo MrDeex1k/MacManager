@@ -26,7 +26,7 @@ public struct HardwareSensorReading: Sendable {
         guard let rawValue, rawValue.isFinite else { value = nil; return }
         switch sensor.kind {
         case .temperature:
-            value = rawValue > 0 && rawValue <= 150 ? rawValue : nil
+            value = rawValue > 0 && rawValue <= 120 ? rawValue : nil
         case .fan:
             value = rawValue >= 0 && rawValue <= 30_000 ? rawValue : nil
         }
