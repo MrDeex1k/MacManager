@@ -38,6 +38,8 @@ import MacManagerCore
             guard FileManager.default.fileExists(atPath: url.path) else { return .failed }
             let configuration = NSWorkspace.OpenConfiguration()
             configuration.activates = true
+            // A selected installation must not resolve to another running copy with the same bundle ID.
+            configuration.allowsRunningApplicationSubstitution = false
             let opened: Bool = await withCheckedContinuation { continuation in
                 NSWorkspace.shared.openApplication(at: url, configuration: configuration) { _, error in
                     continuation.resume(returning: error == nil)
