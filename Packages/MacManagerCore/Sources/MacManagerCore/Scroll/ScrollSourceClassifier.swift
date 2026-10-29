@@ -4,7 +4,7 @@
 import Foundation
 import CoreGraphics
 
-public enum ScrollSource: Sendable { case mouse, trackpad, unknown }
+public enum ScrollSource: Sendable { case mouse, trackpad, application, unknown }
 
 /// Automatic classification using touch gestures and scroll continuity, without model/vendor lists.
 public struct ScrollSourceClassifier: Sendable {
@@ -22,7 +22,8 @@ public struct ScrollSourceClassifier: Sendable {
         touching = max(touching, count)
     }
 
-    public mutating func classify(_ event: CGEvent, at now: TimeInterval) -> ScrollSource {
+    public mutating func classify(_ event: CGEvent, identified: ScrollSource? = nil, at now: TimeInterval) -> ScrollSource {
+        if let identified, identified != .unknown { return identified }
         let momentum = event.getIntegerValueField(.scrollWheelEventMomentumPhase)
         let optional = event.getIntegerValueField(.scrollWheelEventMomentumOptionPhase)
         return classify(continuous: event.getIntegerValueField(.scrollWheelEventIsContinuous) != 0,

@@ -16,5 +16,6 @@ final class TestScrollDriver: ScrollDriving {
     func stop() { state = .stopped }
     func requestPermission() {}
     func openPermissionSettings() {}
+    func setAxes(_ axes: ScrollAxes) {}
 }
 #endif

@@ -82,7 +82,7 @@ Apple Music requires Automation permission. Podcasts requires Accessibility perm
 
 ## Your mouse, your way
 
-Reverse mouse scrolling vertically and horizontally while keeping your trackpad direction, gestures and momentum intact. Automatic source classification handles the switch between mouse and trackpad without model lists or per-device profiles.
+Choose vertical and horizontal mouse reversal independently while keeping your trackpad direction, gestures and momentum intact. Both axes keep their previous reversed behavior when upgrading; turn off either axis in **Scroll** to retain its system direction. The main switch disables all reversal without resetting these choices. Automatic source classification uses local device identity first, with gesture-based fallback when identity is unavailable. Events reconstructed by software mouse drivers also use gesture-based fallback when their physical source cannot be identified. Device lookups use a bounded memory cache; there are no model lists or per-device profiles. Universal Control continues to use fallback classification when its device is not present in the local registry.
 
 Enable the feature in **Scroll**, then grant the Accessibility and Input Monitoring permissions shown there.
 

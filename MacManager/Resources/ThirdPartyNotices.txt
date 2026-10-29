@@ -995,3 +995,9 @@ Sources: https://github.com/abue-ammar/tinycast/commit/1c3c2572e6
 and https://github.com/abue-ammar/tinycast/commit/06f3bc75c7
 Adapted bare units after division and conversion scopes in expressions and function arguments.
 Local adaptation preserves offline evaluation and adds regression tests. No currency feed or fuel-unit catalog was imported.
+
+Scroll Reverser local source identification adaptation (2026-10-28)
+Source: https://github.com/pilotmoon/Scroll-Reverser/commit/04c167575dec79d2d17bf83948b60b8045aa6720
+Copyright 2011 Nicholas Moore. Apache License 2.0 (full text above).
+Inspired by HID sender lookup, IORegistry scroll acceleration properties and trackpad driver classification.
+Local changes: optional runtime SPI, bounded asynchronous lookup/cache and gesture fallback, including mouse-driver events without HID metadata. No device names, serial numbers, persistent profiles or Universal Control HID client were imported.

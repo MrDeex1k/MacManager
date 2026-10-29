@@ -116,6 +116,8 @@ private final class FakeScrollDriver: ScrollDriving {
     func stop() { state = .stopped }
     func requestPermission() { requests += 1 }
     func openPermissionSettings() { settingsOpened += 1 }
+    var axes = ScrollAxes()
+    func setAxes(_ axes: ScrollAxes) { self.axes = axes }
 }
 
 @MainActor @Test func scrollStartsOnlyWithIntentAndPermissionWithoutPromptOnLaunch() {
@@ -217,6 +219,7 @@ private final class FakeScrollDriver: ScrollDriving {
         func stop() { state = .stopped }
         func requestPermission() {}
         func openPermissionSettings() {}
+        func setAxes(_ axes: ScrollAxes) {}
     }
     let driver = PermissionDriver()
     let service = ScrollService(enabled: true, driver: driver)
@@ -253,4 +256,67 @@ private final class FakeScrollDriver: ScrollDriving {
     service.shutdown()
     driver.onStateChange?()
     #expect(service.status == .off)
+}
+
+@Test func independentScrollAxesPreserveUnselectedAxisAndTrackpad() throws {
+    for continuous in [false, true] {
+        for axes in [ScrollAxes(), ScrollAxes(vertical: true, horizontal: false),
+                     ScrollAxes(vertical: false, horizontal: true), ScrollAxes(vertical: false, horizontal: false)] {
+            let event = try wheel(continuous: continuous)
+            let line: [CGEventField] = [.scrollWheelEventDeltaAxis1, .scrollWheelEventDeltaAxis2]
+            let point: [CGEventField] = [.scrollWheelEventPointDeltaAxis1, .scrollWheelEventPointDeltaAxis2]
+            let fixed: [CGEventField] = [.scrollWheelEventFixedPtDeltaAxis1, .scrollWheelEventFixedPtDeltaAxis2]
+            for i in 0..<2 {
+                event.setIntegerValueField(line[i], value: 0)
+                event.setDoubleValueField(fixed[i], value: Double(i + 1) * 0.25)
+                event.setIntegerValueField(point[i], value: Int64(i + 1) * -4)
+            }
+            let originalPoints = point.map { event.getIntegerValueField($0) }
+            let originalFixed = fixed.map { event.getDoubleValueField($0) }
+            let before = event.data
+            #expect(!ScrollEventTransformer.reverse(event, source: .trackpad, axes: axes))
+            #expect(!ScrollEventTransformer.reverse(event, source: .unknown, axes: axes))
+            #expect(event.data == before)
+            #expect(ScrollEventTransformer.reverse(event, source: .mouse, axes: axes) == (axes.vertical || axes.horizontal))
+            for (i, reversed) in [axes.vertical, axes.horizontal].enumerated() {
+                #expect(event.getIntegerValueField(line[i]) == 0)
+                #expect(event.getIntegerValueField(point[i]) == originalPoints[i] * (reversed ? -1 : 1))
+                #expect(event.getDoubleValueField(fixed[i]) == originalFixed[i] * (reversed ? -1 : 1))
+            }
+            if !axes.vertical && !axes.horizontal { #expect(event.data == before) }
+        }
+    }
+}
+
+@MainActor @Test func scrollAxisDefaultsMigrateAndSavedChoicesSurviveRelaunch() throws {
+    let suite = "MacManagerTests.ScrollAxes.\(UUID().uuidString)"
+    let defaults = try #require(UserDefaults(suiteName: suite))
+    defer { defaults.removePersistentDomain(forName: suite) }
+    defaults.set(true, forKey: "preferences.reverseMouseScroll")
+    let preferences = PreferencesStore(defaults: defaults)
+    #expect(preferences.reverseMouseScroll && preferences.scrollAxes == ScrollAxes())
+    preferences.reverseHorizontalMouseScroll = false
+    let restored = PreferencesStore(defaults: defaults)
+    #expect(restored.reverseMouseScroll && restored.reverseVerticalMouseScroll && !restored.reverseHorizontalMouseScroll)
+    restored.reverseVerticalMouseScroll = false
+    restored.reverseHorizontalMouseScroll = true
+    #expect(PreferencesStore(defaults: defaults).scrollAxes == ScrollAxes(vertical: false, horizontal: true))
+}
+
+@MainActor @Test func scrollAxisUpdatesDoNotRestartOrPromptAndSurviveSuspension() {
+    let driver = FakeScrollDriver()
+    driver.permission = .granted
+    let axes = ScrollAxes(vertical: true, horizontal: false)
+    let service = ScrollService(enabled: true, driver: driver, axes: axes)
+    service.refresh()
+    #expect(driver.axes == axes && driver.starts == 1)
+    let horizontalOnly = ScrollAxes(vertical: false, horizontal: true)
+    service.setAxes(horizontalOnly)
+    #expect(driver.axes == horizontalOnly && driver.starts == 1 && driver.requests == 0)
+    service.setSuspended(true)
+    service.setSuspended(false)
+    #expect(driver.axes == horizontalOnly && driver.starts == 2)
+    service.shutdown()
+    service.setAxes(axes)
+    #expect(driver.axes == horizontalOnly)
 }
