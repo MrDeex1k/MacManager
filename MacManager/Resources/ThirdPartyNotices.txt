@@ -988,3 +988,10 @@ Source: https://github.com/abue-ammar/tinycast/commit/62abccdfc6cc06df7fc027099a
 Local implementation: LauncherView.swift and LauncherController.swift use owned AppKit
 menus, popover dismissal, presentation guards and selection/IME protection.
 Tinycast's menu-panel infrastructure is not included.
+
+Tinycast calculator parser adaptations (2026-10-28)
+Copyright (C) 2026 Abue Ammar. AGPL-3.0-or-later; used under AGPL-3.0.
+Sources: https://github.com/abue-ammar/tinycast/commit/1c3c2572e6
+and https://github.com/abue-ammar/tinycast/commit/06f3bc75c7
+Adapted bare units after division and conversion scopes in expressions and function arguments.
+Local adaptation preserves offline evaluation and adds regression tests. No currency feed or fuel-unit catalog was imported.

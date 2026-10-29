@@ -1,6 +1,7 @@
 // Adapted from Tinycast, Copyright (C) 2026 Abue Ammar.
 // AGPL-3.0-or-later; used under AGPL-3.0. Source: c5cff8cbb9b7e12ac75c058da9573045c76029b7.
 // Integrated 2026-09-23: local evaluation only, no rate service or history.
+// Parser fixes adapted 2026-10-28 from Tinycast 1c3c2572e6 and 06f3bc75c7; see third-party notices.
 import Foundation
 
 /// Typed arithmetic for measurements and currencies.
@@ -174,19 +175,25 @@ enum CalcQuantity {
             if index + 2 == end, case .ident(let name) = tokens[index + 1] { return (index, name) }
             let target = Array(tokens[(index + 1)..<end])
             guard CalcUnitExpression.parse(target) != nil else { continue }
-            return (
-                index,
-                target.map { token in
-                    switch token {
-                    case .ident(let name): return name
-                    case .op(let op): return String(op.rawValue)
-                    case .number(let value): return CalcFormatter.copyText(value)
-                    default: return ""
-                    }
-                }.joined(separator: " ")
-            )
+            return (index, targetName(tokens[(index + 1)..<end]))
         }
         return nil
+    }
+
+    static func conversionPrefix(_ tokens: [CalcToken], at start: Int) -> (name: String, end: Int)? {
+        guard let target = CalcUnitExpression.prefix(tokens, at: start) else { return nil }
+        return (targetName(tokens[start..<target.end]), target.end)
+    }
+
+    private static func targetName(_ tokens: ArraySlice<CalcToken>) -> String {
+        tokens.map { token in
+            switch token {
+            case .ident(let name): return name
+            case .op(let op): return String(op.rawValue)
+            case .number(let value): return CalcFormatter.copyText(value)
+            default: return ""
+            }
+        }.joined(separator: " ")
     }
 
     private static func isSimpleConversionSource(_ tokens: [CalcToken]) -> Bool {

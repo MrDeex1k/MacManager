@@ -58,7 +58,7 @@ Press **Option-Q** and start typing. Open an app, find a file, jump to a Mac Man
 | A quick answer | Calculate `20% of 500`, convert `10 km to mi` or evaluate `tomorrow + 2 days`. |
 | Something you copied | Press **Tab** to search the shared clipboard history. |
 
-Arrow keys select, **Enter** opens or copies, and **Escape** clears the query before closing. The shortcut is configurable, and the launcher remains available with the main window closed. Calculator keywords use English syntax; calculations run locally.
+Arrow keys select, **Enter** opens or copies, and **Escape** clears the query before closing. The shortcut is configurable, and the launcher remains available with the main window closed. Calculator keywords use English syntax; calculations run locally. Units can follow division directly (`100 / s`), and conversions work before further arithmetic (`10 m in cm / 2`) and inside functions (`round(10 m in cm)`).
 
 ## Copy once. Find it again.
 
