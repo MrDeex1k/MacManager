@@ -66,6 +66,24 @@ private func drain(_ queue: DispatchQueue) async {
     #expect(mm_scroll_local_device_kind(UInt64.max) == MMScrollDeviceUnknown)
 }
 
+@Test(arguments: [ScrollSource.mouse, .trackpad])
+func identifiedGestureOwnsUnidentifiedMomentum(source: ScrollSource) throws {
+    let event = try #require(CGEvent(scrollWheelEvent2Source: nil, units: .pixel, wheelCount: 1, wheel1: 3, wheel2: 0, wheel3: 0))
+    var classifier = ScrollSourceClassifier()
+    event.setIntegerValueField(.scrollWheelEventIsContinuous, value: 1)
+    event.setIntegerValueField(.scrollWheelEventScrollPhase, value: 1)
+    #expect(classifier.classify(event, identified: source, at: 1) == source)
+    #expect(classifier.classify(event, identified: .application, at: 1.01) == .application)
+
+    event.setIntegerValueField(.scrollWheelEventScrollPhase, value: 0)
+    for phase: Int64 in [1, 2, 3] {
+        event.setIntegerValueField(.scrollWheelEventMomentumPhase, value: phase)
+        #expect(classifier.classify(event, at: 1.1 + Double(phase) / 100) == source)
+    }
+    event.setIntegerValueField(.scrollWheelEventMomentumPhase, value: 2)
+    #expect(classifier.classify(event, at: 1.2) == .unknown)
+}
+
 @Test func deviceCacheAvoidsRepeatedLookupsAndRevalidatesWithoutBlockingInput() async {
     let probe = DeviceLookupProbe()
     let queue = DispatchQueue(label: "test.scroll.cache")

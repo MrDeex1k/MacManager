@@ -23,12 +23,26 @@ public struct ScrollSourceClassifier: Sendable {
     }
 
     public mutating func classify(_ event: CGEvent, identified: ScrollSource? = nil, at now: TimeInterval) -> ScrollSource {
-        if let identified, identified != .unknown { return identified }
-        let momentum = event.getIntegerValueField(.scrollWheelEventMomentumPhase)
-        let optional = event.getIntegerValueField(.scrollWheelEventMomentumOptionPhase)
+        if identified == .application { return .application }
+        let primaryMomentum = event.getIntegerValueField(.scrollWheelEventMomentumPhase)
+        let momentum = primaryMomentum != 0 ? primaryMomentum : event.getIntegerValueField(.scrollWheelEventMomentumOptionPhase)
+        let phase = event.getIntegerValueField(.scrollWheelEventScrollPhase)
+        if let identified, identified == .mouse || identified == .trackpad {
+            guard now.isFinite else { return identified }
+            previous = identified
+            touching = 0
+            switch momentum {
+            case 1, 2: inertiaSource = identified
+            case 3: inertiaSource = .unknown
+            case 0 where phase != 0:
+                gestureSource = identified
+                lastGesture = now
+            default: break
+            }
+            return identified
+        }
         return classify(continuous: event.getIntegerValueField(.scrollWheelEventIsContinuous) != 0,
-                        momentum: momentum != 0 ? momentum : optional,
-                        phase: event.getIntegerValueField(.scrollWheelEventScrollPhase), at: now)
+                        momentum: momentum, phase: phase, at: now)
     }
 
     /// Quartz momentum: 0 none, 1 begin, 2 continue, 3 end. Gesture phases are a bit mask.
