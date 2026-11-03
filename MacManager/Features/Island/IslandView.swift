@@ -75,6 +75,14 @@ struct IslandView: View {
         .frame(height: coordinator.displayedSectionHeight, alignment: .topLeading)
         .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity, alignment: .topLeading)
         .background { IslandBackgroundView() }
+        #if DEBUG && MM_RESERVED_REGION_PROBE
+        .background {
+            if UITestConfiguration.current.contains("--island-reserved-region-probe"),
+               #available(macOS 27.1, *) {
+                IslandReservedRegionProbe(visible: coordinator.visible) { coordinator.recordReservedRegionSample($0) }
+            }
+        }
+        #endif
     }
     private func sectionButton(_ section: IslandSection, title: String) -> some View {
         Button { coordinator.selectSection(section) } label: {

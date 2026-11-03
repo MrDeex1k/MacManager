@@ -153,6 +153,8 @@ class AppUITestSupport: XCTestCase {
         islandDenseClipboardFixture: Bool = false,
         islandReduceMotion: Bool = false,
         islandConstrainedLayout: Bool = false,
+        islandReservedRegionProbe: Bool = false,
+        islandProbeIgnoresSafeArea: Bool = false,
         musicDenied: Bool = false,
         podcastAccessRequired: Bool = false,
         launcherLiveTesting: Bool = false,
@@ -179,6 +181,8 @@ class AppUITestSupport: XCTestCase {
         if islandDenseClipboardFixture { app.launchArguments.append("--island-dense-clipboard-fixture") }
         if islandReduceMotion { app.launchArguments.append("--island-reduce-motion") }
         if islandConstrainedLayout { app.launchArguments.append("--island-constrained-layout") }
+        if islandReservedRegionProbe { app.launchArguments.append("--island-reserved-region-probe") }
+        if islandProbeIgnoresSafeArea { app.launchArguments.append("--island-reserved-region-ignore-safe-area") }
         if musicDenied { app.launchArguments.append("--music-denied") }
         if podcastAccessRequired { app.launchArguments.append("--podcast-access-required") }
         if scrollPermission { app.launchArguments.append("--scroll-permission-granted") }

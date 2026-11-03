@@ -3,6 +3,99 @@ import XCTest
 
 final class IslandTests: AppUITestSupport {
     @MainActor
+    func testReservedRegionPrototypeInRealIslandPanel() throws {
+        #if MM_RESERVED_REGION_PROBE
+        try checkReservedRegionPrototype(ignoresSafeArea: false)
+        try checkReservedRegionPrototype(ignoresSafeArea: true)
+        #else
+        throw XCTSkip("Build with MM_RESERVED_REGION_PROBE and the macOS 27.1+ SDK to run this prototype")
+        #endif
+    }
+
+    #if MM_RESERVED_REGION_PROBE
+    @MainActor
+    private func checkReservedRegionPrototype(ignoresSafeArea: Bool) throws {
+        guard #available(macOS 27.1, *) else { throw XCTSkip("ReservedRegion requires macOS 27.1") }
+        let app = launch(reset: true, islandReservedRegionProbe: true, islandProbeIgnoresSafeArea: ignoresSafeArea)
+        defer { app.terminate() }
+        element("navigation.island", in: app).click()
+        let report = element("island.debug.reservedRegions", in: app)
+        func command(_ title: String) {
+            app.menuBars.menuBarItems["View"].click(); app.menuItems[title].click()
+        }
+        func observation(section: String, height: CGFloat?, name: String) throws -> [String: Any] {
+            func json() -> [String: Any]? {
+                for text in [report.value as? String, report.label].compactMap({ $0 }) {
+                    if let data = text.data(using: .utf8),
+                       let value = try? JSONSerialization.jsonObject(with: data) as? [String: Any] { return value }
+                }
+                return nil
+            }
+            let ready = NSPredicate { _, _ in
+                guard let value = json(), value["section"] as? String == section,
+                      let sample = value["sample"] as? [String: Any], let size = sample["size"] as? [Double] else { return false }
+                let targetHeight = height ?? CGFloat((value["legacyTopInset"] as? Double ?? 0) + 306)
+                return size.count == 2 && size[0] > 0 && abs(size[1] - targetHeight) < 1 &&
+                    abs(self.element("island.panel", in: app).frame.height - targetHeight) < 1
+            }
+            let result = XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: ready, object: app)], timeout: 5)
+            if result != .completed { print("ReservedRegion probe pending: \(report.label); value=\(String(describing: report.value))") }
+            XCTAssertEqual(result, .completed)
+            let value = try XCTUnwrap(json())
+            let sample = try XCTUnwrap(value["sample"] as? [String: Any])
+            XCTAssertEqual(sample["ignoresSafeArea"] as? Bool, ignoresSafeArea)
+            let size = try XCTUnwrap(sample["size"] as? [Double])
+            let frameInRoot = try XCTUnwrap(sample["frameInRoot"] as? [[Double]])
+            let origin = try XCTUnwrap(frameInRoot.first)
+            XCTAssertEqual(origin[0], 0, accuracy: 1)
+            XCTAssertEqual(origin[1], 0, accuracy: 1, "The probe must cover the camera strip, not start below its safe area")
+            let regions = try XCTUnwrap(sample["regions"] as? [[String: Any]])
+            XCTAssertNotNil(value["cameraComparison"] as? String)
+            XCTAssertEqual(sample["activeOcclusions"] as? Int,
+                regions.filter { $0["kind"] as? String == "occlusion" && $0["active"] as? Bool == true }.count)
+            XCTAssertEqual(sample["activeDivisions"] as? Int,
+                regions.filter { $0["kind"] as? String == "division" && $0["active"] as? Bool == true }.count)
+            let text = String(data: try JSONSerialization.data(withJSONObject: value, options: [.sortedKeys]), encoding: .utf8)!
+            print("ReservedRegion observation [\(name)]: \(text)")
+            let attachment = XCTAttachment(string: text); attachment.name = name; attachment.lifetime = .keepAlways; add(attachment)
+            XCTAssertEqual(element("island.panel", in: app).frame.height, size[1], accuracy: 1)
+            XCTAssertEqual(element("island.panel", in: app).frame.width, size[0], accuracy: 1)
+            return value
+        }
+
+        command("Open Island")
+        XCTAssertTrue(app.textFields["island.search"].waitForExistence(timeout: 5))
+        let clipboard = try observation(section: "clipboard", height: expectedClipboardIslandHeight, name: "Built-in clipboard")
+        app.buttons["island.section.music"].click()
+        _ = try observation(section: "music", height: 250, name: "Built-in music")
+        app.buttons["island.section.clipboard"].click()
+        _ = try observation(section: "clipboard", height: expectedClipboardIslandHeight, name: "Built-in clipboard return")
+        app.buttons["island.close"].click()
+        XCTAssertTrue(element("island.panel", in: app).waitForNonExistence(timeout: 3))
+
+        let external = NSScreen.screens.first { screen in
+            guard let number = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber else { return false }
+            return CGDisplayIsBuiltin(number.uint32Value) == 0
+        }
+        if let external {
+            command("Probe Island on External Display"); command("Open Island")
+            // visibleFrame can differ between the runner and the app when its menu bar
+            // becomes visible on the external display. Use the app's recorded inset.
+            let value = try observation(section: "clipboard", height: nil, name: "External clipboard")
+            XCTAssertEqual(value["builtIn"] as? Bool, false)
+            XCTAssertNil(value["legacyCameraFrame"])
+            let desktopTop = try XCTUnwrap(NSScreen.screens.first).frame.maxY
+            XCTAssertEqual(element("island.panel", in: app).frame.minY, desktopTop - external.frame.maxY, accuracy: 1)
+            app.buttons["island.close"].click()
+            command("Probe Island on Built-in Display"); command("Open Island")
+            let restored = try observation(section: "clipboard", height: expectedClipboardIslandHeight, name: "Built-in restored")
+            XCTAssertEqual(restored["cameraComparison"] as? String, clipboard["cameraComparison"] as? String)
+            app.buttons["island.close"].click()
+        }
+    }
+    #endif
+
+    @MainActor
     func testIslandSectionPreferencesAndAutomaticRestore() throws {
         let app = launch(reset: true)
         defer { app.terminate() }

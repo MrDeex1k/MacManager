@@ -82,6 +82,12 @@ struct AppCommands: Commands {
                 Button("Restore Display Metadata") { state.launcher.simulateDisplayChangeForTesting("restore") }
                 Button("Simulate Panel Sleep") { SystemSessionMonitor.shared.setSleepingForTesting(true) }
                 Button("Simulate Panel Wake") { SystemSessionMonitor.shared.setSleepingForTesting(false) }
+                #if MM_RESERVED_REGION_PROBE
+                if UITestConfiguration.current.contains("--island-reserved-region-probe") {
+                    Button("Probe Island on External Display") { state.island.selectProbeDisplayForTesting(external: true) }
+                    Button("Probe Island on Built-in Display") { state.island.selectProbeDisplayForTesting(external: false) }
+                }
+                #endif
             }
             #endif
             Button(state.strings("nav.overview")) { navigate(.overview) }
