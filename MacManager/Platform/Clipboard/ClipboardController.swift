@@ -26,7 +26,10 @@ final class ClipboardController: ApplicationLifecycleParticipant {
             directory = FileManager.default.temporaryDirectory.appendingPathComponent("MacManagerClipboardUITests-\(UUID().uuidString)")
             #if DEBUG
             provider = EphemeralClipboardKey()
-            pasteboard = FixtureClipboardPasteboard(failFirstWrite: UITestConfiguration.current.contains("--clipboard-write-failure"))
+            let access: ClipboardAccess? = UITestConfiguration.current.contains("--clipboard-access-denied") ? .denied :
+                UITestConfiguration.current.contains("--clipboard-access-required") ? .needsPermission : nil
+            pasteboard = FixtureClipboardPasteboard(
+                failFirstWrite: UITestConfiguration.current.contains("--clipboard-write-failure"), access: access)
             #else
             provider = ClipboardKeychain(service: "dev.macmanager.MacManager.clipboard")
             pasteboard = SystemClipboardPasteboard()

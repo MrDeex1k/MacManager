@@ -147,6 +147,8 @@ class AppUITestSupport: XCTestCase {
         liveMetrics: Bool = false,
         clipboardFixture: Bool = false,
         clipboardWriteFailure: Bool = false,
+        clipboardAccessRequired: Bool = false,
+        clipboardAccessDenied: Bool = false,
         islandClipboardFixture: Bool = false,
         islandDenseClipboardFixture: Bool = false,
         islandReduceMotion: Bool = false,
@@ -171,6 +173,8 @@ class AppUITestSupport: XCTestCase {
         if launcherLiveTesting { app.launchArguments.append("--launcher-live-testing") }
         if clipboardFixture { app.launchArguments.append("--clipboard-fixture") }
         if clipboardWriteFailure { app.launchArguments.append("--clipboard-write-failure") }
+        if clipboardAccessRequired { app.launchArguments.append("--clipboard-access-required") }
+        if clipboardAccessDenied { app.launchArguments.append("--clipboard-access-denied") }
         if islandClipboardFixture { app.launchArguments.append("--island-clipboard-fixture") }
         if islandDenseClipboardFixture { app.launchArguments.append("--island-dense-clipboard-fixture") }
         if islandReduceMotion { app.launchArguments.append("--island-reduce-motion") }
