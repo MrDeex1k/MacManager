@@ -250,7 +250,10 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
         let height = sectionHeight(width: width)
         panelFrame = NSRect(x: frame.midX - width / 2, y: frame.maxY - height,
                             width: width, height: height)
-        panel?.setFrame(panelFrame, display: true)
+        // Release the previous screen/section's fixed dimensions before applying a new layout.
+        panel?.minSize = .zero
+        panel?.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+        panel?.setFrame(panelFrame, display: false)
     }
 
     private func sectionHeight(width: CGFloat) -> CGFloat {

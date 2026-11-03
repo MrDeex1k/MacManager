@@ -3,6 +3,89 @@ import XCTest
 
 final class LauncherTests: AppUITestSupport {
     @MainActor
+    func testLauncherRecoversFromDisplayChangesWithoutLosingQuery() throws {
+        let app = launch(reset: true)
+        defer { app.terminate() }
+        func command(_ title: String) {
+            app.menuBars.menuBarItems["View"].click(); app.menuItems[title].click()
+        }
+        command("Open launcher")
+        let field = app.textFields["launcher.search"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.typeText("2+3*4")
+        XCTAssertTrue(app.buttons["launcher.result.calculator:result"].waitForExistence(timeout: 5))
+        let panel = element("launcher.panel", in: app)
+        let original = panel.frame
+        command("Simulate Constrained Display")
+        let constrained = NSPredicate { _, _ in
+            abs(panel.frame.width - 460) < 1 && abs(panel.frame.height - 360) < 1
+        }
+        XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: constrained, object: app)], timeout: 5), .completed)
+        XCTAssertEqual(field.value as? String, "2+3*4")
+        command("Restore Display Metadata")
+        let restored = NSPredicate { _, _ in
+            abs(panel.frame.width - original.width) < 1 && abs(panel.frame.height - original.height) < 1
+        }
+        XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: restored, object: app)], timeout: 5), .completed)
+        XCTAssertEqual(field.value as? String, "2+3*4")
+
+        // Simulated removal uses the other physically connected screen, when available.
+        command("Simulate Display Removal")
+        if NSScreen.screens.count > 1 {
+            XCTAssertTrue(field.exists)
+            XCTAssertEqual(field.value as? String, "2+3*4")
+            XCTAssertNotEqual(panel.frame.origin, original.origin)
+        } else {
+            XCTAssertTrue(field.waitForNonExistence(timeout: 3))
+        }
+        command("Simulate No Displays")
+        XCTAssertTrue(field.waitForNonExistence(timeout: 3))
+        command("Open launcher")
+        XCTAssertFalse(field.exists)
+        command("Restore Display Metadata")
+        command("Open launcher")
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+    }
+
+    @MainActor
+    func testPanelsSuspendAndReopenWithFreshGeometryAfterWake() throws {
+        let app = launch(reset: true)
+        defer { app.terminate() }
+        func command(_ title: String) {
+            app.menuBars.menuBarItems["View"].click(); app.menuItems[title].click()
+        }
+        command("Open launcher")
+        let field = app.textFields["launcher.search"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        command("Simulate Panel Sleep")
+        XCTAssertTrue(field.waitForNonExistence(timeout: 3))
+        command("Open launcher"); command("Open Island")
+        XCTAssertFalse(field.exists)
+        XCTAssertFalse(element("island.panel", in: app).exists)
+        command("Simulate Panel Wake")
+        XCTAssertFalse(field.exists, "Wake must not reopen private panels automatically")
+        command("Open launcher")
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        let launcher = element("launcher.panel", in: app)
+        let desktopTop = try XCTUnwrap(NSScreen.screens.first).frame.maxY
+        let onScreen = NSScreen.screens.contains { screen in
+            let bounds = CGRect(x: screen.visibleFrame.minX, y: desktopTop - screen.visibleFrame.maxY,
+                width: screen.visibleFrame.width, height: screen.visibleFrame.height)
+            return bounds.insetBy(dx: -1, dy: -1).contains(launcher.frame)
+        }
+        XCTAssertTrue(onScreen)
+        field.typeKey(.escape, modifierFlags: [])
+        command("Open Island")
+        XCTAssertTrue(app.textFields["island.search"].waitForExistence(timeout: 5))
+        command("Simulate Panel Sleep")
+        XCTAssertTrue(element("island.panel", in: app).waitForNonExistence(timeout: 3))
+        command("Simulate Panel Wake")
+        command("Open Island")
+        XCTAssertTrue(app.textFields["island.search"].waitForExistence(timeout: 5))
+        app.buttons["island.close"].click()
+    }
+
+    @MainActor
     func testLauncherSearchEscapeAndNavigation() throws {
         let app = launch(reset: true)
         element("navigation.settings", in: app).click()

@@ -76,6 +76,12 @@ struct AppCommands: Commands {
             if UITestConfiguration.current.contains("--ui-testing") {
                 Button("Suspend Island Session") { state.island.setSessionSuspendedForTesting(true) }
                 Button("Resume Island Session") { state.island.setSessionSuspendedForTesting(false) }
+                Button("Simulate Constrained Display") { state.launcher.simulateDisplayChangeForTesting("constrained") }
+                Button("Simulate Display Removal") { state.launcher.simulateDisplayChangeForTesting("removed") }
+                Button("Simulate No Displays") { state.launcher.simulateDisplayChangeForTesting("none") }
+                Button("Restore Display Metadata") { state.launcher.simulateDisplayChangeForTesting("restore") }
+                Button("Simulate Panel Sleep") { SystemSessionMonitor.shared.setSleepingForTesting(true) }
+                Button("Simulate Panel Wake") { SystemSessionMonitor.shared.setSleepingForTesting(false) }
             }
             #endif
             Button(state.strings("nav.overview")) { navigate(.overview) }
