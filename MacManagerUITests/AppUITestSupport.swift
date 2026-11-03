@@ -154,6 +154,7 @@ class AppUITestSupport: XCTestCase {
         musicDenied: Bool = false,
         podcastAccessRequired: Bool = false,
         launcherLiveTesting: Bool = false,
+        launcherPasteboardName: String? = nil,
         scrollPermission: Bool = false,
         inputMonitoringRequired: Bool = false,
         loginItemRequiresApproval: Bool = false,
@@ -164,6 +165,7 @@ class AppUITestSupport: XCTestCase {
         continueAfterFailure = false
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        if let launcherPasteboardName { app.launchEnvironment["MM_LAUNCHER_TEST_PASTEBOARD"] = launcherPasteboardName }
         if reset { app.launchArguments.append("--reset-preferences") }
         if liveMetrics { app.launchArguments.append("--live-metrics") }
         if launcherLiveTesting { app.launchArguments.append("--launcher-live-testing") }

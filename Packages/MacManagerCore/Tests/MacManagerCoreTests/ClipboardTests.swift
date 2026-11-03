@@ -582,6 +582,43 @@ func clipboardStorageIsExcludedFromBackup() async throws {
     #expect(throws: ClipboardFailure.writeFailed) { try failing.writeText("retry", history: .allowCapture) }
 }
 
+@MainActor @Test(.enabled(if: ProcessInfo.processInfo.environment["MM_SYSTEM_TESTS"] == "1", "Requires MM_SYSTEM_TESTS=1 and named pasteboard access"))
+func newLocalCopiesAreSavedWhileHistoryRestoresAndPausedCaptureStayExcluded() async throws {
+    let board = NSPasteboard(name: .init("MacManagerTests-\(UUID().uuidString)"))
+    defer { board.releaseGlobally() }
+    let directory = clipboardDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let key = ClipboardTestKey()
+    let repository = ClipboardRepository(directory: directory, keys: key)
+    let adapter = SystemClipboardPasteboard(pasteboard: board, foregroundBundleID: { nil })
+    var preferences = ClipboardPreferences()
+    preferences.enabled = true
+    let service = ClipboardService(preferences: preferences, pasteboard: adapter, repository: repository, storageExists: false)
+    await service.start()
+    defer { service.stop() }
+
+    try LocalClipboardWriter(pasteboard: board).writeText("14", history: .allowCapture)
+    #expect(board.string(forType: .string) == "14")
+    service.poll()
+    #expect(await waitUntil { service.entries.count == 1 })
+    let entry = try #require(service.entries.first)
+    #expect(entry.text == "14")
+    let reopened = ClipboardRepository(directory: directory, keys: key)
+    #expect(try await reopened.load(preferences: preferences, now: Date()).entries.first?.text == "14")
+
+    #expect(await service.restore(entry.id))
+    guard case .skipped = adapter.capture(exclusions: []) else { Issue.record("History restore was captured again"); return }
+    service.poll()
+    #expect(service.entries.map(\.id) == [entry.id])
+
+    preferences.paused = true
+    await service.updatePreferences(preferences)
+    try LocalClipboardWriter(pasteboard: board).writeText("15", history: .allowCapture)
+    service.poll()
+    #expect(board.string(forType: .string) == "15")
+    #expect(service.entries.map(\.id) == [entry.id])
+}
+
 private final class RecoverableClipboardKey: ClipboardKeyProviding, @unchecked Sendable {
     private let lock = NSLock()
     private let value = SymmetricKey(size: .bits256)

@@ -88,7 +88,9 @@ final class LauncherTests: AppUITestSupport {
 
     @MainActor
     func testLauncherCalculatorAndSharedClipboardMode() throws {
-        let app = launch(reset: true, clipboardFixture: true)
+        let board = NSPasteboard(name: .init("MacManagerLauncherTests-\(UUID().uuidString)"))
+        defer { board.releaseGlobally() }
+        let app = launch(reset: true, clipboardFixture: true, launcherPasteboardName: board.name.rawValue)
         defer { app.terminate() }
         app.typeKey(",", modifierFlags: .command)
         app.buttons["launcher.open"].click()
@@ -100,6 +102,10 @@ final class LauncherTests: AppUITestSupport {
         XCTAssertTrue(result.label.contains("14"), result.debugDescription)
         app.typeKey(.return, modifierFlags: [])
         XCTAssertFalse(field.exists)
+        XCTAssertEqual(board.string(forType: .string), "14")
+        let types = Set(board.types?.map(\.rawValue) ?? [])
+        XCTAssertFalse(types.contains("dev.macmanager.restored-clipboard"))
+        XCTAssertFalse(types.contains("org.nspasteboard.RestoredType"))
         app.buttons["launcher.open"].click()
         XCTAssertTrue(field.waitForExistence(timeout: 5))
         app.typeKey(.tab, modifierFlags: [])
