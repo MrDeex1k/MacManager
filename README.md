@@ -41,7 +41,7 @@ See what your Mac is doing without opening a collection of separate utilities.
 
 - **Follow the load.** Live CPU, GPU and RAM readings, plus an estimated power reading when supported.
 - **See the trend.** Five-minute charts with a choice of 1, 2 or 5 second sampling. Gaps stay visible when readings stop.
-- **Check the hardware.** CPU/GPU temperatures in °C or °F and individual fan speeds. Temperature mapping is currently validated on M4 Pro.
+- **Check the hardware.** CPU/GPU temperatures in °C or °F and individual fan speeds. Temperature mapping is currently validated on M4 Pro. CPU and GPU averages include readings above 0 °C and up to and including 120 °C.
 - **Keep essentials in sight.** Choose the readings shown in the menu bar and open the compact panel for a quick check.
 - **Find your connection.** View and copy your local and public IPv4 addresses, with optional visibility in the menu bar panel.
 
@@ -58,17 +58,20 @@ Press **Option-Q** and start typing. Open an app, find a file, jump to a Mac Man
 | A quick answer | Calculate `20% of 500`, convert `10 km to mi` or evaluate `tomorrow + 2 days`. |
 | Something you copied | Press **Tab** to search the shared clipboard history. |
 
-Arrow keys select, **Enter** opens or copies, and **Escape** clears the query before closing. Application results open the selected installation even when a different copy with the same bundle identifier is already running. The shortcut is configurable, and the launcher remains available with the main window closed. Calculator keywords use English syntax; calculations run locally. Units can follow division directly (`100 / s`), and conversions work before further arithmetic (`10 m in cm / 2`) and inside functions (`round(10 m in cm)`).
+Arrow keys select, **Enter** opens or copies, and **Escape** clears the query before closing. Application results open the selected installation even when a different copy with the same bundle identifier is already running. The shortcut is configurable, and the launcher remains available with the main window closed. Calculator keywords use English syntax and calculations run locally. Units can follow division directly (`100 / s`), and conversions work before further arithmetic (`10 m in cm / 2`) and inside functions (`round(10 m in cm)`).
+
+The launcher opens on the screen under the pointer. If the screen’s usable area changes while you type, the panel adjusts to fit. If that display disconnects and another is available, the panel moves there with your query intact. After sleep, use **Option-Q** to reopen it.
 
 ## Copy once. Find it again.
 
 Keep useful text and images within reach, with search, previews and restore in the main window, launcher and top-edge island. All three use the same history.
 
+- **Save a calculation.** Press **Enter** on a calculator result to copy it. With capture active, the result also appears in the shared history. Restoring a saved entry keeps a single copy in history.
 - **Choose what stays.** Pause capture, exclude applications and set limits for age, item count and storage.
 - **Keep it on your Mac.** Text, images and previews are encrypted locally with AES-GCM; the key is protected by Secure Enclave.
 - **Pick up where you left off.** Restore an entry, then paste with **Command-V** in your destination app.
 
-The default limits are **50 items, 7 days and 200 MB**. History is enabled on a fresh install, but capture waits for permanent macOS clipboard permission granted through **Check access**. Existing clipboard content is not imported when capture starts. Marked confidential entries are skipped; application exclusions give you further control.
+The default limits are **50 items, 7 days and 200 MB**. History is enabled on a fresh install. Capture starts when macOS allows ongoing clipboard access. If prompted, use **Check access** and follow the system settings available on your Mac. Recording skips the copy already on the clipboard at startup. Revoking access stops new captures and preserves saved entries. After access returns, recording starts with the next new copy. Marked confidential entries are skipped.
 
 ## A little space at the top. A lot within reach.
 
@@ -78,7 +81,7 @@ Move to the notch area to open a native **Liquid Glass** island. On a display wi
 
 Choose the sections you want in the dedicated Island settings. Hover leaves your current app's keyboard focus intact; deliberate keyboard interaction lets you search and navigate. Transitions respect Reduce Motion, and hidden media sections stop periodic reads.
 
-Apple Music requires Automation permission. Podcasts requires Accessibility permission and an available player window. Spotify integration is not available yet.
+Apple Music requires Automation permission. Podcasts requires Accessibility permission and an available player window. On macOS 27.2, the island follows the active compact or expanded Podcasts player for episode details and playback controls. Spotify integration is not available yet.
 
 ## Your mouse, your way
 
@@ -106,7 +109,7 @@ Public IPv4 discovery contacts **ipify**, and release checks contact **GitHub**.
 
 **Requirements:** an Apple Silicon Mac, **macOS 26+** and **Xcode 26+** selected through `xcode-select`.
 
-The source is available under AGPL-3.0-only. A public signed, notarized DMG has not been released yet.
+The current development build on this branch is **0.8.11 (15)**. The source is available under AGPL-3.0-only. A public signed, notarized DMG has not been released yet.
 
 ```sh
 git clone https://github.com/MrDeex1k/MacManager.git

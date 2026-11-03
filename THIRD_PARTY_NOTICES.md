@@ -10,8 +10,6 @@ Adaptowane elementy: klasyfikacja na podstawie gestów dotykowych i czasu w Scro
 
 Pełne NOTICE oraz LICENSE są w [ThirdPartyNotices.txt](MacManager/Resources/ThirdPartyNotices.txt), dołączanym również do zasobów aplikacji. Zachować ten plik przy dystrybucji źródeł i buildów.
 
-Osobne narzędzia prototypowe mają też [informację o referencji Stats](Prototypes/Stage1/THIRD_PARTY_NOTICES.md).
-
 Rozpoznawanie lokalnego źródła przewijania z 2026-10-28 inspirowane Scroll Reverser [04c167575d](https://github.com/pilotmoon/Scroll-Reverser/commit/04c167575dec79d2d17bf83948b60b8045aa6720): identyfikator nadawcy HID, właściwość przyspieszenia przewijania i klasa sterownika trackpada w IORegistry. Apache-2.0, Copyright 2011 Nicholas Moore. Własna adaptacja C/Swift: opcjonalne symbole rozwiązywane w runtime, ograniczone asynchroniczne odczyty i cache tylko w pamięci, fallback do dotychczasowej heurystyki także dla zdarzeń odtwarzanych przez sterowniki myszy bez identyfikatora HID. Nie przejęto tabel urządzeń, trwałych identyfikatorów ani prywatnego klienta Universal Control.
 
 ## Stats: katalog czujników GPU
