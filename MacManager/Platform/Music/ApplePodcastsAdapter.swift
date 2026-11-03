@@ -25,6 +25,16 @@ actor ApplePodcastsAdapter: MusicPlayerAdapter {
     private func children(_ element: AXUIElement) -> [AXUIElement] {
         attribute(element, kAXChildrenAttribute) as? [AXUIElement] ?? []
     }
+    private func timestamp(_ element: AXUIElement?) -> String {
+        guard let element else { return "" }
+        // Newer Podcasts versions label the button "Elapsed" / "Remaining".
+        // Read the clock text when exposed, without guessing from spoken durations.
+        for name in [kAXTitleAttribute, kAXValueAttribute, kAXDescriptionAttribute, kAXValueDescriptionAttribute] {
+            let value = text(element, name)
+            if PodcastPlayerReading.seconds(value) != nil { return value }
+        }
+        return ""
+    }
     private func application() -> AXUIElement? {
         guard let app = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.podcasts").first,
               !app.isTerminated else { return nil }
@@ -52,17 +62,29 @@ actor ApplePodcastsAdapter: MusicPlayerAdapter {
             let (element, depth, insideMetadata) = queue[index]; index += 1
             let id = text(element, kAXIdentifierAttribute)
             if id.hasPrefix("podcasts.miniPlayer.contentView[") { result.playerID = id }
+            if result.playerID.contains("viewState=mini"), id.hasPrefix("podcasts.nowPlaying.") { continue }
             if id.hasPrefix("podcasts.miniPlayer.") || id.hasPrefix("podcasts.nowPlaying.") {
                 result.elements[id] = element
             }
+            // The expanded view keeps an inactive copy of the entire compact player.
+            // Skip it so its stale metadata and controls cannot consume the scan budget.
+            if id.hasPrefix("podcasts.miniPlayer.contentView["), id.contains("viewState=fullScreen") { continue }
             if insideMetadata && id.isEmpty && result.fallbackTitle.isEmpty {
                 let description = text(element)
                 if !description.isEmpty { result.fallbackTitle = description }
             }
-            guard depth < 9, !id.hasPrefix("podcasts.shelf"), !id.hasPrefix("podcasts.tabBar"),
+            // On macOS 27.2 the compact container itself can be at depth 14.
+            // Leave room for metadata descendants within the same node/time budgets.
+            guard depth < 24, !id.hasPrefix("podcasts.shelf"), !id.hasPrefix("podcasts.tabBar"),
                   !id.hasPrefix("podcasts.listen["), !id.hasPrefix("podcasts.nowPlaying.queue") else { continue }
             let metadata = id.hasPrefix("podcasts.miniPlayer.metadataRegion[")
-            queue.append(contentsOf: children(element).prefix(100).map { ($0, depth + 1, metadata) })
+            let descendants = children(element).prefix(100).map { ($0, depth + 1, metadata) }
+            if id.hasPrefix("podcasts.miniPlayer.contentView[") {
+                // Reach the compact transport before retained expanded-view siblings.
+                queue.insert(contentsOf: descendants, at: index)
+            } else {
+                queue.append(contentsOf: descendants)
+            }
         }
         return result
     }
@@ -77,17 +99,20 @@ actor ApplePodcastsAdapter: MusicPlayerAdapter {
         let nodes = value.elements
         guard let prefix = transportPrefix(value) else { return MusicSnapshot(availability: .windowRequired) }
         var reading = PodcastPlayerReading()
-        reading.title = text(nodes["podcasts.miniPlayer.title"])
+        reading.title = text(nodes[prefix + "title"])
+        reading.subtitle = text(nodes[prefix + "subtitle"])
+        if prefix == "podcasts.nowPlaying." {
+            reading.showTitle = reading.subtitle
+            reading.expandedMetadata = text(nodes["podcasts.nowPlaying.eyebrow-podcasts.nowPlaying.title-podcasts.nowPlaying.subtitle"])
+        }
+        // Older versions expose only the mini-player title or a combined expanded label.
+        if reading.title.isEmpty { reading.title = text(nodes["podcasts.miniPlayer.title"]) }
         if reading.title.isEmpty { reading.title = value.fallbackTitle }
-        reading.subtitle = text(nodes["podcasts.miniPlayer.subtitle"])
-        reading.expandedMetadata = text(nodes["podcasts.nowPlaying.eyebrow-podcasts.nowPlaying.title-podcasts.nowPlaying.subtitle"])
-        // In fully expanded mode Podcasts removes the mini-player title element.
-        // Keep the exposed combined label verbatim rather than guessing comma boundaries.
         if reading.title.isEmpty { reading.title = reading.expandedMetadata }
         reading.playing = value.playerID.contains("isPlaying=true")
         reading.playbackControlLabel = text(nodes[prefix + "playbackTransportControl"])
-        reading.elapsedText = text(nodes["podcasts.nowPlaying.playbackSlider.leadingTimestamp"])
-        reading.remainingText = text(nodes["podcasts.nowPlaying.playbackSlider.trailingTimestamp"])
+        reading.elapsedText = timestamp(nodes[prefix + "playbackSlider.leadingTimestamp"])
+        reading.remainingText = timestamp(nodes[prefix + "playbackSlider.trailingTimestamp"])
         reading.backwardLabel = text(nodes[prefix + "leadingTransportControl"])
         reading.forwardLabel = text(nodes[prefix + "trailingTransportControl"])
         if let slider = nodes[prefix + "playbackSlider"],
@@ -115,10 +140,12 @@ actor ApplePodcastsAdapter: MusicPlayerAdapter {
         return snapshot
     }
     private func transportPrefix(_ player: Player) -> String? {
-        for prefix in ["podcasts.miniPlayer.", "podcasts.nowPlaying."] {
-            if player.elements[prefix + "playbackTransportControl"] != nil { return prefix }
-        }
-        return nil
+        let enabled = Set(player.elements.compactMap { identifier, element -> String? in
+            guard identifier.hasSuffix("playbackTransportControl"),
+                  (attribute(element, kAXEnabledAttribute) as? NSNumber)?.boolValue != false else { return nil }
+            return identifier
+        })
+        return PodcastPlayerReading.transportPrefix(playerIdentifier: player.playerID, enabledIdentifiers: enabled)
     }
     func perform(_ command: MusicCommand) async -> MusicAvailability {
         guard !Task.isCancelled, let app = application() else { return .notRunning }

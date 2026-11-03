@@ -52,4 +52,40 @@ struct PodcastTests {
         #expect(reading.snapshot.playback == .playing)
     }
 
+    @Test func expandedTransportWinsOverRetainedMiniPlayerControls() {
+        let mini = "podcasts.miniPlayer.playbackTransportControl"
+        let expanded = "podcasts.nowPlaying.playbackTransportControl"
+        #expect(PodcastPlayerReading.transportPrefix(enabledIdentifiers: [mini, expanded]) == "podcasts.nowPlaying.")
+        // The full-screen AX tree retains the disabled mini player. Only enabled IDs enter this set.
+        #expect(PodcastPlayerReading.transportPrefix(enabledIdentifiers: [expanded]) == "podcasts.nowPlaying.")
+        #expect(PodcastPlayerReading.transportPrefix(enabledIdentifiers: [mini]) == "podcasts.miniPlayer.")
+        #expect(PodcastPlayerReading.transportPrefix(enabledIdentifiers: []) == nil)
+        #expect(PodcastPlayerReading.transportPrefix(enabledIdentifiers: ["podcasts.shelfItemSubComponent.playControls"]) == nil)
+    }
+
+    @Test func separateExpandedShowTitleDoesNotDependOnCombinedLabelPunctuation() {
+        var reading = PodcastPlayerReading()
+        reading.title = "Episode, with a comma"
+        reading.subtitle = "A show, with a comma"
+        reading.showTitle = reading.subtitle
+        // The combined AX description may be absent or expose a different ordering.
+        for combined in ["", "A show, with a comma, Episode, with a comma, 3 November"] {
+            reading.expandedMetadata = combined
+            #expect(reading.snapshot.title == "Episode, with a comma")
+            #expect(reading.snapshot.artist == "A show, with a comma")
+        }
+    }
+
+    @Test func compactPlayerDoesNotTargetEnabledControlsFromHiddenExpandedView() {
+        let mini = "podcasts.miniPlayer.playbackTransportControl"
+        let expanded = "podcasts.nowPlaying.playbackTransportControl"
+        let compactID = "podcasts.miniPlayer.contentView[viewState=mini,isPlaying=false]"
+        let expandedID = "podcasts.miniPlayer.contentView[viewState=fullScreen,isPlaying=false]"
+        #expect(PodcastPlayerReading.transportPrefix(playerIdentifier: compactID, enabledIdentifiers: [mini, expanded]) == "podcasts.miniPlayer.")
+        #expect(PodcastPlayerReading.transportPrefix(playerIdentifier: expandedID, enabledIdentifiers: [mini, expanded]) == "podcasts.nowPlaying.")
+        // A partial scan or disabled active transport must not redirect a command to hidden controls.
+        #expect(PodcastPlayerReading.transportPrefix(playerIdentifier: compactID, enabledIdentifiers: [expanded]) == nil)
+        #expect(PodcastPlayerReading.transportPrefix(playerIdentifier: expandedID, enabledIdentifiers: [mini]) == nil)
+    }
+
 }

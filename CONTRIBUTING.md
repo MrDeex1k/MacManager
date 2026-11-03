@@ -74,3 +74,10 @@ Use the repository issue forms. Include macOS version, Mac model class, reproduc
 - `MM_BENCHMARKS=1`: synthetic launcher ranking benchmark; run with `-c release --filter launcherRankingBenchmark` separately from other tests.
 
 UI tests are grouped by feature and share AppUITestSupport. Run the MacManager scheme on macOS. Fixture launches use isolated preferences and clipboard data. Performance reports must distinguish engine timings from end-to-end UI latency and record skipped or unavailable checks explicitly.
+
+For Apple Podcasts compatibility checks after a macOS update, also exercise the real player:
+
+- Check the island's episode title, show name, artwork and playback state with the compact player on Home, then with the expanded player and its queue open.
+- Use the island's play/pause and skip controls in both modes. Podcasts can retain controls from the hidden mode in Accessibility, sometimes still enabled; commands must follow the exposed player view state and target its enabled transport.
+- Switch episodes and return to the compact view. Confirm that metadata and locally cached artwork update together. Artwork checks require the existing read-only Podcasts folder permission.
+- Close the Podcasts window and reopen it. The island should show the unavailable-window state and then recover. Do not infer this behavior from fixture tests alone.
