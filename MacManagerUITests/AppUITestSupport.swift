@@ -147,13 +147,18 @@ class AppUITestSupport: XCTestCase {
         liveMetrics: Bool = false,
         clipboardFixture: Bool = false,
         clipboardWriteFailure: Bool = false,
+        clipboardAccessRequired: Bool = false,
+        clipboardAccessDenied: Bool = false,
         islandClipboardFixture: Bool = false,
         islandDenseClipboardFixture: Bool = false,
         islandReduceMotion: Bool = false,
         islandConstrainedLayout: Bool = false,
+        islandReservedRegionProbe: Bool = false,
+        islandProbeIgnoresSafeArea: Bool = false,
         musicDenied: Bool = false,
         podcastAccessRequired: Bool = false,
         launcherLiveTesting: Bool = false,
+        launcherPasteboardName: String? = nil,
         scrollPermission: Bool = false,
         inputMonitoringRequired: Bool = false,
         loginItemRequiresApproval: Bool = false,
@@ -164,15 +169,20 @@ class AppUITestSupport: XCTestCase {
         continueAfterFailure = false
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        if let launcherPasteboardName { app.launchEnvironment["MM_LAUNCHER_TEST_PASTEBOARD"] = launcherPasteboardName }
         if reset { app.launchArguments.append("--reset-preferences") }
         if liveMetrics { app.launchArguments.append("--live-metrics") }
         if launcherLiveTesting { app.launchArguments.append("--launcher-live-testing") }
         if clipboardFixture { app.launchArguments.append("--clipboard-fixture") }
         if clipboardWriteFailure { app.launchArguments.append("--clipboard-write-failure") }
+        if clipboardAccessRequired { app.launchArguments.append("--clipboard-access-required") }
+        if clipboardAccessDenied { app.launchArguments.append("--clipboard-access-denied") }
         if islandClipboardFixture { app.launchArguments.append("--island-clipboard-fixture") }
         if islandDenseClipboardFixture { app.launchArguments.append("--island-dense-clipboard-fixture") }
         if islandReduceMotion { app.launchArguments.append("--island-reduce-motion") }
         if islandConstrainedLayout { app.launchArguments.append("--island-constrained-layout") }
+        if islandReservedRegionProbe { app.launchArguments.append("--island-reserved-region-probe") }
+        if islandProbeIgnoresSafeArea { app.launchArguments.append("--island-reserved-region-ignore-safe-area") }
         if musicDenied { app.launchArguments.append("--music-denied") }
         if podcastAccessRequired { app.launchArguments.append("--podcast-access-required") }
         if scrollPermission { app.launchArguments.append("--scroll-permission-granted") }

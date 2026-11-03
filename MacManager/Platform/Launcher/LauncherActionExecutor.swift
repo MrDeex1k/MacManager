@@ -4,10 +4,16 @@ import MacManagerCore
 /// Framework effects live here; the controller retains presentation and focus policy.
 @MainActor final class LauncherActionExecutor {
     enum Outcome { case copied, opened, section(String), failed }
-    private let pasteboard: SystemClipboardPasteboard
+    private let writer: LocalClipboardWriter
     init(testing: Bool) {
-        pasteboard = SystemClipboardPasteboard(pasteboard: testing
-            ? NSPasteboard(name: .init("MacManagerLauncherTests-\(UUID().uuidString)")) : .general)
+        var testName = "MacManagerLauncherTests-\(UUID().uuidString)"
+        #if DEBUG
+        if testing, UITestConfiguration.current.enabled,
+           let name = ProcessInfo.processInfo.environment["MM_LAUNCHER_TEST_PASTEBOARD"],
+           name.hasPrefix("MacManagerLauncherTests-") { testName = name }
+        #endif
+        writer = LocalClipboardWriter(pasteboard: testing
+            ? NSPasteboard(name: .init(testName)) : .general)
     }
     func execute(_ entry: LauncherEntry, options: LauncherPreferences, clipboard: ClipboardService?) async -> Outcome {
         switch entry.action {
@@ -16,7 +22,8 @@ import MacManagerCore
             return await clipboard.restore(id) ? .copied : .failed
         case .copy(let text):
             do {
-                try pasteboard.restore(.init(kind: .text, data: Data(text.utf8)))
+                // A calculator result is a new copy; only history restores carry exclusion markers.
+                try writer.writeText(text, history: .allowCapture)
                 return .copied
             } catch { return .failed }
         case .file(let url):
@@ -38,6 +45,8 @@ import MacManagerCore
             guard FileManager.default.fileExists(atPath: url.path) else { return .failed }
             let configuration = NSWorkspace.OpenConfiguration()
             configuration.activates = true
+            // A selected installation must not resolve to another running copy with the same bundle ID.
+            configuration.allowsRunningApplicationSubstitution = false
             let opened: Bool = await withCheckedContinuation { continuation in
                 NSWorkspace.shared.openApplication(at: url, configuration: configuration) { _, error in
                     continuation.resume(returning: error == nil)

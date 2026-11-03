@@ -10,7 +10,7 @@ Adaptowane elementy: klasyfikacja na podstawie gestów dotykowych i czasu w Scro
 
 Pełne NOTICE oraz LICENSE są w [ThirdPartyNotices.txt](MacManager/Resources/ThirdPartyNotices.txt), dołączanym również do zasobów aplikacji. Zachować ten plik przy dystrybucji źródeł i buildów.
 
-Osobne narzędzia prototypowe mają też [informację o referencji Stats](Prototypes/Stage1/THIRD_PARTY_NOTICES.md).
+Rozpoznawanie lokalnego źródła przewijania z 2026-10-28 inspirowane Scroll Reverser [04c167575d](https://github.com/pilotmoon/Scroll-Reverser/commit/04c167575dec79d2d17bf83948b60b8045aa6720): identyfikator nadawcy HID, właściwość przyspieszenia przewijania i klasa sterownika trackpada w IORegistry. Apache-2.0, Copyright 2011 Nicholas Moore. Własna adaptacja C/Swift: opcjonalne symbole rozwiązywane w runtime, ograniczone asynchroniczne odczyty i cache tylko w pamięci, fallback do dotychczasowej heurystyki także dla zdarzeń odtwarzanych przez sterowniki myszy bez identyfikatora HID. Nie przejęto tabel urządzeń, trwałych identyfikatorów ani prywatnego klienta Universal Control.
 
 ## Stats: katalog czujników GPU
 
@@ -37,3 +37,5 @@ Adaptacja z 2026-10-12: rozróżnienie bitów i bajtów szybkości transferu w C
 Adaptacje z 2026-10-12: sortowanie kopii aplikacji według wersji z TinyCast `4207ab11914470e79538fbffc6935f63b0bb3ad1` oraz skanowanie symlinków katalogów z `5ec0f9de11196183ea92f35c550c43395e2b2245` w SearchScopes.swift. Lokalne zmiany: odczyt świeżych metadanych w ApplicationProvider.swift, deterministyczne remisy, priorytet zakresów, ograniczenie głębokości i embedded apps, anulowanie oraz uzgadnianie personalizacji i celów skrótów w LauncherSearch.swift i LauncherController.swift. Autor i AGPL jak powyżej.
 
 Fokus z 2026-10-12: zasada przywrócenia pola wyszukiwania po zamknięciu menu pochodzi z TinyCast `62abccdfc6cc06df7fc027099a4defe551386a88`, RootPaletteView.closeMenus. Własna implementacja w LauncherView.swift i LauncherController.swift używa lokalnego menu AppKit, sygnału zamknięcia popovera, tokenu prezentacji oraz ochrony kursora i IME. Nie przeniesiono infrastruktury paneli menu TinyCast.
+
+Adaptacje kalkulatora z 2026-10-28: jednostka bez liczby po dzieleniu na podstawie Tinycast `1c3c2572e6`, konwersje w trakcie wyrażeń i w argumentach funkcji na podstawie `06f3bc75c7`. Źródła: https://github.com/abue-ammar/tinycast/commit/1c3c2572e6 oraz https://github.com/abue-ammar/tinycast/commit/06f3bc75c7. Copyright (C) 2026 Abue Ammar, AGPL-3.0-or-later; użyto na warunkach wersji 3. Zachowano lokalne obliczenia bez pobierania kursów i dodano testy regresji.

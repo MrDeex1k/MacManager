@@ -73,4 +73,48 @@ Use the repository issue forms. Include macOS version, Mac model class, reproduc
 - `MM_LAUNCHER_TEST_ROOT="$PWD"`: Spotlight integration against this indexed repository.
 - `MM_BENCHMARKS=1`: synthetic launcher ranking benchmark; run with `-c release --filter launcherRankingBenchmark` separately from other tests.
 
-UI tests are grouped by feature and share AppUITestSupport. Run the MacManager scheme on macOS. Fixture launches use isolated preferences and clipboard data. Performance reports must distinguish engine timings from end-to-end UI latency and record skipped or unavailable checks explicitly.
+UI tests are grouped by feature and share AppUITestSupport. Run the MacManager scheme on macOS. Quit other MacManager copies with the same bundle identifier first, so XCTest targets only its isolated fixture process. Fixture launches use isolated preferences and clipboard data. Performance reports must distinguish engine timings from end-to-end UI latency and record skipped or unavailable checks explicitly.
+
+For clipboard permission compatibility checks after a macOS update:
+
+- Run the Core tests for `clipboardPermission`, `clipboardRevocation` and `clipboardRestart`, plus the UI test `ClipboardTests/testClipboardPermissionRequestAndDenialStates`. These simulate permission transitions using isolated data; they do not change the user's system permission.
+- With the installed signed app, verify that allowed access records new copies. Initial clipboard contents, copies made while access was denied and the copy present when permission is granted must not be imported automatically.
+- If macOS exposes clipboard access controls, test denial and revocation while the app is running, then grant access again. Capture must stop, existing history must remain available and new copies must resume without restarting. Permission requests must follow an explicit user action, not background polling.
+- After replacing the app, check its bundle identifier, signing certificate and designated requirement against the previous installation. Verify the permission state and existing history after launch. Do not reset permissions, delete keys or change the app's identity to make this test pass.
+- Record system checks separately from simulated coverage. If the installed macOS does not expose clipboard permission controls, mark actual denial/revocation as unavailable rather than passing them based on fixtures. Do not enable the removed `EnablePasteboardPrivacyDeveloperPreview` flag as a workaround.
+
+For Apple Podcasts compatibility checks after a macOS update, also exercise the real player:
+
+- Check the island's episode title, show name, artwork and playback state with the compact player on Home, then with the expanded player and its queue open.
+- Use the island's play/pause and skip controls in both modes. Podcasts can retain controls from the hidden mode in Accessibility, sometimes still enabled; commands must follow the exposed player view state and target its enabled transport.
+- Switch episodes and return to the compact view. Confirm that metadata and locally cached artwork update together. Artwork checks require the existing read-only Podcasts folder permission.
+- Close the Podcasts window and reopen it. The island should show the unavailable-window state and then recover. Do not infer this behavior from fixture tests alone.
+
+For display and sleep/wake compatibility checks:
+
+- Run `LauncherPanelGeometryTests`, `LauncherTests/testLauncherRecoversFromDisplayChangesWithoutLosingQuery`, `LauncherTests/testPanelsSuspendAndReopenWithFreshGeometryAfterWake` and `IslandTests/testIslandHoverAcrossActivationAndPanel`.
+- Open the launcher on each connected screen, including screens above or to the left of the primary display. Keep the panel within the usable area, with space for the Dock and menu bar. A query must survive a display reconfiguration while the panel remains open.
+- Change scaling and rearrange displays, then disconnect the launcher's screen. The panel should resize or move to an available display; the island should reopen at the physical top edge of the built-in display, or an available external display when no built-in screen is available.
+- Sleep/wake and lock/unlock must close private panels and stop their visible work. They must stay closed until requested again, then use current screen geometry.
+- Debug UI-test commands simulate display metadata and session events without changing monitor settings or putting the Mac to sleep. Record these results separately from physically unplugging a monitor, changing system scaling and completing a real sleep/wake cycle.
+
+The Island `ReservedRegion` experiment is opt-in and requires the macOS 27.1+ SDK and runtime. Normal builds keep the existing toolchain/deployment requirements and `NSScreen` geometry. To run the prototype on macOS with the newer SDK:
+
+```sh
+xcodebuild -project MacManager.xcodeproj -scheme MacManager -configuration Debug \
+  -destination 'platform=macOS,arch=arm64' -parallel-testing-enabled NO \
+  'SWIFT_ACTIVE_COMPILATION_CONDITIONS=DEBUG MM_RESERVED_REGION_PROBE' \
+  -only-testing:MacManagerUITests/IslandTests/testReservedRegionPrototypeInRealIslandPanel test
+```
+
+The test also supplies `--ui-testing --island-reserved-region-probe`. Both gates are required for measurements; Release excludes the probe entirely. It queries active and inactive occlusion/division regions inside the real Island panel and attaches geometry-only JSON observations for Clipboard, Music and an external display when connected. It repeats these measurements with default safe-area handling and with `--island-reserved-region-ignore-safe-area` to check whether that modifier affects reporting. The transparent probe does not handle input or add accessibility elements. Camera comparisons use unmirrored, top-left local coordinates and retain the separate `NSScreen` reference. An empty SwiftUI result must not be replaced with fabricated regions or treated as proof that the screen has no camera. Adopt the API for production placement only after confirming its reporting in the custom panel on the target hardware. See Apple's [ReservedRegion documentation](https://developer.apple.com/documentation/swiftui/reservedregion) for the API contract.
+
+## macOS 27.2 verification for build 0.8.11 (15)
+
+The clipboard tests covered denial, revocation and resuming capture using simulated permission changes. The installed app retained access and its saved history after replacement. The test Mac did not expose a system clipboard permission switch, so revocation through System Settings still needs a device check.
+
+Display tests moved the launcher between two connected screens using simulated changes to display metadata. The query survived the move. Both panels closed on simulated sleep and reopened on request after simulated wake. Physical disconnection, changing system scaling and a full hardware sleep/wake cycle remain manual checks.
+
+In ten measurements on a MacBook with a notch and an external display, SwiftUI returned zero reserved regions, including inactive regions. AppKit reported a 220 × 38 pt camera area on the built-in screen. Production placement therefore uses `NSScreen`. Rerun the opt-in probe above when evaluating a new SDK or Mac model.
+
+When replacing a signed local installation, compare the built bundle with the installed copy before quitting the running app. Verify the bundle identifier, leaf certificate, designated requirement and entitlements. During the 0.8.11 build, Xcode used the selected certificate but generated a different requirement and added `com.apple.security.get-task-allow`. The installed build passed strict signature verification with the original requirement and entitlements. After launch, verify the executable path, version, build number, preferences and saved clipboard entries.

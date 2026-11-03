@@ -197,10 +197,14 @@ private func clipboardDirectory() -> URL {
     var access = ClipboardAccess.allowed
     var captures = 0
     var requests = 0
+    var requestedAccess: ClipboardAccess?
     var text = "initial"
     var restored: Data?
     var writeFails = false
-    func requestAccess() { requests += 1 }
+    func requestAccess() {
+        requests += 1
+        if let requestedAccess { access = requestedAccess }
+    }
     func capture(exclusions: Set<String>) -> ClipboardCapture {
         captures += 1
         return .content(ClipboardRawContent(kind: .text, data: Data(text.utf8)))
@@ -208,6 +212,108 @@ private func clipboardDirectory() -> URL {
     func restore(_ content: ClipboardRestoredContent) throws {
         if writeFails { throw ClipboardFailure.writeFailed }; restored = content.data; changeCount += 1 }
     func copy(_ text: String) { self.text = text; changeCount += 1 }
+}
+
+@MainActor @Test(arguments: [ClipboardAccess.needsPermission, .denied])
+func clipboardPermissionRequiresExplicitActionAndFreshCopy(initialAccess: ClipboardAccess) async throws {
+    let directory = clipboardDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let mock = ClipboardMock(); mock.access = initialAccess
+    let repo = ClipboardRepository(directory: directory, keys: ClipboardTestKey())
+    var settings = ClipboardPreferences(); settings.enabled = true
+    let service = ClipboardService(preferences: settings, pasteboard: mock, repository: repo, storageExists: false)
+    await service.start()
+    defer { service.stop() }
+    mock.copy("before permission")
+    for _ in 0..<3 { service.poll() }
+    #expect(service.status == (initialAccess == .denied ? .denied : .needsPermission))
+    #expect(mock.requests == 0 && mock.captures == 0 && service.pollingSeconds == 5)
+
+    // A rejected explicit request must not start capture or trigger automatic retries.
+    mock.requestedAccess = .denied
+    service.requestAccess(); service.poll()
+    #expect(service.status == .denied && mock.requests == 1 && mock.captures == 0)
+    mock.requestedAccess = .allowed
+    service.requestAccess(); service.poll()
+    #expect(service.status == .recording && service.pollingSeconds == 0.5)
+    #expect(mock.requests == 2 && mock.captures == 0 && service.entries.isEmpty)
+    mock.copy("after permission"); service.poll()
+    #expect(await waitUntil { service.entries.count == 1 })
+    #expect(service.entries.first?.text == "after permission")
+}
+
+@MainActor @Test(arguments: [ClipboardAccess.needsPermission, .denied])
+func clipboardRevocationCancelsPendingCaptureAndPreservesHistory(revokedAccess: ClipboardAccess) async throws {
+    let directory = clipboardDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let key = ClipboardTestKey()
+    let repo = ClipboardRepository(directory: directory, keys: key)
+    let mock = ClipboardMock()
+    var settings = ClipboardPreferences(); settings.enabled = true
+    let service = ClipboardService(preferences: settings, pasteboard: mock, repository: repo, storageExists: false)
+    await service.start()
+    defer { service.stop() }
+    mock.copy("saved before revocation"); service.poll()
+    #expect(await waitUntil { service.entries.count == 1 })
+    let id = try #require(service.entries.first?.id)
+
+    // Revoke before the asynchronous capture can normalize or persist this copy.
+    mock.copy("pending when revoked"); service.poll()
+    mock.access = revokedAccess; service.poll()
+    #expect(service.status == (revokedAccess == .denied ? .denied : .needsPermission))
+    mock.copy("copied without permission"); service.poll()
+    #expect(mock.captures == 2 && mock.requests == 0 && service.entries.map(\.id) == [id])
+    let reopened = ClipboardRepository(directory: directory, keys: key)
+    #expect(try await reopened.load(preferences: settings, now: Date()).entries.map(\.id) == [id])
+
+    mock.access = .allowed; service.poll()
+    #expect(mock.captures == 2 && service.entries.map(\.id) == [id])
+    mock.copy("saved after regrant"); service.poll()
+    #expect(await waitUntil { service.entries.count == 2 })
+    #expect(Set(service.entries.compactMap(\.text)) == ["saved before revocation", "saved after regrant"])
+    #expect(try await reopened.load(preferences: settings, now: Date()).entries.count == 2)
+}
+
+@MainActor @Test func clipboardRestartKeepsHistoryAndPermissionWithoutImportingBaseline() async throws {
+    let directory = clipboardDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let key = ClipboardTestKey()
+    let mock = ClipboardMock()
+    var settings = ClipboardPreferences(); settings.enabled = true
+    let first = ClipboardService(preferences: settings, pasteboard: mock,
+        repository: ClipboardRepository(directory: directory, keys: key), storageExists: false)
+    await first.start()
+    mock.copy("saved before restart"); first.poll()
+    #expect(await waitUntil { first.entries.count == 1 })
+    let id = try #require(first.entries.first?.id)
+    first.stop()
+    mock.copy("present at restart")
+    let second = ClipboardService(preferences: settings, pasteboard: mock,
+        repository: ClipboardRepository(directory: directory, keys: key), storageExists: true)
+    await second.start()
+    defer { second.stop() }
+    second.poll()
+    #expect(second.status == .recording && second.entries.map(\.id) == [id])
+    #expect(mock.requests == 0 && mock.captures == 1)
+    mock.copy("saved after restart"); second.poll()
+    #expect(await waitUntil { second.entries.count == 2 })
+}
+
+@MainActor @Test func clipboardPermissionRequestsAreBlockedWhenDisabledOrSuspended() async throws {
+    let directory = clipboardDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let mock = ClipboardMock(); mock.access = .needsPermission
+    var settings = ClipboardPreferences(); settings.enabled = false
+    let service = ClipboardService(preferences: settings, pasteboard: mock,
+        repository: ClipboardRepository(directory: directory, keys: ClipboardTestKey()), storageExists: false)
+    await service.start()
+    defer { service.stop() }
+    service.requestAccess(); service.poll()
+    #expect(service.status == .disabled && mock.requests == 0 && mock.captures == 0)
+    settings.enabled = true; await service.updatePreferences(settings)
+    await service.setSuspended(true)
+    service.requestAccess(); service.poll()
+    #expect(service.status == .locked && mock.requests == 0 && mock.captures == 0)
 }
 
 @MainActor @Test func clipboardCancelledRestoreDoesNotWriteOrDuplicate() async throws {
@@ -580,6 +686,43 @@ func clipboardStorageIsExcludedFromBackup() async throws {
     #expect(captured.first?.types.contains(.init("org.nspasteboard.RestoredType")) == true)
     let failing = LocalClipboardWriter(prepare: {}, write: { _ in false })
     #expect(throws: ClipboardFailure.writeFailed) { try failing.writeText("retry", history: .allowCapture) }
+}
+
+@MainActor @Test(.enabled(if: ProcessInfo.processInfo.environment["MM_SYSTEM_TESTS"] == "1", "Requires MM_SYSTEM_TESTS=1 and named pasteboard access"))
+func newLocalCopiesAreSavedWhileHistoryRestoresAndPausedCaptureStayExcluded() async throws {
+    let board = NSPasteboard(name: .init("MacManagerTests-\(UUID().uuidString)"))
+    defer { board.releaseGlobally() }
+    let directory = clipboardDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let key = ClipboardTestKey()
+    let repository = ClipboardRepository(directory: directory, keys: key)
+    let adapter = SystemClipboardPasteboard(pasteboard: board, foregroundBundleID: { nil })
+    var preferences = ClipboardPreferences()
+    preferences.enabled = true
+    let service = ClipboardService(preferences: preferences, pasteboard: adapter, repository: repository, storageExists: false)
+    await service.start()
+    defer { service.stop() }
+
+    try LocalClipboardWriter(pasteboard: board).writeText("14", history: .allowCapture)
+    #expect(board.string(forType: .string) == "14")
+    service.poll()
+    #expect(await waitUntil { service.entries.count == 1 })
+    let entry = try #require(service.entries.first)
+    #expect(entry.text == "14")
+    let reopened = ClipboardRepository(directory: directory, keys: key)
+    #expect(try await reopened.load(preferences: preferences, now: Date()).entries.first?.text == "14")
+
+    #expect(await service.restore(entry.id))
+    guard case .skipped = adapter.capture(exclusions: []) else { Issue.record("History restore was captured again"); return }
+    service.poll()
+    #expect(service.entries.map(\.id) == [entry.id])
+
+    preferences.paused = true
+    await service.updatePreferences(preferences)
+    try LocalClipboardWriter(pasteboard: board).writeText("15", history: .allowCapture)
+    service.poll()
+    #expect(board.string(forType: .string) == "15")
+    #expect(service.entries.map(\.id) == [entry.id])
 }
 
 private final class RecoverableClipboardKey: ClipboardKeyProviding, @unchecked Sendable {

@@ -46,6 +46,11 @@ final class LauncherController: ApplicationLifecycleParticipant {
     @ObservationIgnored private let testing: Bool
     private var usesRealShortcut: Bool { !testing || UITestConfiguration.current.contains("--launcher-live-testing") }
     @ObservationIgnored private var running = false
+    @ObservationIgnored private var suspended = false
+    @ObservationIgnored private var displayID: UInt32?
+    #if DEBUG
+    @ObservationIgnored private var testDisplays: [LauncherPanelGeometry.Display]?
+    #endif
     @ObservationIgnored private var presentationID = UUID()
     private(set) var executing = false
     var strings: AppStrings { AppStrings(languageCode: preferences.language.resolvedCode()) }
@@ -86,10 +91,18 @@ final class LauncherController: ApplicationLifecycleParticipant {
         registerItemShortcuts()
         reconcileApplicationShortcuts()
         SystemSessionMonitor.shared.subscribe(in: observers) { [weak self] state in
-            guard state.suspended, let self else { return }
+            guard let self else { return }
+            self.suspended = state.suspended
+            guard state.suspended else { return }
             self.hide(restoreFocus: false); self.model.cancel()
             self.shortcutCleanup?.cancel(); self.shortcutCleanup = nil
         }
+        let screenToken = NotificationCenter.default.addObserver(
+            forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.reposition() }
+        }
+        observers.append((.default, screenToken))
     }
     func stop() {
         running = false; hide(restoreFocus: false); hotKey.stop()
@@ -113,7 +126,7 @@ final class LauncherController: ApplicationLifecycleParticipant {
     }
     func toggle() { visible ? hide() : show() }
     func show() {
-        guard running else { return }
+        guard running, !suspended, let display = targetDisplay(preferredID: visible ? displayID : nil) else { return }
         if visible { panel?.makeKeyAndOrderFront(nil); return }
         reconcileApplicationShortcuts()
         applicationIcons.refreshIfNeeded(after: catalogRefreshSeconds)
@@ -141,11 +154,8 @@ final class LauncherController: ApplicationLifecycleParticipant {
         hosting.sizingOptions = []
         self.hosting = hosting
         if panel.contentView !== hosting { panel.contentView = hosting }
-        let screen = NSScreen.screens.first { $0.frame.contains(NSEvent.mouseLocation) } ?? NSScreen.main
-        let frame = screen?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1000, height: 800)
-        let width = min(680.0, frame.width - 40)
-        panel.setFrame(NSRect(x: frame.midX - width / 2, y: frame.maxY - min(160, frame.height / 5) - 90,
-                              width: width, height: 90), display: false)
+        displayID = display.id
+        panel.setFrame(LauncherPanelGeometry.frame(in: display.visibleFrame, expanded: showsResults), display: false)
         visible = true
         panel.makeKeyAndOrderFront(nil)
         restoreSearchFocus(after: presentationID)
@@ -299,17 +309,48 @@ final class LauncherController: ApplicationLifecycleParticipant {
     }
 
     func resize(rowCount: Int) {
-        guard visible, let panel else { return }
-        // A stable results area avoids resizing the window for each intermediate query.
-        let height: CGFloat = !showsResults ? 90 : 90 + 7 * 56 + 32
-        var frame = panel.frame
-        let available = panel.screen?.visibleFrame ?? frame
-        let bounded = min(height, available.height - 40)
-        frame.origin.y += frame.height - bounded; frame.size.height = bounded
-        frame.origin.y = max(frame.origin.y, available.minY + 20)
+        reposition()
+    }
+    private var displays: [LauncherPanelGeometry.Display] {
+        #if DEBUG
+        if let testDisplays { return testDisplays }
+        #endif
+        return NSScreen.screens.compactMap { screen in
+            guard let number = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber else { return nil }
+            return .init(id: number.uint32Value, frame: screen.frame, visibleFrame: screen.visibleFrame)
+        }
+    }
+    private func targetDisplay(preferredID: UInt32?) -> LauncherPanelGeometry.Display? {
+        LauncherPanelGeometry.display(in: displays, preferredID: preferredID, pointer: NSEvent.mouseLocation)
+    }
+    private func reposition() {
+        guard running, visible, !suspended, let panel else { return }
+        guard let display = targetDisplay(preferredID: displayID) else { hide(restoreFocus: false); return }
+        displayID = display.id
+        // Recompute both axes from current screen metadata, never from a stale panel frame.
+        let frame = LauncherPanelGeometry.frame(in: display.visibleFrame, expanded: showsResults)
         guard frame != panel.frame else { return }
         panel.setFrame(frame, display: true, animate: false)
     }
+    #if DEBUG
+    func simulateDisplayChangeForTesting(_ scenario: String) {
+        guard testing, UITestConfiguration.current.enabled else { return }
+        testDisplays = nil
+        let current = displays
+        switch scenario {
+        case "constrained":
+            testDisplays = current.map {
+                let available = CGRect(origin: $0.visibleFrame.origin,
+                    size: CGSize(width: min(500, $0.visibleFrame.width), height: min(400, $0.visibleFrame.height)))
+                return .init(id: $0.id, frame: $0.frame, visibleFrame: available)
+            }
+        case "removed": testDisplays = current.filter { $0.id != displayID }
+        case "none": testDisplays = []
+        default: break
+        }
+        NotificationCenter.default.post(name: NSApplication.didChangeScreenParametersNotification, object: nil)
+    }
+    #endif
     func hide(restoreFocus: Bool = true) {
         clipboardSearch.reset()
         guard visible else { return }

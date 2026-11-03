@@ -89,6 +89,13 @@ struct IslandSettingsView: View {
                     .accessibilityIdentifier("island.debug.podcasts")
                 Text(state.island.debugAnimationState)
                     .accessibilityIdentifier("island.debug.animation")
+                #if MM_RESERVED_REGION_PROBE
+                if UITestConfiguration.current.contains("--island-reserved-region-probe") {
+                    Text(state.island.debugReservedRegions)
+                        .font(.caption.monospaced()).lineLimit(3)
+                        .accessibilityIdentifier("island.debug.reservedRegions")
+                }
+                #endif
             }
             #endif
         }

@@ -49,7 +49,7 @@ import MacManagerCore
         podcasts = MusicService(adapter: podcastAdapter)
         launcher = LauncherController(preferences: preferences, testing: testing)
         clipboardController = ClipboardController(preferences: preferences, testing: testing, diagnostics: diagnostics)
-        scroll = ScrollService(enabled: preferences.reverseMouseScroll, driver: scrollDriver)
+        scroll = ScrollService(enabled: preferences.reverseMouseScroll, driver: scrollDriver, axes: preferences.scrollAxes)
         network = NetworkService(enabled: !testing && preferences.publicIPEnabled)
         metrics = MetricsService(interval: preferences.samplingInterval)
         dock = DockController(showsDockIcon: preferences.appIntegration.showsDockIcon, mainWindowVisible: showsMainWindow)

@@ -341,6 +341,27 @@
         }
       }
     },
+    "scroll.axis.vertical": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Reverse vertical mouse scrolling" } },
+        "pl": { "stringUnit": { "state": "translated", "value": "Odwracaj przewijanie pionowe myszy" } }
+      }
+    },
+    "scroll.axis.horizontal": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Reverse horizontal mouse scrolling" } },
+        "pl": { "stringUnit": { "state": "translated", "value": "Odwracaj przewijanie poziome myszy" } }
+      }
+    },
+    "scroll.axis.help": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Turn off reversal for an axis to keep its system direction. Trackpad scrolling stays unchanged." } },
+        "pl": { "stringUnit": { "state": "translated", "value": "Wyłącz odwracanie wybranej osi, aby zachować jej kierunek systemowy. Przewijanie trackpada pozostaje bez zmian." } }
+      }
+    },
     "scroll.check": {
       "extractionState": "manual",
       "localizations": {
@@ -1622,13 +1643,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reverses the mouse wheel in both directions. Trackpad gestures keep their system direction. Requires Accessibility and Input Monitoring access when enabled."
+            "value": "Reverses the selected mouse scrolling axes. Trackpad gestures keep their system direction. Requires Accessibility and Input Monitoring access when enabled."
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Odwraca kółko myszy w obu osiach. Gesty gładzika zachowują kierunek systemowy. Włączenie wymaga Dostępności i Monitorowania wprowadzania."
+            "value": "Odwraca przewijanie myszy w wybranych osiach. Gesty gładzika zachowują kierunek systemowy. Włączenie wymaga Dostępności i Monitorowania wprowadzania."
           }
         }
       }

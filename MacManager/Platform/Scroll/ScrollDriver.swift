@@ -6,6 +6,7 @@ import MacManagerCore
 final class ScrollDriver: ScrollDriving {
     var onStateChange: (@MainActor @Sendable () -> Void)?
     private var worker: ScrollTapWorker?
+    private var axes = ScrollAxes()
     private var requestingInput = false
     var accessibilityGranted: Bool { AXIsProcessTrusted() }
     var inputMonitoringGranted: Bool { CGPreflightListenEventAccess() }
@@ -19,10 +20,16 @@ final class ScrollDriver: ScrollDriving {
         guard worker == nil else { return }
         let worker = ScrollTapWorker(onStateChange: { [weak self] in self?.onStateChange?() })
         self.worker = worker
+        worker.setAxes(axes)
         worker.start()
     }
 
     func stop() { worker?.stop(); worker = nil }
+
+    func setAxes(_ axes: ScrollAxes) {
+        self.axes = axes
+        worker?.setAxes(axes)
+    }
 
     func requestPermission() {
         switch permission {
@@ -70,7 +77,11 @@ private final class ScrollTapWorker: @unchecked Sendable {
     private var gestureTap: CFMachPort?
     private var gestureSource: CFRunLoopSource?
     private var classifier = ScrollSourceClassifier()
+    private let sourceResolver = ScrollSourceResolver()
     private var recovery = ScrollTapRecovery()
+    private var axes = ScrollAxes()
+
+    func setAxes(_ axes: ScrollAxes) { lock.withLock { self.axes = axes } }
 
     var state: ScrollDriverState { lock.withLock { reported } }
 
@@ -85,6 +96,7 @@ private final class ScrollTapWorker: @unchecked Sendable {
     func stop() {
         let loop = lock.withLock {
             wanted = false
+            sourceResolver.stop()
             reported = .stopped
             return runLoop
         }
@@ -144,6 +156,7 @@ private final class ScrollTapWorker: @unchecked Sendable {
         let loop = CFRunLoopGetCurrent()!
         lock.withLock { runLoop = loop }
         defer { lock.withLock { runLoop = nil } }
+        defer { sourceResolver.stop() }
         defer {
             DispatchQueue.main.async { [self] in
                 stopGestureObservation()
@@ -207,6 +220,7 @@ private final class ScrollTapWorker: @unchecked Sendable {
                     CGEvent.tapEnable(tap: tap, enable: true)
                     if let gestureTap { CGEvent.tapEnable(tap: gestureTap, enable: true) }
                     classifier = ScrollSourceClassifier()
+                    sourceResolver.reset()
                 } else {
                     wanted = false
                     reported = .interrupted
@@ -223,8 +237,10 @@ private final class ScrollTapWorker: @unchecked Sendable {
                     classifier.observeTouches(gesture.touches(matching: .touching, in: nil).count, at: MetricsTime.now())
                 }
             } else if type == .scrollWheel {
-                let source = classifier.classify(event, at: MetricsTime.now())
-                ScrollEventTransformer.reverse(event, source: source)
+                let now = MetricsTime.now()
+                let source = classifier.classify(event,
+                    identified: sourceResolver.resolve(ScrollOrigin(event: event), at: now), at: now)
+                ScrollEventTransformer.reverse(event, source: source, axes: axes)
             }
         }
     }

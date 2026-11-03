@@ -3,6 +3,29 @@ import XCTest
 
 final class ClipboardTests: AppUITestSupport {
     @MainActor
+    func testClipboardPermissionRequestAndDenialStates() throws {
+        for denied in [false, true] {
+            let app = launch(reset: true, clipboardAccessRequired: !denied, clipboardAccessDenied: denied)
+            element("navigation.clipboard", in: app).click()
+            let expected = denied ? "Clipboard access denied" : "Clipboard access required"
+            XCTAssertTrue(app.staticTexts[expected].waitForExistence(timeout: 5))
+            let request = app.buttons["Check access"]
+            XCTAssertTrue(request.exists)
+            XCTAssertTrue(app.buttons["System Settings"].exists)
+            request.click()
+            if denied {
+                XCTAssertTrue(app.staticTexts[expected].exists)
+                XCTAssertTrue(request.exists)
+                XCTAssertFalse(app.staticTexts["Saving new copies"].exists)
+            } else {
+                XCTAssertTrue(app.staticTexts["Saving new copies"].waitForExistence(timeout: 5))
+                XCTAssertTrue(request.waitForNonExistence(timeout: 5))
+            }
+            app.terminate()
+        }
+    }
+
+    @MainActor
     func testClipboardSearchRestoreRetentionAndClear() throws {
         let app = launch(reset: true, clipboardFixture: true)
         element("navigation.clipboard", in: app).click()

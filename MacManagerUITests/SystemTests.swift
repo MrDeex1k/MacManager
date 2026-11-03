@@ -3,6 +3,40 @@ import XCTest
 
 final class SystemTests: AppUITestSupport {
     @MainActor
+    func testIndependentScrollAxesPersistAndLocalize() throws {
+        var app = launch(reset: true, scrollPermission: true)
+        defer { app.terminate() }
+        element("navigation.scroll", in: app).click()
+        element("scroll.enabled", in: app).click()
+        let horizontal = app.checkBoxes["scroll.axis.horizontal"]
+        let vertical = app.checkBoxes["scroll.axis.vertical"]
+        XCTAssertTrue(horizontal.waitForExistence(timeout: 3))
+        XCTAssertEqual(switchValue(horizontal), 1)
+        XCTAssertEqual(switchValue(vertical), 1)
+        XCTAssertEqual(horizontal.label, "Reverse horizontal mouse scrolling")
+        horizontal.click()
+        XCTAssertEqual(switchValue(horizontal), 0)
+        XCTAssertEqual(switchValue(vertical), 1)
+        XCTAssertEqual(app.staticTexts["scroll.status"].value as? String, "Active")
+        capture("Independent scroll axes EN", app: app)
+        app.terminate()
+        app = launch(reset: false, scrollPermission: true)
+        element("navigation.scroll", in: app).click()
+        XCTAssertEqual(switchValue(app.checkBoxes["scroll.axis.horizontal"]), 0)
+        XCTAssertEqual(switchValue(app.checkBoxes["scroll.axis.vertical"]), 1)
+        element("navigation.settings", in: app).click()
+        element("settings.language", in: app).click()
+        app.menuItems["Polski"].click()
+        element("navigation.scroll", in: app).click()
+        XCTAssertEqual(app.checkBoxes["scroll.axis.horizontal"].label, "Odwracaj przewijanie poziome myszy")
+        app.checkBoxes["scroll.axis.vertical"].click()
+        app.checkBoxes["scroll.axis.horizontal"].click()
+        XCTAssertEqual(switchValue(app.checkBoxes["scroll.axis.vertical"]), 0)
+        XCTAssertEqual(switchValue(app.checkBoxes["scroll.axis.horizontal"]), 1)
+        capture("Independent scroll axes PL", app: app)
+    }
+
+    @MainActor
     func testScrollPermissionDenialAndPreferencePersistence() throws {
         var app = launch(reset: true)
         element("navigation.scroll", in: app).click()

@@ -76,6 +76,18 @@ struct AppCommands: Commands {
             if UITestConfiguration.current.contains("--ui-testing") {
                 Button("Suspend Island Session") { state.island.setSessionSuspendedForTesting(true) }
                 Button("Resume Island Session") { state.island.setSessionSuspendedForTesting(false) }
+                Button("Simulate Constrained Display") { state.launcher.simulateDisplayChangeForTesting("constrained") }
+                Button("Simulate Display Removal") { state.launcher.simulateDisplayChangeForTesting("removed") }
+                Button("Simulate No Displays") { state.launcher.simulateDisplayChangeForTesting("none") }
+                Button("Restore Display Metadata") { state.launcher.simulateDisplayChangeForTesting("restore") }
+                Button("Simulate Panel Sleep") { SystemSessionMonitor.shared.setSleepingForTesting(true) }
+                Button("Simulate Panel Wake") { SystemSessionMonitor.shared.setSleepingForTesting(false) }
+                #if MM_RESERVED_REGION_PROBE
+                if UITestConfiguration.current.contains("--island-reserved-region-probe") {
+                    Button("Probe Island on External Display") { state.island.selectProbeDisplayForTesting(external: true) }
+                    Button("Probe Island on Built-in Display") { state.island.selectProbeDisplayForTesting(external: false) }
+                }
+                #endif
             }
             #endif
             Button(state.strings("nav.overview")) { navigate(.overview) }

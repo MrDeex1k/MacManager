@@ -66,6 +66,16 @@ public final class PreferencesStore {
         didSet { defaults.set(samplingInterval.rawValue, forKey: Key.samplingInterval) }
     }
 
+    public var reverseVerticalMouseScroll: Bool {
+        didSet { defaults.set(reverseVerticalMouseScroll, forKey: "preferences.reverseVerticalMouseScroll") }
+    }
+    public var reverseHorizontalMouseScroll: Bool {
+        didSet { defaults.set(reverseHorizontalMouseScroll, forKey: "preferences.reverseHorizontalMouseScroll") }
+    }
+    public var scrollAxes: ScrollAxes {
+        ScrollAxes(vertical: reverseVerticalMouseScroll, horizontal: reverseHorizontalMouseScroll)
+    }
+
     public var reverseMouseScroll: Bool {
         didSet { defaults.set(reverseMouseScroll, forKey: Key.reverseMouseScroll) }
     }
@@ -137,6 +147,8 @@ public final class PreferencesStore {
             .flatMap { try? JSONDecoder().decode(ClipboardPreferences.self, from: $0) }
         clipboard = savedClipboard.flatMap { $0.isValid ? $0 : nil } ?? ClipboardPreferences()
         temperatureUnit = defaults.string(forKey: "preferences.temperatureUnit").flatMap(TemperatureUnit.init(rawValue:)) ?? .celsius
+        reverseVerticalMouseScroll = Self.bool(defaults, forKey: "preferences.reverseVerticalMouseScroll", default: true)
+        reverseHorizontalMouseScroll = Self.bool(defaults, forKey: "preferences.reverseHorizontalMouseScroll", default: true)
         reverseMouseScroll = Self.bool(defaults, forKey: Key.reverseMouseScroll, default: false)
         samplingInterval = SamplingInterval(rawValue: defaults.integer(forKey: Key.samplingInterval)) ?? .two
         showsLocalIPInMenuBar = Self.bool(defaults, forKey: "preferences.network.menuBar.showsLocalIP", default: false)

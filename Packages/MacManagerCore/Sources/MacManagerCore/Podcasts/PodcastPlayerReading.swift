@@ -4,6 +4,7 @@ import Foundation
 public struct PodcastPlayerReading: Sendable {
     public var title = ""
     public var subtitle = ""
+    public var showTitle = ""
     public var expandedMetadata = ""
     public var playing = false
     public var playbackControlLabel = ""
@@ -15,8 +16,8 @@ public struct PodcastPlayerReading: Sendable {
     public init() {}
 
     public var snapshot: MusicSnapshot {
-        var detail = subtitle
-        if !title.isEmpty, let range = expandedMetadata.range(of: title) {
+        var detail = showTitle.isEmpty ? subtitle : showTitle
+        if showTitle.isEmpty, !title.isEmpty, let range = expandedMetadata.range(of: title) {
             let suffix = String(expandedMetadata[range.upperBound...]).trimmingCharacters(in: CharacterSet(charactersIn: ", \n"))
             if !suffix.isEmpty { detail = suffix }
         }
@@ -35,6 +36,18 @@ public struct PodcastPlayerReading: Sendable {
             trackID: title.isEmpty ? nil : title + "\u{1f}" + subtitle,
             title: title, artist: detail, duration: duration, position: elapsed,
             progressFraction: fraction, previousLabel: backwardLabel, nextLabel: forwardLabel)
+    }
+
+    /// Podcasts can retain both transports, even enabled controls from a hidden view.
+    /// Follow the exposed view state; use enabled controls as fallback for older trees.
+    public static func transportPrefix(playerIdentifier: String = "", enabledIdentifiers: Set<String>) -> String? {
+        let prefixes: [String]
+        if playerIdentifier.contains("viewState=fullScreen") { prefixes = ["podcasts.nowPlaying."] }
+        else if playerIdentifier.contains("viewState=mini") { prefixes = ["podcasts.miniPlayer."] }
+        else { prefixes = ["podcasts.nowPlaying.", "podcasts.miniPlayer."] }
+        return prefixes.first {
+            enabledIdentifiers.contains($0 + "playbackTransportControl")
+        }
     }
 
     public static func seconds(_ text: String) -> Double? {

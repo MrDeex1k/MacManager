@@ -115,6 +115,22 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
     var debugPresentationState: String {
         "\(visible ? "visible" : closing ? "closing" : "hidden");host=\(transitionHost == nil ? 0 : 1);work=\(clipboardModel?.hasPendingWork == true ? 1 : 0);active=\(clipboardModel?.active == true ? 1 : 0);transition=\(transitioning || sectionTask != nil ? 1 : 0);history=\(clipboardModel?.service.entries.count ?? 0)"
     }
+    #if DEBUG && MM_RESERVED_REGION_PROBE
+    private(set) var debugReservedRegions = "pending"
+    @ObservationIgnored private var probeExternalDisplay = false
+    func recordReservedRegionSample(_ sample: IslandReservedRegionSample) {
+        guard visible, let screen, let panel, panel.isVisible,
+              UITestConfiguration.current.contains("--island-reserved-region-probe") else { return }
+        debugReservedRegions = IslandReservedRegionReport(section: displayedSection.rawValue, screen: screen,
+            panelFrame: panel.frame, topInset: topInset, sample: sample).json
+    }
+    func selectProbeDisplayForTesting(external: Bool) {
+        guard UITestConfiguration.current.contains("--island-reserved-region-probe") else { return }
+        probeExternalDisplay = external
+        debugReservedRegions = "pending"
+        reposition()
+    }
+    #endif
     #if DEBUG
     var debugAnimationState: String {
         "driver=\(transitionHost?.isResizing == true ? 1 : 0);\(transitionHost?.resizeTimingSummary ?? "idle");revealMs=\(String(format: "%.2f", sectionRevealDelay))"
@@ -241,6 +257,14 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
             guard let id = candidate.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber else { return false }
             return CGDisplayIsBuiltin(id.uint32Value) != 0
         } ?? NSScreen.main
+        #if DEBUG && MM_RESERVED_REGION_PROBE
+        if probeExternalDisplay, UITestConfiguration.current.contains("--island-reserved-region-probe") {
+            screen = NSScreen.screens.first { candidate in
+                guard let id = candidate.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber else { return false }
+                return CGDisplayIsBuiltin(id.uint32Value) == 0
+            } ?? screen
+        }
+        #endif
         guard let screen else { return }
         let frame = screen.frame
         let geometry = IslandWindowGeometry.activation(on: screen)
@@ -250,7 +274,10 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
         let height = sectionHeight(width: width)
         panelFrame = NSRect(x: frame.midX - width / 2, y: frame.maxY - height,
                             width: width, height: height)
-        panel?.setFrame(panelFrame, display: true)
+        // Release the previous screen/section's fixed dimensions before applying a new layout.
+        panel?.minSize = .zero
+        panel?.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+        panel?.setFrame(panelFrame, display: false)
     }
 
     private func sectionHeight(width: CGFloat) -> CGFloat {
@@ -318,6 +345,9 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
 
     private func present(keyboard: Bool) {
         if !visible {
+            #if DEBUG && MM_RESERVED_REGION_PROBE
+            if UITestConfiguration.current.contains("--island-reserved-region-probe") { debugReservedRegions = "pending" }
+            #endif
             previousApplication = NSWorkspace.shared.frontmostApplication
             previousWindow = NSApp.keyWindow
             finishClosing()

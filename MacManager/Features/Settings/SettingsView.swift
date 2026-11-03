@@ -63,7 +63,7 @@ struct SettingsView: View {
             HStack {
                 Text("Mac Manager").fontWeight(.medium)
                 Spacer()
-                Text(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.8.10")
+                Text(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.8.11")
                     .monospacedDigit()
             }
             .font(.caption)

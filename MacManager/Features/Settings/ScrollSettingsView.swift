@@ -23,6 +23,13 @@ struct ScrollSettingsView: View {
                         .font(.callout).foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                     if preferences.reverseMouseScroll {
+                        Toggle(strings("scroll.axis.vertical"), isOn: $preferences.reverseVerticalMouseScroll)
+                            .accessibilityIdentifier("scroll.axis.vertical")
+                        Toggle(strings("scroll.axis.horizontal"), isOn: $preferences.reverseHorizontalMouseScroll)
+                            .accessibilityIdentifier("scroll.axis.horizontal")
+                        Text(strings("scroll.axis.help"))
+                            .font(.callout).foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
                         permissionRow(strings("scroll.accessibility.title"), granted: state.scroll.accessibilityGranted)
                         permissionRow(strings("scroll.inputMonitoring.title"), granted: state.scroll.inputMonitoringGranted)
                         if !state.scroll.accessibilityGranted || !state.scroll.inputMonitoringGranted {
@@ -64,6 +71,7 @@ struct ScrollSettingsView: View {
                 }
             }
         }
+        .onChange(of: preferences.scrollAxes) { _, axes in state.scroll.setAxes(axes) }
     }
 
     private func permissionRow(_ title: String, granted: Bool) -> some View {

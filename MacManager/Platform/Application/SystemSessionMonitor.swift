@@ -44,5 +44,12 @@ import MacManagerCore
         tokens.append((.default, token))
         action(state)
     }
+    #if DEBUG
+    func setSleepingForTesting(_ active: Bool) {
+        guard UITestConfiguration.current.enabled else { return }
+        state.set(.sleep, active: active)
+        NotificationCenter.default.post(name: Self.changed, object: self)
+    }
+    #endif
     func stop() { observers.removeAll() }
 }

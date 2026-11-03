@@ -15,6 +15,7 @@ public protocol ScrollDriving: AnyObject {
     func stop()
     func requestPermission()
     func openPermissionSettings()
+    func setAxes(_ axes: ScrollAxes)
 }
 
 public extension ScrollDriving {
@@ -33,10 +34,16 @@ public final class ScrollService {
     @ObservationIgnored private var suspended = false
     @ObservationIgnored private var terminated = false
 
-    public init(enabled: Bool, driver: any ScrollDriving) {
+    public init(enabled: Bool, driver: any ScrollDriving, axes: ScrollAxes = ScrollAxes()) {
         self.enabled = enabled
         self.driver = driver
+        driver.setAxes(axes)
         driver.onStateChange = { [weak self] in self?.refreshDriverState() }
+    }
+
+    public func setAxes(_ axes: ScrollAxes) {
+        guard !terminated else { return }
+        driver.setAxes(axes)
     }
 
     public func setEnabled(_ enabled: Bool) {
