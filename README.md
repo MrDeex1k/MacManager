@@ -104,7 +104,7 @@ Public IPv4 discovery contacts **ipify**, and release checks contact **GitHub**.
 
 ## Build and run
 
-**Requirements:** an Apple Silicon Mac, **macOS 26+** and **Xcode 26+** selected through `xcode-select`.
+**Requirements:** an Apple Silicon Mac, **macOS 26+** for the app, and **Xcode 27+** selected through `xcode-select` to build it. Xcode 27.2 is recommended and used for the current validation; that Xcode version requires macOS 26.6 or later on the build machine.
 
 The source is available under AGPL-3.0-only. A public signed, notarized DMG has not been released yet.
 
@@ -115,6 +115,8 @@ open MacManager.xcodeproj
 ```
 
 Select the shared **MacManager** scheme and run on **My Mac**. No project generator or third-party package installation is needed.
+
+The project uses Xcode's JSON-based configuration in `MacManager.xcodeproj/project.xcproj`, supported by Xcode 27 and later. Continue opening `MacManager.xcodeproj` and using the same build commands. This project format does not change the app's macOS 26 minimum requirement.
 
 <details>
 <summary><strong>Build from Terminal</strong></summary>

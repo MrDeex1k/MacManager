@@ -24,7 +24,7 @@ git config --local core.hooksPath .githooks
 
 This changes only this repository's Git configuration. Hooks are opt-in after cloning and validate commits locally.
 
-Use an Apple Silicon Mac with macOS 26+ and Xcode 26+ selected through `xcode-select`. See [Build and run](README.md#build-and-run) for the shared scheme and build commands.
+Use an Apple Silicon Mac with Xcode 27+ selected through `xcode-select`; Xcode 27.2 is recommended and requires macOS 26.6 or later on the build machine. The app still targets macOS 26+. The project configuration is `MacManager.xcodeproj/project.xcproj`, in Xcode's JSON-based format. Preserve the shared scheme and target identifiers when editing it. See [Build and run](README.md#build-and-run) for the shared scheme and build commands.
 
 ## Branches and commits
 
