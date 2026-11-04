@@ -40,7 +40,7 @@
 See what your Mac is doing without opening a collection of separate utilities.
 
 - **Follow the load.** Live CPU, GPU and RAM readings, plus an estimated power reading when supported.
-- **See the trend.** Five-minute charts with a choice of 1, 2 or 5 second sampling. Gaps stay visible when readings stop.
+- **See the trend.** Five-minute charts with a choice of 1, 2 or 5 second sampling. The default is 2 seconds with Low Power Mode adaptation enabled. Gaps stay visible when readings stop.
 - **Check the hardware.** CPU/GPU temperatures in °C or °F and individual fan speeds. Temperature mapping is currently validated on M4 Pro. CPU and GPU averages include readings above 0 °C and up to and including 120 °C.
 - **Keep essentials in sight.** Choose the readings shown in the menu bar and open the compact panel for a quick check.
 - **Find your connection.** View and copy your local and public IPv4 addresses, with optional visibility in the menu bar panel.
@@ -49,16 +49,17 @@ Sensor support depends on the Mac model. Power is an AppleSMC estimate, and unav
 
 ## Less searching. More doing.
 
-Press **Option-Q** and start typing. Open an app, find a file, jump to a Mac Manager section or work out a calculation from the same floating launcher.
+Press **Option-Q** and start typing. Open an app, find a file, open a supported macOS settings pane or work out a calculation from the same floating launcher.
 
 | What you need | What you can do |
 | :--- | :--- |
 | An application | Use fuzzy search, aliases, favorites and custom shortcuts. |
-| A file or folder | Search names through Spotlight within folders you choose. |
+| A macOS setting | Find installed panes for Network, Privacy & Security, and Login Items & Extensions by their Polish or English names. |
+| A file or folder | Enable file search and choose folders to search by name through Spotlight. |
 | A quick answer | Calculate `20% of 500`, convert `10 km to mi` or evaluate `tomorrow + 2 days`. |
 | Something you copied | Press **Tab** to search the shared clipboard history. |
 
-Arrow keys select, **Enter** opens or copies, and **Escape** clears the query before closing. Application results open the selected installation even when a different copy with the same bundle identifier is already running. The shortcut is configurable, and the launcher remains available with the main window closed. Calculator keywords use English syntax and calculations run locally. Units can follow division directly (`100 / s`), and conversions work before further arithmetic (`10 m in cm / 2`) and inside functions (`round(10 m in cm)`).
+With the search field focused, arrow keys select a result and **Enter** opens or copies it. **Shift-Tab** moves focus to the mode controls. **Escape** clears the query before closing. Application results open the selected installation even when a different copy with the same bundle identifier is already running. The shortcut is configurable, and the launcher remains available with the main window closed. Calculator keywords use English syntax and calculations run locally. Units can follow division directly (`100 / s`), and conversions work before further arithmetic (`10 m in cm / 2`) and inside functions (`round(10 m in cm)`).
 
 The launcher opens on the screen under the pointer. If the screen’s usable area changes while you type, the panel adjusts to fit. If that display disconnects and another is available, the panel moves there with your query intact. After sleep, use **Option-Q** to reopen it.
 
@@ -71,23 +72,27 @@ Keep useful text and images within reach, with search, previews and restore in t
 - **Keep it on your Mac.** Text, images and previews are encrypted locally with AES-GCM; the key is protected by Secure Enclave.
 - **Pick up where you left off.** Restore an entry, then paste with **Command-V** in your destination app.
 
+If a restore fails in the main window, the entry details stay open so you can retry. The island labels damaged entries and disables their restore action.
+
 The default limits are **50 items, 7 days and 200 MB**. History is enabled on a fresh install. Capture starts when macOS allows ongoing clipboard access. If prompted, use **Check access** and follow the system settings available on your Mac. Recording skips the copy already on the clipboard at startup. Revoking access stops new captures and preserves saved entries. After access returns, recording starts with the next new copy. Marked confidential entries are skipped.
 
 ## A little space at the top. A lot within reach.
 
-Move to the notch area to open a native **Liquid Glass** island. On a display without a notch, it lives at the center of the top edge. The collapsed state shows no content.
+Move to the notch area to open a native **Liquid Glass** island. The island prefers the built-in display and otherwise uses the main display. On a screen without a notch, move to the center of the top edge. The collapsed state shows no content.
 
 **Clipboard** gives you a horizontal shelf of recent copies with previews and search. **Apple Music** brings artwork, track information, progress and playback controls into the panel. **Apple Podcasts** adds episode information, play/pause and the player's own skip intervals, with artwork from its existing local cache after you grant folder access.
 
-Choose the sections you want in the dedicated Island settings. Hover leaves your current app's keyboard focus intact; deliberate keyboard interaction lets you search and navigate. Transitions respect Reduce Motion, and hidden media sections stop periodic reads.
+The island starts enabled with all four sections selected. In **Settings > Island**, disabling the last section turns off the island. Turning the island back on with its main switch restores all four if none are selected. You can also enable a single section directly. Full-screen display and the island's own keyboard shortcut are opt-in.
 
-Apple Music requires Automation permission. Podcasts requires Accessibility permission and an available player window. On macOS 27.2, the island follows the active compact or expanded Podcasts player for episode details and playback controls. Spotify integration is not available yet.
+Opening the island by hovering leaves your current app's keyboard focus intact. Keyboard interaction lets you search and navigate. Transitions respect Reduce Motion, and hidden media sections stop periodic reads.
+
+Apple Music requires Automation permission. Podcasts requires Accessibility permission and an available player window. On macOS 27.2, the island follows the active compact or expanded Podcasts player for episode details and playback controls. The Spotify tab is a placeholder without playback controls.
 
 ## Your mouse, your way
 
-Choose vertical and horizontal mouse reversal independently while keeping your trackpad direction, gestures and momentum intact. Both axes keep their previous reversed behavior when upgrading; turn off either axis in **Scroll** to retain its system direction. The main switch disables all reversal without resetting these choices. Automatic source classification uses local device identity first, with gesture-based fallback when identity is unavailable. Events reconstructed by software mouse drivers also use gesture-based fallback when their physical source cannot be identified. Device lookups use a bounded memory cache; there are no model lists or per-device profiles. Universal Control continues to use fallback classification when its device is not present in the local registry.
+Mouse scroll reversal starts off. When you enable it in **Scroll**, both axes reverse by default. Turn off either axis to keep its system direction. Turning off the main switch preserves your axis choices. Scroll requires Accessibility and Input Monitoring permissions.
 
-Enable the feature in **Scroll**, then grant the Accessibility and Input Monitoring permissions shown there.
+Mac Manager uses local device identity when available. If momentum events arrive without a device ID after an identified gesture, they retain the source of that gesture, so a trackpad glide keeps its direction. When a physical source cannot be identified, Mac Manager uses touch and scroll patterns. This also applies to wheel events recreated by mouse drivers and to Universal Control devices absent from the local registry. Device lookups use a bounded in-memory cache.
 
 ## Built to live with your Mac
 
@@ -132,17 +137,18 @@ xcodebuild -project MacManager.xcodeproj -scheme MacManager \
 open /tmp/macmanager-app-build/Build/Products/Debug/MacManager.app
 ```
 
-Local builds use the **Mac Manager Dev** identity and separate preferences and macOS permissions. A development build is not a notarized distribution artifact.
+Both Debug and Release use the display name **Mac Manager Dev** and the bundle identifier `dev.macmanager.MacManager.Development`. Ordinary builds share the preferences domain. The project defaults to ad hoc signing. To replace an installed copy while preserving its data and permission identity, follow the signing checks in [CONTRIBUTING.md](CONTRIBUTING.md#replacing-a-signed-local-installation).
 
 </details>
 
 | Shortcut | Action |
 | :--- | :--- |
 | **Option-Q** | Open the launcher; configurable in Settings. |
-| **Tab** | Switch between application search and clipboard search in the launcher. |
+| **Tab** | Switch search modes from the launcher search field. |
+| **Shift-Tab** | Move focus from the launcher search field to its mode controls. |
 | **Command-1** / **Command-2** | Open Overview / Network. |
 | **Command-,** | Open Settings. |
-| **Option-1…4** | Select an enabled island section while interacting with the island. |
+| **Option-1…4** | Select Clipboard (1), Music (2), Podcast (3) or Spotify (4) when enabled. Hiding a section preserves the other numbers. |
 
 ## Under the hood
 

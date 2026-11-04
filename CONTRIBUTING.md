@@ -69,11 +69,11 @@ Use the repository issue forms. Include macOS version, Mac model class, reproduc
 
 `swift test --package-path Packages/MacManagerCore` runs local logic and storage checks. Tests requiring macOS services explicitly report a skip unless enabled:
 
-- `MM_SYSTEM_TESTS=1`: named synthetic pasteboards, a dedicated test Keychain item and backup metadata. Run outside a restricted sandbox with the required system access.
+- `MM_SYSTEM_TESTS=1`: named synthetic pasteboards, a dedicated test Keychain item, backup metadata and installed macOS application names. Run outside a restricted sandbox with the required system access.
 - `MM_LAUNCHER_TEST_ROOT="$PWD"`: Spotlight integration against this indexed repository.
-- `MM_BENCHMARKS=1`: synthetic launcher ranking benchmark; run with `-c release --filter launcherRankingBenchmark` separately from other tests.
+- `MM_BENCHMARKS=1`: opt-in benchmarks for launcher ranking and clipboard image normalization, pasteboard capture and hardware key derivation. Run separately in Release with a test filter such as `-c release --filter launcherRankingBenchmark`. Pasteboard capture and hardware key derivation also require `MM_SYSTEM_TESTS=1`.
 
-UI tests are grouped by feature and share AppUITestSupport. Run the MacManager scheme on macOS. Quit other MacManager copies with the same bundle identifier first, so XCTest targets only its isolated fixture process. Fixture launches use isolated preferences and clipboard data. Performance reports must distinguish engine timings from end-to-end UI latency and record skipped or unavailable checks explicitly.
+UI tests are grouped by feature and share AppUITestSupport. Run the MacManager scheme on macOS. Quit other MacManager copies with the same bundle identifier first, so XCTest targets only its isolated fixture process. The Debug-only `--ui-testing` fixture mode uses isolated preferences and clipboard data. An ordinary Debug launch uses the development app’s preferences. Performance reports must distinguish engine timings from end-to-end UI latency and record skipped or unavailable checks explicitly.
 
 For clipboard permission compatibility checks after a macOS update:
 
@@ -116,5 +116,7 @@ The clipboard tests covered denial, revocation and resuming capture using simula
 Display tests moved the launcher between two connected screens using simulated changes to display metadata. The query survived the move. Both panels closed on simulated sleep and reopened on request after simulated wake. Physical disconnection, changing system scaling and a full hardware sleep/wake cycle remain manual checks.
 
 In ten measurements on a MacBook with a notch and an external display, SwiftUI returned zero reserved regions, including inactive regions. AppKit reported a 220 × 38 pt camera area on the built-in screen. Production placement therefore uses `NSScreen`. Rerun the opt-in probe above when evaluating a new SDK or Mac model.
+
+## Replacing a signed local installation
 
 When replacing a signed local installation, compare the built bundle with the installed copy before quitting the running app. Verify the bundle identifier, leaf certificate, designated requirement and entitlements. During the 0.8.11 build, Xcode used the selected certificate but generated a different requirement and added `com.apple.security.get-task-allow`. The installed build passed strict signature verification with the original requirement and entitlements. After launch, verify the executable path, version, build number, preferences and saved clipboard entries.
