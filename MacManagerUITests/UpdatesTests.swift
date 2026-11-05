@@ -4,7 +4,9 @@ import XCTest
 final class UpdatesTests: AppUITestSupport {
     @MainActor
     func testUpdateSettingsCacheAndLocalDiagnostics() throws {
-        var app = launch(reset: true, updateFixture: .available)
+        let pasteboard = NSPasteboard(name: .init("MacManagerDiagnosticsTests-\(UUID().uuidString)"))
+        defer { pasteboard.releaseGlobally() }
+        var app = launch(reset: true, updateFixture: .available, diagnosticsPasteboardName: pasteboard.name.rawValue)
         app.typeKey(",", modifierFlags: .command)
         let status = element("updates.status", in: app)
         scrollTo(status, in: app)
@@ -33,7 +35,7 @@ final class UpdatesTests: AppUITestSupport {
         scrollTo(copy, in: app)
         XCTAssertTrue(copy.isHittable)
         copy.click()
-        let report = try XCTUnwrap(NSPasteboard.general.string(forType: .string))
+        let report = try XCTUnwrap(pasteboard.string(forType: .string))
         XCTAssertTrue(report.contains("Mac Manager Diagnostic Report"))
         XCTAssertTrue(report.contains("architecture: arm64"))
         XCTAssertTrue(report.contains("update_status: updateAvailable"))

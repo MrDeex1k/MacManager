@@ -166,12 +166,14 @@ class AppUITestSupport: XCTestCase {
         damagedPreferences: Bool = false,
         launchedAtLogin: Bool = false,
         updateFixture: UpdateFixture = .noRelease,
+        diagnosticsPasteboardName: String? = nil,
         expectsWindow: Bool = true
     ) -> XCUIApplication {
         continueAfterFailure = false
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
         if let launcherPasteboardName { app.launchEnvironment["MM_LAUNCHER_TEST_PASTEBOARD"] = launcherPasteboardName }
+        if let diagnosticsPasteboardName { app.launchEnvironment["MM_DIAGNOSTICS_TEST_PASTEBOARD"] = diagnosticsPasteboardName }
         if reset { app.launchArguments.append("--reset-preferences") }
         if liveMetrics { app.launchArguments.append("--live-metrics") }
         if launcherLiveTesting { app.launchArguments.append("--launcher-live-testing") }

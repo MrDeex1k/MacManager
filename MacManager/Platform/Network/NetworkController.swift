@@ -1,19 +1,16 @@
 import AppKit
 import MacManagerCore
 import Network
-import Observation
 
 @MainActor
 final class NetworkController: ApplicationLifecycleParticipant {
     private let service: NetworkService
     private let energy: EnergyPolicy?
     private var running = false
-    private let diagnostics: DiagnosticsStore
     private let reader = LocalNetworkReader()
     private let monitor = NWPathMonitor()
     private let configurationMonitor = NetworkConfigurationMonitor()
     private var configurationActive = false
-    private var configurationRouteChanged = false
     private var configurationChange: Task<Void, Never>?
     private var loop: Task<Void, Never>?
     private let observers = NotificationTokens()
@@ -22,13 +19,11 @@ final class NetworkController: ApplicationLifecycleParticipant {
     private var suspended = false
     private var sessionSleeping = false
     private var lastRead = -Double.infinity
-    private var reportedState: PublicIPState?
     private let energyObservation = ObservationSubscription()
 
-    init(service: NetworkService, diagnostics: DiagnosticsStore, energy: EnergyPolicy? = nil) {
+    init(service: NetworkService, energy: EnergyPolicy? = nil) {
         self.service = service
         self.energy = energy
-        self.diagnostics = diagnostics
     }
 
     func start() {
@@ -36,12 +31,13 @@ final class NetworkController: ApplicationLifecycleParticipant {
         running = true
         monitor.pathUpdateHandler = { [weak self] path in
             let online = path.status == .satisfied && path.supportsIPv4
-            Task { @MainActor [weak self] in
+            DispatchQueue.main.async { [weak self] in
                 guard let self, self.running else { return }
                 self.revision += 1
                 self.online = online
                 self.lastRead = -.infinity
-                if !self.suspended { self.service.pathChanged(now: ProcessInfo.processInfo.systemUptime); self.schedule() }
+                self.service.pathChanged(now: ProcessInfo.processInfo.systemUptime, online: online)
+                if !self.suspended { self.schedule() }
             }
         }
         monitor.start(queue: DispatchQueue(label: "dev.macmanager.network-path"))
@@ -57,6 +53,7 @@ final class NetworkController: ApplicationLifecycleParticipant {
             _ = self?.energy?.sleeping
             _ = self?.energy?.localNetworkInterval
             _ = self?.energy?.publicNetworkInterval
+            _ = self?.service.enabled
         }, apply: { [weak self] in self?.schedule() })
     }
 
@@ -71,7 +68,7 @@ final class NetworkController: ApplicationLifecycleParticipant {
         service.setSuspended(sleeping, now: ProcessInfo.processInfo.systemUptime)
         service.setRefreshInterval(publicInterval)
         if sleeping {
-            configurationMonitor.stop(); configurationActive = false; configurationRouteChanged = false
+            configurationMonitor.stop(); configurationActive = false
             configurationChange?.cancel(); configurationChange = nil
             return
         }
@@ -88,18 +85,19 @@ final class NetworkController: ApplicationLifecycleParticipant {
                     if now - self.lastRead >= fallbackInterval {
                         let revision = self.revision
                         let environment = await self.reader.read(online: self.online)
-                        if self.running, !Task.isCancelled, revision == self.revision {
+                        guard self.running, !Task.isCancelled else { return }
+                        if revision == self.revision {
                             self.service.update(environment, now: ProcessInfo.processInfo.systemUptime)
                             self.lastRead = now
                         }
                     }
                     // The request runs separately so local changes can invalidate it while HTTP is pending.
                     if self.service.refreshIsDue(at: ProcessInfo.processInfo.systemUptime) {
+                        let revision = self.revision
                         Task { [weak self] in
-                            guard let self else { return }
+                            guard let self, self.running, !self.suspended, self.revision == revision else { return }
                             await self.service.refresh(now: ProcessInfo.processInfo.systemUptime)
-                            self.recordState()
-                            if self.running, !self.suspended { self.schedule() }
+                            if self.running, !self.suspended, self.revision == revision { self.schedule() }
                         }
                     }
                 }
@@ -113,15 +111,13 @@ final class NetworkController: ApplicationLifecycleParticipant {
     private func configurationChanged(routeChanged: Bool) {
         guard running, !suspended else { return }
         revision += 1
-        configurationRouteChanged = configurationRouteChanged || routeChanged
+        if routeChanged { service.pathChanged(now: ProcessInfo.processInfo.systemUptime) }
         configurationChange?.cancel()
         configurationChange = Task { [weak self] in
             // Coalesce interface/service notifications from one reconfiguration.
             do { try await Task.sleep(for: .milliseconds(200)) } catch { return }
             guard let self, self.running, !self.suspended else { return }
             self.lastRead = -.infinity
-            if self.configurationRouteChanged { self.service.pathChanged(now: ProcessInfo.processInfo.systemUptime) }
-            self.configurationRouteChanged = false
             self.schedule()
             self.configurationChange = nil
         }
@@ -135,20 +131,10 @@ final class NetworkController: ApplicationLifecycleParticipant {
         loop = nil
         monitor.cancel()
         configurationChange?.cancel(); configurationChange = nil
-        configurationMonitor.stop(); configurationActive = false; configurationRouteChanged = false
+        configurationMonitor.stop(); configurationActive = false
         observers.removeAll()
         suspended = true
         service.setSuspended(true, now: ProcessInfo.processInfo.systemUptime)
     }
 
-    private func recordState() {
-        guard service.state != reportedState else { return }
-        reportedState = service.state
-        if service.state == .failed {
-            diagnostics.record(.network, kind: "requestFailed")
-            MacManagerLog.network.error("Public address lookup failed")
-        } else {
-            MacManagerLog.network.info("Network state changed: \(self.service.state.rawValue, privacy: .public)")
-        }
-    }
 }

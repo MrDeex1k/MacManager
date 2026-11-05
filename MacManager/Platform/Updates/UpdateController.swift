@@ -1,13 +1,12 @@
 import AppKit
 import MacManagerCore
 import Network
-import Observation
 
 @MainActor
 final class UpdateController: ApplicationLifecycleParticipant {
     private let service: UpdateService
     private let energy: EnergyPolicy?
-    private var wakeNotBefore = Date.distantPast
+    private var wakeNotBefore: ContinuousClock.Instant?
     private let monitor = NWPathMonitor()
     private var scheduledCheck: Task<Void, Never>?
     private let observers = NotificationTokens()
@@ -27,7 +26,7 @@ final class UpdateController: ApplicationLifecycleParticipant {
 
         monitor.pathUpdateHandler = { [weak self] path in
             let online = path.status == .satisfied
-            Task { @MainActor [weak self] in
+            DispatchQueue.main.async { [weak self] in
                 guard let self, self.isRunning else { return }
                 self.service.setOnline(online)
                 self.scheduleNextCheck()
@@ -39,7 +38,7 @@ final class UpdateController: ApplicationLifecycleParticipant {
             guard let self, self.isSuspended != state.sleeping else { return }
             let wasSuspended = self.isSuspended
             self.isSuspended = state.sleeping
-            if wasSuspended && !state.sleeping { self.wakeNotBefore = Date().addingTimeInterval(30) }
+            if wasSuspended && !state.sleeping { self.wakeNotBefore = .now.advanced(by: .seconds(30)) }
             if state.sleeping { self.service.cancelCheck() }
             self.scheduleNextCheck()
         }
@@ -64,7 +63,7 @@ final class UpdateController: ApplicationLifecycleParticipant {
         scheduledCheck?.cancel()
         scheduledCheck = nil
         monitor.cancel()
-        service.cancelCheck()
+        service.setOnline(false)
         observers.removeAll()
         MacManagerLog.lifecycle.info("Update lifecycle stopped")
     }
@@ -75,6 +74,7 @@ final class UpdateController: ApplicationLifecycleParticipant {
     }
 
     func checkNow() async {
+        guard !isSuspended, energy?.sleeping != true else { return }
         _ = await service.check(trigger: .manual, now: Date())
         scheduleNextCheck()
     }
@@ -85,11 +85,12 @@ final class UpdateController: ApplicationLifecycleParticipant {
         let allows = energy?.allowsAutomaticUpdates ?? true
         guard isRunning, !isSuspended, allows, service.isOnline,
               let date = service.nextAutomaticDate(now: Date()) else { return }
-        let delay = max(0, max(date, wakeNotBefore).timeIntervalSinceNow)
+        let wakeDelay = wakeNotBefore.map { ContinuousClock.now.duration(to: $0) } ?? .zero
+        let delay = max(.seconds(max(0, date.timeIntervalSinceNow)), wakeDelay)
         scheduledCheck = Task { [weak self] in
             do {
-                if delay > 0 {
-                    try await Task.sleep(for: .seconds(delay))
+                if delay > .zero {
+                    try await Task.sleep(for: delay)
                 } else {
                     await Task.yield()
                 }
@@ -97,6 +98,8 @@ final class UpdateController: ApplicationLifecycleParticipant {
                 return
             }
             guard let self, self.isRunning, !self.isSuspended, self.energy?.allowsAutomaticUpdates ?? true, !Task.isCancelled else { return }
+            // Rescheduling a timer must not cancel a check that has already started.
+            self.scheduledCheck = nil
             _ = await self.service.check(trigger: .automatic, now: Date())
             self.scheduleNextCheck()
         }

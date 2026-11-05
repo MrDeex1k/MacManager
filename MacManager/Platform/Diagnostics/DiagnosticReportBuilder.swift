@@ -4,6 +4,14 @@ import MacManagerCore
 
 @MainActor
 enum DiagnosticReportBuilder {
+    private static let machineValues = [
+        ("app_version", bundleValue("CFBundleShortVersionString", fallback: "unknown")),
+        ("app_build", bundleValue("CFBundleVersion", fallback: "unknown")),
+        ("macos_version", operatingSystemVersion()),
+        ("architecture", architecture),
+        ("mac_model", hardwareModel())
+    ]
+
     static func make(state: AppState, now: Date = Date()) -> String {
         var errors = state.diagnostics.lastErrors
         if errors[.updates] == nil, let failure = state.updates.lastFailure {
@@ -12,12 +20,7 @@ enum DiagnosticReportBuilder {
 
         let snapshot = DiagnosticReportSnapshot(
             generatedAt: now,
-            values: [
-                ("app_version", bundleValue("CFBundleShortVersionString", fallback: "unknown")),
-                ("app_build", bundleValue("CFBundleVersion", fallback: "unknown")),
-                ("macos_version", operatingSystemVersion()),
-                ("architecture", architecture),
-                ("mac_model", hardwareModel()),
+            values: machineValues + [
                 ("recovered_preferences", state.preferences.recoveredPreferenceGroups.sorted().joined(separator: ",")),
                 ("sampling_interval_seconds", String(state.preferences.samplingInterval.rawValue)),
                 ("metrics_status", metricsStatus(state.metrics)),
@@ -26,7 +29,7 @@ enum DiagnosticReportBuilder {
                 ("network_status", state.network.environment.online ? "online" : "offline"),
                 ("public_ip_lookup", state.network.state.rawValue),
                 ("scroll_status", state.scroll.status.rawValue),
-                ("scroll_permission", scrollPermission(state.scroll.status)),
+                ("scroll_permission", scrollPermission(state.scroll)),
                 ("launch_at_login", launchAtLoginStatus(state.loginItem.state)),
                 ("dock_icon", dockStatus(state.dock.state)),
                 ("automatic_update_checks", state.updates.automaticChecksEnabled ? "enabled" : "disabled"),
@@ -74,13 +77,10 @@ enum DiagnosticReportBuilder {
         return "unavailable"
     }
 
-    private static func scrollPermission(_ status: ScrollStatus) -> String {
-        switch status {
-        case .permissionRequired: "accessibilityRequired"
-        case .inputMonitoringRequired: "inputMonitoringRequired"
-        case .active, .starting, .interrupted, .failed, .suspended: "granted"
-        case .off: "notRequested"
-        }
+    private static func scrollPermission(_ service: ScrollService) -> String {
+        if service.status == .off { return "notRequested" }
+        if !service.accessibilityGranted { return "accessibilityRequired" }
+        return service.inputMonitoringGranted ? "granted" : "inputMonitoringRequired"
     }
 
     private static func launchAtLoginStatus(_ state: LaunchAtLoginState) -> String {
@@ -104,6 +104,6 @@ enum DiagnosticReportBuilder {
 
     private static func formatted(_ date: Date?) -> String {
         guard let date else { return "never" }
-        return ISO8601DateFormatter().string(from: date)
+        return date.ISO8601Format()
     }
 }

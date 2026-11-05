@@ -86,9 +86,8 @@ struct UpdateSettingsView: View {
         .task(id: CooldownID(lastAttempt: state.updates.lastAttempt, clockRevision: clockRevision, visible: (state.mainWindowContentVisible && !state.energy.sleeping))) {
             guard (state.mainWindowContentVisible && !state.energy.sleeping) else { return }
             availabilityDate = Date()
-            guard let lastAttempt = state.updates.lastAttempt else { return }
-            let deadline = lastAttempt.addingTimeInterval(UpdateService.manualCooldown)
-            guard deadline > availabilityDate else { return }
+            guard let deadline = state.updates.manualCooldownDeadline(now: availabilityDate),
+                  deadline > availabilityDate else { return }
             do { try await Task.sleep(for: .seconds(deadline.timeIntervalSinceNow)) }
             catch { return }
             availabilityDate = Date()
