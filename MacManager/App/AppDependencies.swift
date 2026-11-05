@@ -26,15 +26,20 @@ extension AppDependencies {
          showsMainWindow: Bool, appVersion: String) {
         let arguments = UITestConfiguration.current.arguments
         let testing = UITestConfiguration.current.enabled
-        if testing, let defaults = UserDefaults(suiteName: "dev.macmanager.MacManager.UITests") {
-            if arguments.contains("--reset-preferences") { defaults.removePersistentDomain(forName: "dev.macmanager.MacManager.UITests") }
-            #if DEBUG
+        #if DEBUG
+        if let suite = UITestConfiguration.current.preferencesSuite {
+            guard let defaults = UserDefaults(suiteName: suite) else {
+                preconditionFailure("Unable to create the UI test preferences suite")
+            }
+            if arguments.contains("--reset-preferences") { defaults.removePersistentDomain(forName: suite) }
             if arguments.contains("--damaged-preferences") {
                 defaults.set(Data("invalid".utf8), forKey: "preferences.clipboard")
             }
-            #endif
             preferences = PreferencesStore(defaults: defaults, diagnostics: diagnostics)
         } else { preferences = PreferencesStore(diagnostics: diagnostics) }
+        #else
+        preferences = PreferencesStore(diagnostics: diagnostics)
+        #endif
         let musicAdapter: any MusicPlayerAdapter
         let podcastAdapter: any MusicPlayerAdapter
         let scrollDriver: any ScrollDriving

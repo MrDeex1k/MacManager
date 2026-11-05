@@ -5,6 +5,14 @@ extension Notification.Name {
     static let openMainWindowRequested = Notification.Name("dev.macmanager.open-main-window")
 }
 
+enum MainWindow {
+    static let id = "main"
+
+    @MainActor static func matches(_ object: Any?) -> Bool {
+        (object as? NSWindow)?.identifier?.rawValue == id
+    }
+}
+
 #if !MM_UNIT_TESTS
 @main
 struct MacManagerApp: App {
@@ -12,7 +20,7 @@ struct MacManagerApp: App {
     @State private var state = AppState()
 
     var body: some Scene {
-        Window("Mac Manager", id: "main") {
+        Window("Mac Manager", id: MainWindow.id) {
             AppShellView()
                 .environment(state)
                 .environment(\.locale, state.preferences.locale)
@@ -46,9 +54,7 @@ final class AppearanceDelegate: NSObject, NSApplicationDelegate {
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows _: Bool) -> Bool {
         NotificationCenter.default.post(name: .openMainWindowRequested, object: nil)
-        if let mainWindow = sender.windows.first(where: {
-            $0.canBecomeMain && $0.styleMask.contains(.titled) && $0.level == .normal
-        }) {
+        if let mainWindow = sender.windows.first(where: { MainWindow.matches($0) }) {
             mainWindow.makeKeyAndOrderFront(nil)
             sender.activate()
         }
@@ -103,7 +109,7 @@ struct AppCommands: Commands {
     private func navigate(_ section: AppSection) {
         state.section = section
         state.setMainWindowVisible(true)
-        openWindow(id: "main")
+        openWindow(id: MainWindow.id)
         NSApp.activate()
     }
 }

@@ -3,6 +3,15 @@ import CryptoKit
 import MacManagerCore
 import Testing
 
+@MainActor @Test func onlyTheMainSceneWindowMatchesMainWindowIdentity() {
+    let window = NSWindow(contentRect: .zero, styleMask: .titled, backing: .buffered, defer: true)
+    window.isReleasedWhenClosed = false
+    defer { window.close() }
+    #expect(!MainWindow.matches(window))
+    window.identifier = NSUserInterfaceItemIdentifier(MainWindow.id)
+    #expect(MainWindow.matches(window))
+}
+
 @MainActor private final class UnclippedRow: NSView {
     override var visibleRect: NSRect { bounds.insetBy(dx: -200, dy: -200) }
 }
@@ -395,6 +404,15 @@ private actor MusicStub: MusicPlayerAdapter {
 }
 
 @MainActor @Test func injectedAppStateStartsExplicitlyAndTracksVisibleConsumers() async throws {
+    func energyReaches(_ condition: () -> Bool) async -> Bool {
+        let deadline = ContinuousClock.now + .seconds(1)
+        repeat {
+            if condition() { return true }
+            await Task.yield()
+        } while ContinuousClock.now < deadline
+        return condition()
+    }
+
     let suite = "AppState-\(UUID())"
     let defaults = try #require(UserDefaults(suiteName: suite))
     defer { defaults.removePersistentDomain(forName: suite) }
@@ -421,21 +439,18 @@ private actor MusicStub: MusicPlayerAdapter {
     #expect(lifecycleProbe.starts == 1)
     #expect(energy.request == .overview)
     state.section = .sensors
-    try await Task.sleep(for: .milliseconds(20))
-    #expect(energy.request == .sensors)
+    #expect(await energyReaches { energy.request == .sensors })
+    state.section = nil
+    #expect(await energyReaches { energy.request == .overview })
     state.mainWindowContentVisible = false
-    try await Task.sleep(for: .milliseconds(20))
-    #expect(energy.pausesMetrics)
+    #expect(await energyReaches { energy.pausesMetrics })
     state.menuBarPanelVisible = true
-    try await Task.sleep(for: .milliseconds(20))
-    #expect(energy.request == .overview && !energy.networkVisible)
+    #expect(await energyReaches { energy.request == .overview && !energy.networkVisible })
     preferences.showsLocalIPInMenuBar = true
-    try await Task.sleep(for: .milliseconds(20))
-    #expect(energy.networkVisible)
+    #expect(await energyReaches { energy.networkVisible })
     state.menuBarPanelVisible = false
     preferences.appIntegration.menuBar.showsCPUTemperature = true
-    try await Task.sleep(for: .milliseconds(20))
-    #expect(energy.request.kinds.isEmpty && energy.request.cpuTemperature && !energy.request.fans)
+    #expect(await energyReaches { energy.request.kinds.isEmpty && energy.request.cpuTemperature && !energy.request.fans })
     state.stop(); state.stop()
     #expect(lifecycleProbe.stops == 1)
     preferences.appIntegration.menuBar.showsCPU = true

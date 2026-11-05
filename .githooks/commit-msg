@@ -41,6 +41,6 @@ Examples:
   fix(scroll): preserve trackpad gestures
   refactor(core)!: replace the metrics interface
 
-See docs/09-praca-z-repozytorium.md.
+See CONTRIBUTING.md.
 MESSAGE
 exit 1

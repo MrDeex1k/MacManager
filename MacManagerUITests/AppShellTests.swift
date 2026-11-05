@@ -23,6 +23,7 @@ final class AppShellTests: AppUITestSupport {
     @MainActor
     func testAccessibilityAuditAcrossMainSections() throws {
         let app = launch(reset: true)
+        defer { app.terminate() }
         let auditTypes: XCUIAccessibilityAuditType = [
             .contrast,
             .elementDetection,
@@ -42,7 +43,6 @@ final class AppShellTests: AppUITestSupport {
             }
             try performAccessibilityAudit(in: app, for: auditTypes)
         }
-        app.terminate()
     }
 
     @MainActor

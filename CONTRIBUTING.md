@@ -22,7 +22,7 @@ After cloning, enable the versioned commit hook:
 git config --local core.hooksPath .githooks
 ```
 
-This changes only this repository's Git configuration. Hooks are opt-in after cloning and validate commits locally.
+This changes only this repository's Git configuration. Hooks are opt-in after cloning. They validate the commit message and reject Unicode em dashes introduced by staged changes.
 
 Use an Apple Silicon Mac with Xcode 27+ selected through `xcode-select`; Xcode 27.2 is recommended and requires macOS 26.6 or later on the build machine. The app still targets macOS 26+. The project configuration is `MacManager.xcodeproj/project.xcproj`, in Xcode's JSON-based format. Preserve the shared scheme and target identifiers when editing it. See [Build and run](README.md#build-and-run) for the shared scheme and build commands.
 
@@ -67,7 +67,15 @@ Use the repository issue forms. Include macOS version, Mac model class, reproduc
 
 ## Test sets and optimization measurements
 
-`swift test --package-path Packages/MacManagerCore` runs local logic and storage checks. Tests requiring macOS services explicitly report a skip unless enabled:
+Run the same checks as the GitHub Actions verification job from a fresh clone on Apple Silicon:
+
+```sh
+./tools/verify.sh
+```
+
+The script exercises both Git hooks, runs the Core and unhosted app tests, and checks the unsigned Release bundle for arm64, Polish and English resources, and the absence of UI fixtures. GitHub Actions uses the hosted Xcode 27 runner. Run interactive UI tests separately in a logged-in macOS session.
+
+`swift test --package-path Packages/MacManagerCore --no-parallel` runs local logic and storage checks. Tests requiring macOS services explicitly report a skip unless enabled:
 
 - `MM_SYSTEM_TESTS=1`: named synthetic pasteboards, a dedicated test Keychain item, backup metadata and installed macOS application names. Run outside a restricted sandbox with the required system access.
 - `MM_LAUNCHER_TEST_ROOT="$PWD"`: Spotlight integration against this indexed repository.
@@ -88,7 +96,7 @@ Clipboard audit regressions cover malformed SQLite column types without cipherte
 
 Launcher audit regressions cover queued actions cancelled by closing, stopping or suspending the controller, same-turn lock/unlock, shortcuts while suspended, file URL scope validation and context menus when SwiftUI reports a visible area larger than the row. Calculator checks cover signed relative percentages, Polish function separators, calendar year/era boundaries and winter/summer conversions for Nashville and Bali/Denpasar. Run `MacManagerTests`, the `LauncherTests` UI group and the Core package after changes to these paths. Catalog scans share one parsed localization table between each application's title and PL/EN aliases; this reduces repeated file reads, but does not establish an end-to-end latency improvement.
 
-UI tests are grouped by feature and share AppUITestSupport. Run the MacManager scheme on macOS. Quit other MacManager copies with the same bundle identifier first, so XCTest targets only its isolated fixture process. The Debug-only `--ui-testing` fixture mode uses isolated preferences and clipboard data. An ordinary Debug launch uses the development app’s preferences. Performance reports must distinguish engine timings from end-to-end UI latency and record skipped or unavailable checks explicitly.
+UI tests are grouped by feature and share AppUITestSupport. Run the MacManager scheme on macOS. Quit other MacManager copies with the same bundle identifier first, so XCTest targets only its isolated fixture process. The Debug-only `--ui-testing` fixture mode isolates clipboard data per launch and preferences per test case. A case can relaunch without resetting to verify persistence. An ordinary Debug launch uses the development app’s preferences. Performance reports must distinguish engine timings from end-to-end UI latency and record skipped or unavailable checks explicitly.
 
 For clipboard permission compatibility checks after a macOS update:
 

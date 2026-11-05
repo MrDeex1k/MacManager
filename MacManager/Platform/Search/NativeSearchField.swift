@@ -16,7 +16,7 @@ struct NativeSearchField: NSViewRepresentable {
         field.delegate = context.coordinator
         field.isEditable = true; field.isSelectable = true
         field.usesSingleLineMode = true
-        field.focusRingType = .none
+        field.focusRingType = .exterior
         field.identifier = .init(identifier)
         field.setAccessibilityIdentifier(identifier)
         // Export the editable control once; the legacy cell otherwise leaves
