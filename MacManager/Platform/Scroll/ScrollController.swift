@@ -1,6 +1,5 @@
 import AppKit
 import MacManagerCore
-import Observation
 
 @MainActor
 final class ScrollController: ApplicationLifecycleParticipant {
@@ -9,6 +8,7 @@ final class ScrollController: ApplicationLifecycleParticipant {
     private var running = false
     private var loop: Task<Void, Never>?
     private let observers = NotificationTokens()
+    private let observation = ObservationSubscription()
     private var reportedStatus: ScrollStatus?
 
     init(service: ScrollService, diagnostics: DiagnosticsStore) {
@@ -22,27 +22,22 @@ final class ScrollController: ApplicationLifecycleParticipant {
         SystemSessionMonitor.shared.subscribe(in: observers) { [weak self] state in
             self?.service.setSuspended(state.suspended)
         }
-        service.refresh()
-        recordState()
         let appCenter = NotificationCenter.default
         let token = appCenter.addObserver(forName: NSApplication.didBecomeActiveNotification,
                                          object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.service.refresh() }
         }
         observers.append((appCenter, token))
-        watchState()
+        observation.start(read: { [service] in service.status }, apply: { [weak self] status in
+            self?.updateState(status)
+        })
     }
 
-    private func watchState() {
-        guard running else { return }
+    private func updateState(_ status: ScrollStatus) {
+        guard status != reportedStatus else { return }
+        recordState(status)
         loop?.cancel(); loop = nil
-        let (enabled, status) = withObservationTracking {
-            (service.enabled, service.status)
-        } onChange: { [weak self] in
-            Task { @MainActor [weak self] in self?.watchState() }
-        }
-        recordState()
-        guard enabled, status != .suspended else { return }
+        guard status != .off, status != .suspended else { return }
         // TCC has no public permission-change notification. Keep a slow safety check,
         // with a shorter retry while the user is granting permission in Settings.
         let delay = status == .permissionRequired || status == .inputMonitoringRequired ? 2 : 30
@@ -50,23 +45,24 @@ final class ScrollController: ApplicationLifecycleParticipant {
             while !Task.isCancelled {
                 do { try await Task.sleep(for: .seconds(delay), tolerance: .milliseconds(200)) }
                 catch { return }
-                self?.service.refresh()
+                guard let self else { return }
+                self.service.refresh()
             }
         }
     }
 
     func stop() {
         running = false
+        observation.stop()
         loop?.cancel()
         loop = nil
         observers.removeAll()
         service.shutdown()
     }
 
-    private func recordState() {
-        guard service.status != reportedStatus else { return }
-        reportedStatus = service.status
-        switch service.status {
+    private func recordState(_ status: ScrollStatus) {
+        reportedStatus = status
+        switch status {
         case .failed:
             diagnostics.record(.scroll, kind: "driverFailed")
             MacManagerLog.scroll.error("Scroll driver failed")
@@ -74,7 +70,7 @@ final class ScrollController: ApplicationLifecycleParticipant {
             diagnostics.record(.scroll, kind: "interrupted")
             MacManagerLog.scroll.error("Scroll driver interrupted")
         default:
-            MacManagerLog.scroll.info("Scroll state changed: \(self.service.status.rawValue, privacy: .public)")
+            MacManagerLog.scroll.info("Scroll state changed: \(status.rawValue, privacy: .public)")
         }
     }
 }

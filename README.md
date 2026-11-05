@@ -94,7 +94,7 @@ Apple Music requires Automation permission. Podcasts requires Accessibility perm
 
 ## Your mouse, your way
 
-Mouse scroll reversal starts off. When you enable it in **Scroll**, both axes reverse by default. Turn off either axis to keep its system direction. Turning off the main switch preserves your axis choices. Scroll requires Accessibility and Input Monitoring permissions.
+Mouse scroll reversal starts off. When you enable it in **Scroll**, both axes reverse by default. Turn off either axis to keep its system direction. Turning off both axes stops the scroll monitor while preserving the main switch. Turning off the main switch preserves your axis choices. Active reversal requires Accessibility and Input Monitoring permissions.
 
 Mac Manager uses local device identity when available. If momentum events arrive without a device ID after an identified gesture, they retain the source of that gesture, so a trackpad glide keeps its direction. When a physical source cannot be identified, Mac Manager uses touch and scroll patterns. This also applies to wheel events recreated by mouse drivers and to Universal Control devices absent from the local registry. Device lookups use a bounded in-memory cache.
 

@@ -29,26 +29,7 @@ struct ScrollSettingsView: View {
                         Text(strings("scroll.axis.help"))
                             .font(.callout).foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
-                        permissionRow(strings("scroll.accessibility.title"), granted: state.scroll.accessibilityGranted)
-                        permissionRow(strings("scroll.inputMonitoring.title"), granted: state.scroll.inputMonitoringGranted)
-                        if !state.scroll.accessibilityGranted || !state.scroll.inputMonitoringGranted {
-                            Text(strings("scroll.setup.help"))
-                                .font(.callout).foregroundStyle(.secondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                            DisclosureGroup(strings("scroll.repair.title")) {
-                                VStack(alignment: .leading, spacing: 12) {
-                                    Text(strings("scroll.repair.help"))
-                                        .fixedSize(horizontal: false, vertical: true)
-                                    Text(Bundle.main.bundleURL.path).font(.caption).textSelection(.enabled)
-                                    Button(strings("scroll.reveal")) {
-                                        NSWorkspace.shared.activateFileViewerSelecting([Bundle.main.bundleURL])
-                                    }.buttonStyle(.glass)
-                                }
-                            }
-                            Button(strings("scroll.check")) { state.scroll.retry() }
-                                .buttonStyle(.glass)
-                                .accessibilityIdentifier("scroll.check")
-                        }
+                        if preferences.scrollAxes.hasEnabledAxis { permissionControls }
                     }
                     HStack(spacing: 12) {
                         Text(strings("scroll.status.\(state.scroll.status.rawValue)"))
@@ -69,6 +50,30 @@ struct ScrollSettingsView: View {
                     }
                 }
             }
+        }
+    }
+
+    @ViewBuilder private var permissionControls: some View {
+        let strings = state.strings
+        permissionRow(strings("scroll.accessibility.title"), granted: state.scroll.accessibilityGranted)
+        permissionRow(strings("scroll.inputMonitoring.title"), granted: state.scroll.inputMonitoringGranted)
+        if !state.scroll.accessibilityGranted || !state.scroll.inputMonitoringGranted {
+            Text(strings("scroll.setup.help"))
+                .font(.callout).foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            DisclosureGroup(strings("scroll.repair.title")) {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text(strings("scroll.repair.help"))
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text(Bundle.main.bundleURL.path).font(.caption).textSelection(.enabled)
+                    Button(strings("scroll.reveal")) {
+                        NSWorkspace.shared.activateFileViewerSelecting([Bundle.main.bundleURL])
+                    }.buttonStyle(.glass)
+                }
+            }
+            Button(strings("scroll.check")) { state.scroll.retry() }
+                .buttonStyle(.glass)
+                .accessibilityIdentifier("scroll.check")
         }
     }
 

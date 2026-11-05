@@ -98,6 +98,16 @@ private func wheel(continuous: Bool) throws -> CGEvent {
     #expect(event.data == before)
 }
 
+@Test func invalidDeltaOnUnselectedAxisDoesNotBlockSelectedAxis() throws {
+    let event = try wheel(continuous: false)
+    event.setIntegerValueField(.scrollWheelEventPointDeltaAxis2, value: Int64(Int32.min))
+    let original = event.getIntegerValueField(.scrollWheelEventDeltaAxis1)
+    #expect(original != 0)
+    #expect(ScrollEventTransformer.reverse(event, source: .mouse, axes: .init(vertical: true, horizontal: false)))
+    #expect(event.getIntegerValueField(.scrollWheelEventDeltaAxis1) == -original)
+    #expect(event.getIntegerValueField(.scrollWheelEventPointDeltaAxis2) == Int64(Int32.min))
+}
+
 @Test func timeoutRecoveryIsBoundedAndResetsAfterOneMinute() {
     var policy = ScrollTapRecovery()
     let results = [100.0, 101, 102, 103, 159.9, 160, .nan].map { policy.shouldRetry(at: $0) }
@@ -205,6 +215,47 @@ private final class FakeScrollDriver: ScrollDriving {
     let glideEnds = classifier.classify(continuous: true, momentum: 3, at: 1.07)
     #expect([start, mouse, end, glide, smoothMouse, glideContinues, glideEnds]
         == [.trackpad, .mouse, .trackpad, .trackpad, .mouse, .trackpad, .trackpad])
+}
+
+@Test func momentumPhaseTakesPriorityOverMissingContinuousFlag() {
+    var classifier = ScrollSourceClassifier()
+    classifier.observeTouches(2, at: 1)
+    #expect(classifier.classify(continuous: true, momentum: 0, phase: 1, at: 1.01) == .trackpad)
+    #expect(classifier.classify(continuous: false, momentum: 1, at: 1.02) == .trackpad)
+    #expect(classifier.classify(continuous: true, momentum: 2, at: 1.03) == .trackpad)
+    #expect(classifier.classify(continuous: false, momentum: 3, at: 1.04) == .trackpad)
+    #expect(classifier.classify(continuous: false, momentum: 2, at: 1.05) == .unknown)
+}
+
+@Test func phasedTrackpadGestureKeepsOwnershipFromMayBeginThroughCancellation() {
+    var classifier = ScrollSourceClassifier()
+    classifier.observeTouches(2, at: 1)
+    #expect(classifier.classify(continuous: true, momentum: 0, phase: 128, at: 1.01) == .trackpad)
+    #expect(classifier.classify(continuous: true, momentum: 0, phase: 1, at: 1.02) == .trackpad)
+    #expect(classifier.classify(continuous: true, momentum: 0, phase: 2, at: 1.5) == .trackpad)
+    #expect(classifier.classify(continuous: true, momentum: 0, phase: 8, at: 1.51) == .trackpad)
+    #expect(classifier.classify(continuous: true, momentum: 1, at: 1.52) == .unknown)
+}
+
+@Test func orphanMomentumDoesNotInheritAnOldWheelEvent() {
+    var classifier = ScrollSourceClassifier()
+    #expect(classifier.classify(continuous: false, momentum: 0, at: 1) == .mouse)
+    #expect(classifier.classify(continuous: true, momentum: 1, at: 2) == .unknown)
+    #expect(classifier.classify(continuous: true, momentum: 0, at: 3) == .mouse)
+    #expect(classifier.classify(continuous: true, momentum: 1, at: 3.1) == .mouse)
+    #expect(classifier.classify(continuous: true, momentum: 3, at: 3.2) == .mouse)
+    #expect(classifier.classify(continuous: true, momentum: 1, at: 4) == .unknown)
+}
+
+@Test func identifiedPhaseLessMouseCanStartItsOwnGlideAfterTrackpad() throws {
+    var classifier = ScrollSourceClassifier()
+    let event = try wheel(continuous: true)
+    event.setIntegerValueField(.scrollWheelEventScrollPhase, value: 4)
+    #expect(classifier.classify(event, identified: .trackpad, at: 1) == .trackpad)
+    event.setIntegerValueField(.scrollWheelEventScrollPhase, value: 0)
+    #expect(classifier.classify(event, identified: .mouse, at: 1.01) == .mouse)
+    event.setIntegerValueField(.scrollWheelEventMomentumPhase, value: 1)
+    #expect(classifier.classify(event, at: 1.02) == .mouse)
 }
 
 @MainActor @Test func permissionStatusRefreshesIndependentlyAndRetryStartsWhenGranted() {
@@ -319,4 +370,33 @@ private final class FakeScrollDriver: ScrollDriving {
     service.shutdown()
     service.setAxes(axes)
     #expect(driver.axes == horizontalOnly)
+}
+
+@MainActor @Test func scrollWithBothAxesOffDoesNotStartOrAskForPermissions() {
+    let driver = FakeScrollDriver()
+    let noAxes = ScrollAxes(vertical: false, horizontal: false)
+    let service = ScrollService(enabled: false, driver: driver, axes: noAxes)
+    service.setEnabled(true)
+    service.showPermissionSettings()
+    #expect(service.enabled && service.status == .off)
+    #expect(driver.requests == 0 && driver.settingsOpened == 0 && driver.starts == 0)
+    driver.permission = .granted
+    service.setAxes(.init(vertical: true, horizontal: false))
+    #expect(service.status == .active && driver.starts == 1)
+    service.setAxes(noAxes)
+    #expect(service.enabled && service.status == .off && driver.state == .stopped)
+}
+
+@MainActor @Test func suspendedOrTerminatedScrollCannotRequestPermission() {
+    let driver = FakeScrollDriver()
+    let service = ScrollService(enabled: false, driver: driver)
+    service.setSuspended(true)
+    service.setEnabled(true)
+    service.showPermissionSettings()
+    #expect(service.status == .suspended && driver.requests == 0 && driver.settingsOpened == 0)
+    service.shutdown()
+    service.setEnabled(false)
+    service.showPermissionSettings()
+    service.setEnabled(true)
+    #expect(service.status == .off && driver.requests == 0 && driver.settingsOpened == 0)
 }

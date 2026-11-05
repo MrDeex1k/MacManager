@@ -31,36 +31,44 @@ public final class ScrollService {
     public private(set) var enabled: Bool
     public private(set) var status: ScrollStatus = .off
     @ObservationIgnored private let driver: any ScrollDriving
+    @ObservationIgnored private var axes: ScrollAxes
     @ObservationIgnored private var suspended = false
     @ObservationIgnored private var terminated = false
 
     public init(enabled: Bool, driver: any ScrollDriving, axes: ScrollAxes = ScrollAxes()) {
         self.enabled = enabled
         self.driver = driver
+        self.axes = axes
         driver.setAxes(axes)
         driver.onStateChange = { [weak self] in self?.refreshDriverState() }
     }
 
     public func setAxes(_ axes: ScrollAxes) {
-        guard !terminated else { return }
+        guard !terminated, self.axes != axes else { return }
+        let activationChanged = self.axes.hasEnabledAxis != axes.hasEnabledAxis
+        self.axes = axes
         driver.setAxes(axes)
+        if activationChanged { refresh() }
     }
 
     public func setEnabled(_ enabled: Bool) {
+        guard !terminated, self.enabled != enabled else { return }
         self.enabled = enabled
-        if enabled && driver.permission != .granted { driver.requestPermission() }
+        if wantsReversal && !suspended && driver.permission != .granted { driver.requestPermission() }
         refresh()
     }
+
+    private var wantsReversal: Bool { enabled && axes.hasEnabledAxis }
 
     public func refresh() {
         guard !terminated else { return }
         accessibilityGranted = driver.accessibilityGranted
         inputMonitoringGranted = driver.inputMonitoringGranted
-        guard enabled else { driver.stop(); status = .off; return }
+        guard wantsReversal else { driver.stop(); status = .off; return }
         guard !suspended else { driver.stop(); status = .suspended; return }
-        guard driver.permission == .granted else {
+        guard accessibilityGranted && inputMonitoringGranted else {
             driver.stop()
-            status = driver.permission == .accessibility ? .permissionRequired : .inputMonitoringRequired
+            status = accessibilityGranted ? .inputMonitoringRequired : .permissionRequired
             return
         }
         if driver.state == .stopped { driver.start() }
@@ -68,7 +76,7 @@ public final class ScrollService {
     }
 
     private func refreshDriverState() {
-        guard !terminated, enabled, !suspended else { return }
+        guard !terminated, wantsReversal, !suspended else { return }
         switch driver.state {
         case .stopped, .starting: status = .starting
         case .active: status = .active
@@ -78,25 +86,28 @@ public final class ScrollService {
     }
 
     public func showPermissionSettings() {
-        guard enabled else { return }
+        guard !terminated, wantsReversal, !suspended else { return }
         driver.requestPermission()
         driver.openPermissionSettings()
         refresh()
     }
 
     public func retry() {
+        guard !terminated, wantsReversal, !suspended else { return }
         driver.stop()
         refresh()
     }
 
     public func setSuspended(_ suspended: Bool) {
+        guard !terminated else { return }
         self.suspended = suspended
-        if suspended { driver.stop() }
         refresh()
     }
 
     public func shutdown() {
+        guard !terminated else { return }
         terminated = true
+        driver.onStateChange = nil
         driver.stop()
         status = .off
     }

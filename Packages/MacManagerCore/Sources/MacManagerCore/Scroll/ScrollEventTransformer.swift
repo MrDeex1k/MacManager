@@ -4,6 +4,7 @@ import MMInput
 public struct ScrollAxes: Equatable, Sendable {
     public var vertical: Bool
     public var horizontal: Bool
+    public var hasEnabledAxis: Bool { vertical || horizontal }
     public init(vertical: Bool = true, horizontal: Bool = true) {
         self.vertical = vertical; self.horizontal = horizontal
     }

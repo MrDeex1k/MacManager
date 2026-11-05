@@ -89,8 +89,9 @@ bool mm_scroll_reverse_axes(CGEventRef event, bool vertical, bool horizontal) {
     const uint32_t hid_fields[] = {(6u << 16) | 1u, (6u << 16) | 0u}; // scroll Y, X
     int64_t lines[2], points[2];
     double fixed[2], hid_values[2] = {0, 0};
-    // Read every representation before writing: a line setter also changes point/fixed fields.
+    // Read every selected representation before writing: a line setter also changes point/fixed fields.
     for (int i = 0; i < 2; i++) {
+        if (!reversed[i]) continue;
         lines[i] = CGEventGetIntegerValueField(event, line_fields[i]);
         points[i] = CGEventGetIntegerValueField(event, point_fields[i]);
         fixed[i] = CGEventGetDoubleValueField(event, fixed_fields[i]);
@@ -100,6 +101,7 @@ bool mm_scroll_reverse_axes(CGEventRef event, bool vertical, bool horizontal) {
     CFTypeRef hid = copy_hid(event);
     if (hid) {
         for (int i = 0; i < 2; i++) {
+            if (!reversed[i]) continue;
             hid_values[i] = get_float(hid, hid_fields[i]);
             if (!isfinite(hid_values[i])) { CFRelease(hid); return false; }
         }
