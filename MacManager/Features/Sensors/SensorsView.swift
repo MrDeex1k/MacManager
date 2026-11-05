@@ -28,7 +28,9 @@ struct SensorsView: View {
                 Divider().frame(height: 100)
                 temperature(title: "GPU", value: sensors.gpuTemperature, note: strings("sensors.gpu.mean"))
             }
-            if !sensors.catalog.supported {
+            if !sensors.isSampled {
+                Text(strings("metrics.state.loading")).foregroundStyle(.secondary)
+            } else if !sensors.catalog.supported {
                 Text(strings("sensors.unsupported")).foregroundStyle(.secondary)
             } else if sensors.isStale {
                 Text(strings("sensors.stale")).foregroundStyle(.secondary)

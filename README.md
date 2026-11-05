@@ -45,7 +45,7 @@ See what your Mac is doing without opening a collection of separate utilities.
 - **Keep essentials in sight.** Choose the readings shown in the menu bar and open the compact panel for a quick check.
 - **Find your connection.** View and copy your local and public IPv4 addresses, with optional visibility in the menu bar panel.
 
-Sensor support depends on the Mac model. Power is an AppleSMC estimate, and unavailable readings are clearly marked. Fans are monitored in read-only mode.
+Sensor support depends on the Mac model. Power is an AppleSMC estimate, and unavailable readings are clearly marked. Fans are monitored in read-only mode. Readings expire after three sampling intervals, including results that arrive late; historical points keep their original measurement time. Temperature-only requests on unsupported chips do not open an SMC connection.
 
 ## Less searching. More doing.
 

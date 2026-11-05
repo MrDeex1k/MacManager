@@ -92,3 +92,14 @@ import Testing
         ).map(\.text) == ["-"])
     }
 }
+
+@Test func invalidMemoryRatioNeverOverflowsPercentageFormatting() {
+    for used in [101.0, Double(Int64.max).nextDown] {
+        let snapshot = MetricsSnapshot(uptime: 1, readings: [
+            .memory: .init(kind: .memory, value: used, status: .available, source: "fixture")
+        ], physicalMemory: 100)
+        #expect(snapshot.memoryPercentage == nil)
+        #expect(MenuBarStatusFormatter.segments(preferences: .init(showsRAM: true), snapshot: snapshot,
+                                                locale: .init(identifier: "pl_PL")).first?.text == "-")
+    }
+}

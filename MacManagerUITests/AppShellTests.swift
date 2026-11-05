@@ -3,6 +3,23 @@ import XCTest
 
 final class AppShellTests: AppUITestSupport {
     @MainActor
+    func testSensorsWaitForFirstSampleBeforeReportingUnsupportedHardware() throws {
+        let app = launch(reset: true)
+        defer { app.terminate() }
+        element("navigation.sensors", in: app).click()
+        XCTAssertTrue(app.staticTexts["Waiting for sample"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["Temperature mapping is not available for this Mac yet."].exists)
+        capture("Sensors waiting EN", app: app)
+        element("navigation.settings", in: app).click()
+        element("settings.language", in: app).click()
+        app.menuItems["Polski"].click()
+        element("navigation.sensors", in: app).click()
+        XCTAssertTrue(app.staticTexts["Oczekiwanie na pomiar"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["Mapowanie temperatur dla tego Maca nie jest jeszcze dostępne."].exists)
+        capture("Sensors waiting PL", app: app)
+    }
+
+    @MainActor
     func testAccessibilityAuditAcrossMainSections() throws {
         let app = launch(reset: true)
         let auditTypes: XCUIAccessibilityAuditType = [

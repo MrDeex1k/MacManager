@@ -134,9 +134,7 @@ struct MenuBarPanelView: View {
         case .cpu, .gpu:
             return Int(value.rounded()).formatted(.number.locale(state.preferences.locale)) + "%"
         case .memory:
-            let physicalMemory = state.metrics.snapshot.physicalMemory
-            guard physicalMemory > 0 else { return "-" }
-            let percentage = value / Double(physicalMemory) * 100
+            guard let percentage = state.metrics.snapshot.memoryPercentage else { return "-" }
             return Int(percentage.rounded()).formatted(.number.locale(state.preferences.locale)) + "%"
         case .power:
             return value.formatted(.number.precision(.fractionLength(1)).locale(state.preferences.locale))
