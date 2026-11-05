@@ -45,6 +45,7 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
         section = value
         cancelSectionChange()
         guard visible else { displayedSection = value; return }
+        if value == displayedSection { revealSectionContent(); return }
         if reduceMotion { renderSelectedSection(); return }
         let token = sectionGeneration
         withAnimation(.easeOut(duration: 0.075)) { sectionOpacity = 0 }
@@ -80,7 +81,12 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
     }
     private func settleSectionChange() {
         cancelSectionChange(); sectionOpacity = 1
-        if visible { renderSelectedSection() }
+        guard visible else { return }
+        if displayedSection == section { resizeForSection() }
+        else { renderSelectedSection() }
+    }
+    private var acceptsContentShortcuts: Bool {
+        visible && displayedSection == section && sectionOpacity > 0.5
     }
     var debugMusicState: String {
         "visible=\(music?.visible == true ? 1 : 0);work=\(music?.hasPendingWork == true ? 1 : 0);artwork=\(music?.snapshot.artwork == nil ? 0 : 1)"
@@ -144,6 +150,7 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
     @ObservationIgnored private var generation = 0
     @ObservationIgnored private var monitors: [Any] = []
     @ObservationIgnored private let observers = NotificationTokens()
+    @ObservationIgnored private let preferenceObservation = ObservationSubscription()
     @ObservationIgnored private let hotKey = LauncherHotKey()
     @ObservationIgnored private var activationFrame = NSRect.zero
     @ObservationIgnored private var panelFrame = NSRect.zero
@@ -189,6 +196,7 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
         dismiss(restoreFocus: false, animated: false)
         monitors.forEach(NSEvent.removeMonitor); monitors.removeAll()
         observers.removeAll()
+        preferenceObservation.stop()
         hotKey.stop(); interaction.reset()
     }
 
@@ -201,16 +209,9 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
     }
 
     private func watchPreferences() {
-        withObservationTracking {
-            _ = preferences.island
-            _ = preferences.language
-        } onChange: { [weak self] in
-            Task { @MainActor [weak self] in
-                guard let self, self.running else { return }
-                self.watchPreferences()
-            }
-        }
-        applyPreferences()
+        preferenceObservation.start(read: { [weak self] in
+            (self?.preferences.island, self?.preferences.language)
+        }, apply: { [weak self] _ in self?.applyPreferences() })
     }
 
     private func applyPreferences() {
@@ -240,6 +241,7 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
     }
     private func resume(_ reason: SuspensionReason) { suspensionReasons.remove(reason); reposition() }
     private func environmentChanged() {
+        guard visible else { return }
         guard available else { dismiss(restoreFocus: false, animated: false); return }
         if visible, let panel, panel.isKeyWindow == false,
            NSWorkspace.shared.frontmostApplication?.processIdentifier != previousApplication?.processIdentifier {
@@ -367,13 +369,17 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
                 self?.selectSection(IslandSection.allCases[index])
             }
             panel.onEscape = { [weak self] in self?.dismiss(restoreFocus: true) }
-            panel.onMove = { [weak self] delta in if self?.section == .clipboard { self?.clipboardModel?.move(delta) } }
+            panel.onMove = { [weak self] delta in
+                guard let self, self.acceptsContentShortcuts, self.section == .clipboard else { return }
+                self.clipboardModel?.move(delta)
+            }
             panel.onSubmit = { [weak self] in
-                if self?.section == .clipboard { self?.clipboardModel?.restoreSelected() }
-                else { self?.activePlayer?.perform(.playPause) }
+                guard let self, self.acceptsContentShortcuts else { return }
+                if self.section == .clipboard { self.clipboardModel?.restoreSelected() }
+                else { self.activePlayer?.perform(.playPause) }
             }
             panel.onSpace = { [weak self] in
-                guard let self, let player = self.activePlayer else { return false }
+                guard let self, self.acceptsContentShortcuts, let player = self.activePlayer else { return false }
                 player.perform(.playPause); return true
             }
             panel.onKeyChange = { [weak self] held in
@@ -383,7 +389,6 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
             // The panel owns its geometry. A hosting view with an unbounded SwiftUI height
             // must not publish min/max sizes that resize a non-key panel after orderFront.
             let root = AnyView(IslandView(coordinator: self)
-                .environment(\.locale, preferences.locale)
                 .preferredColorScheme(.dark))
             let host = IslandTransitionHost(root: root, size: panelFrame.size,
                                             topInset: topInset, collapsedWidth: activationFrame.width)
@@ -408,10 +413,13 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
         interaction.hold(value || panel?.isKeyWindow == true, now: now); schedule()
         if !value {
             let token = generation
+            let frontmostPID = NSWorkspace.shared.frontmostApplication?.processIdentifier
             DispatchQueue.main.async { [weak self] in
                 guard let self, self.visible, self.generation == token,
-                      !self.menuTracking else { return }
-                self.panel?.makeKeyAndOrderFront(nil)
+                      !self.menuTracking, let panel = self.panel,
+                      NSWorkspace.shared.frontmostApplication?.processIdentifier == frontmostPID,
+                      NSApp.keyWindow == nil || NSApp.keyWindow === panel else { return }
+                panel.makeKeyAndOrderFront(nil)
                 if self.section == .clipboard { self.panel?.focusSearch() }
             }
         }

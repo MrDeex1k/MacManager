@@ -52,13 +52,14 @@ public struct PodcastPlayerReading: Sendable {
 
     public static func seconds(_ text: String) -> Double? {
         // AX timestamps can contain directional marks and a Unicode minus sign.
-        let cleaned = text.unicodeScalars.filter { !CharacterSet.controlCharacters.contains($0) &&
-            !CharacterSet.whitespacesAndNewlines.contains($0) && $0.value != 0x2212 && $0 != "-" }
-        let parts = String(String.UnicodeScalarView(cleaned)).split(separator: ":", omittingEmptySubsequences: false)
-        guard (2...3).contains(parts.count), parts.allSatisfy({ !$0.isEmpty && $0.allSatisfy(\.isNumber) }),
-              let last = Int(parts.last!), last < 60 else { return nil }
+        let cleaned = text.unicodeScalars.filter { $0.properties.generalCategory != .format }
+        let clock = String(String.UnicodeScalarView(cleaned)).trimmingCharacters(in: .whitespacesAndNewlines)
+        let unsigned = clock.first == "−" || clock.first == "-" ? clock.dropFirst() : clock[...]
+        let parts = unsigned.split(separator: ":", omittingEmptySubsequences: false)
+        guard (2...3).contains(parts.count), parts.allSatisfy({ !$0.isEmpty && $0.allSatisfy(\.isNumber) }) else { return nil }
         let values = parts.compactMap { Int($0) }
-        guard values.count == parts.count, values.count != 3 || values[1] < 60 else { return nil }
+        guard values.count == parts.count, let last = values.last, last < 60,
+              values.count != 3 || values[1] < 60 else { return nil }
         let seconds = values.reduce(0.0) { $0 * 60 + Double($1) }
         return seconds <= 31_536_000 ? seconds : nil
     }

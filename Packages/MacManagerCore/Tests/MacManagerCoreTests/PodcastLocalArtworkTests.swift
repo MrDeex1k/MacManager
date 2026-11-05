@@ -61,6 +61,9 @@ struct PodcastLocalArtworkTests {
             #expect(PodcastLocalArtworkReader(directory: folder).read(title: "Episode, with comma") == nil)
             let resolved = PodcastLocalArtworkReader(directory: folder).read(title: "Episode, with comma", expandedMetadata: "Today, Episode, with comma, Other show")
             #expect(resolved?.episodeID == "episode-two")
+            let namedShow = PodcastLocalArtworkReader(directory: folder).read(title: "Episode, with comma", showTitle: "Other show")
+            #expect(namedShow?.episodeID == "episode-two")
+            #expect(PodcastLocalArtworkReader(directory: folder).read(title: "Episode, with comma", showTitle: "Unknown show") == nil)
         }
     }
     @Test func missingOrChangedLibraryFailsWithoutCreatingFiles() throws {
@@ -98,6 +101,39 @@ struct PodcastLocalArtworkTests {
             let metadata = "Today, Episode, with comma, Show, exact suffix"
             let result = PodcastLocalArtworkReader(directory: folder).read(title: "Episode, with comma", expandedMetadata: metadata)
             #expect(result?.episodeID == "exact-episode")
+        }
+    }
+
+    @Test func ignoresInvalidArtworkDimensions() throws {
+        try fixture { folder, _ in
+            try image(folder, template: "episode-template", kind: "Episode", size: "\(Int.min)x300", payload: "invalid")
+            try image(folder, template: "episode-template", kind: "Episode", size: "0x300", payload: "invalid")
+            let reader = PodcastLocalArtworkReader(directory: folder)
+            #expect(reader.read(title: "Episode, with comma")?.data == nil)
+            try image(folder, template: "show-template", kind: "Show", payload: "show fallback")
+            #expect(reader.read(title: "Episode, with comma")?.data == Data("show fallback".utf8))
+        }
+    }
+
+    @Test func ignoresLibraryPathsResolvedOutsideSelectedFolder() throws {
+        try fixture { folder, _ in
+            let fm = FileManager.default
+            let outside = folder.deletingLastPathComponent().appendingPathComponent(UUID().uuidString)
+            try fm.createDirectory(at: outside, withIntermediateDirectories: true)
+            defer { try? fm.removeItem(at: outside) }
+            try image(outside, template: "episode-template", kind: "Episode", payload: "outside cover")
+            let artwork = folder.appendingPathComponent("Library/Cache/Assets/Artwork")
+            try fm.createDirectory(at: artwork.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try fm.createSymbolicLink(at: artwork, withDestinationURL: outside.appendingPathComponent("Library/Cache/Assets/Artwork"))
+            let reader = PodcastLocalArtworkReader(directory: folder)
+            let result = try #require(reader.read(title: "Episode, with comma"))
+            #expect(result.data == nil)
+
+            let documents = folder.appendingPathComponent("Documents")
+            let externalDocuments = outside.appendingPathComponent("Documents")
+            try fm.moveItem(at: documents, to: externalDocuments)
+            try fm.createSymbolicLink(at: documents, withDestinationURL: externalDocuments)
+            #expect(reader.read(title: "Episode, with comma") == nil)
         }
     }
 

@@ -99,6 +99,7 @@ private actor ControlledMusicAdapter: MusicPlayerAdapter {
     private var activeReads = 0
     var reads = 0
     var releases = 0
+    var commands: [MusicCommand] = []
     var maximumConcurrentReads = 0
     init(holdCleanup: Bool = false) { self.holdCleanup = holdCleanup }
     func read() async -> MusicSnapshot {
@@ -113,7 +114,7 @@ private actor ControlledMusicAdapter: MusicPlayerAdapter {
         pending.removeValue(forKey: number)?.resume(returning:
             MusicSnapshot(availability: .ready, playback: .playing, trackID: title, title: title, artwork: Data([1, 2, 3])))
     }
-    func perform(_ command: MusicCommand) -> MusicAvailability { .ready }
+    func perform(_ command: MusicCommand) -> MusicAvailability { commands.append(command); return .ready }
     func requestAccess() -> MusicAvailability { .ready }
     func releaseArtwork() async {
         releases += 1
@@ -123,6 +124,41 @@ private actor ControlledMusicAdapter: MusicPlayerAdapter {
         holdCleanup = false
         releaseContinuation?.resume(); releaseContinuation = nil
     }
+}
+
+@Test @MainActor func musicCommandDiscardsAndDrainsPendingPollBeforeActing() async throws {
+    let adapter = ControlledMusicAdapter()
+    let service = MusicService(adapter: adapter)
+    service.setVisible(true)
+    defer { service.setVisible(false) }
+    #expect(await waitUntil { await adapter.reads == 1 })
+    await adapter.finishRead(1, title: "Current track")
+    #expect(await waitUntil { service.snapshot.title == "Current track" })
+    service.refresh()
+    #expect(await waitUntil { await adapter.reads == 2 })
+    service.perform(.next)
+    #expect(service.busy)
+    try await Task.sleep(for: .milliseconds(30))
+    #expect(await adapter.commands.isEmpty)
+    #expect(await adapter.reads == 2)
+
+    await adapter.finishRead(2, title: "Obsolete poll")
+    #expect(await waitUntil { await adapter.reads == 3 })
+    #expect(await adapter.commands == [.next])
+    #expect(service.snapshot.title == "Current track")
+    #expect(await adapter.maximumConcurrentReads == 1)
+    await adapter.finishRead(3, title: "Next track")
+    #expect(await waitUntil { service.snapshot.title == "Next track" && !service.busy })
+}
+
+@Test @MainActor func musicHideCancelsQueuedPermissionRequest() async {
+    let adapter = TestMusicAdapter()
+    let service = MusicService(adapter: adapter)
+    service.setVisible(true)
+    service.requestAccess()
+    service.setVisible(false)
+    #expect(await waitUntil { await adapter.releases == 1 })
+    #expect(await adapter.requests == 0)
 }
 
 @Test @MainActor func musicRefreshPreservesSnapshotAndCacheAndSerializesPendingReads() async {

@@ -101,7 +101,6 @@ private struct MusicArtworkView: View {
     let snapshot: MusicSnapshot
     let symbol: String
     @State private var image: NSImage?
-    private struct Request: Hashable { let id: String?; let hasArtwork: Bool }
     var body: some View {
         Group {
             if let image { Image(nsImage: image).resizable().scaledToFit() }
@@ -109,9 +108,9 @@ private struct MusicArtworkView: View {
         }
         .clipShape(RoundedRectangle(cornerRadius: 10))
         .accessibilityHidden(true)
-        .task(id: Request(id: snapshot.trackID, hasArtwork: snapshot.artwork != nil)) {
-            image = nil
-            if let data = snapshot.artwork, !Task.isCancelled { image = NSImage(data: data) }
+        .task(id: snapshot.artwork) {
+            guard !Task.isCancelled else { return }
+            image = snapshot.artwork.flatMap(NSImage.init(data:))
         }
         .onDisappear { image = nil }
     }

@@ -353,6 +353,29 @@ private struct MemoryKey: ClipboardKeyProviding {
     func stop() { stops += 1 }
 }
 
+@MainActor @Test func islandKeepsClipboardQueryWhenDisplayAccessibilityChanges() throws {
+    let suite = "IslandDisplay-\(UUID())"
+    let defaults = try #require(UserDefaults(suiteName: suite))
+    defer { defaults.removePersistentDomain(forName: suite) }
+    let preferences = PreferencesStore(defaults: defaults)
+    preferences.island.showsInFullScreen = true
+    let directory = FileManager.default.temporaryDirectory.appendingPathComponent(suite)
+    let repository = ClipboardRepository(directory: directory, keys: MemoryKey())
+    let clipboard = ClipboardService(preferences: .init(), pasteboard: PasteboardStub(),
+                                     repository: repository, storageExists: false)
+    let island = IslandCoordinator(preferences: preferences)
+    island.connectClipboard(clipboard)
+    island.start()
+    defer { island.stop() }
+    island.showFromKeyboard()
+    try #require(island.visible)
+    island.query = "fixture query"
+    NSWorkspace.shared.notificationCenter.post(name: NSWorkspace.accessibilityDisplayOptionsDidChangeNotification, object: nil)
+    #expect(island.visible)
+    #expect(island.query == "fixture query")
+    #expect(island.clipboardModel?.active == true)
+}
+
 private actor MusicStub: MusicPlayerAdapter {
     func read() -> MusicSnapshot { .init() }
     func perform(_ command: MusicCommand) -> MusicAvailability { .idle }

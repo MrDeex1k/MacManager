@@ -73,7 +73,7 @@ public protocol MusicPlayerAdapter: Sendable {
             }
         }
     }
-    private func startLoop(waitingFor previousLoop: Task<Void, Never>?) {
+    private func startLoop(waitingFor previousLoop: Task<Void, Never>? = nil, readImmediately: Bool = true) {
         let token = generation, previousCleanup = cleanup
         loop = Task { [weak self] in
             // A cancelled synchronous player read can still be finishing. Do not overlap it
@@ -81,15 +81,17 @@ public protocol MusicPlayerAdapter: Sendable {
             await previousLoop?.value
             await previousCleanup?.value
             guard let self, !Task.isCancelled, self.visible, token == self.generation else { return }
+            if readImmediately { await self.refresh(token: token) }
             while !Task.isCancelled, self.visible, token == self.generation {
-                if !self.busy { await self.refresh(token: token) }
                 let seconds = self.snapshot.availability == .idle ||
                     (self.snapshot.availability == .ready && self.snapshot.playback == .playing) ? 1 : 3
                 do { try await Task.sleep(for: .seconds(seconds)) } catch { return }
+                await self.refresh(token: token)
             }
         }
     }
     private func refresh(token: Int) async {
+        guard !Task.isCancelled, visible, token == generation else { return }
         let value = await adapter.read()
         guard !Task.isCancelled, visible, token == generation else { return }
         snapshot = value
@@ -104,23 +106,31 @@ public protocol MusicPlayerAdapter: Sendable {
     }
     public func perform(_ command: MusicCommand) {
         guard visible, !busy, snapshot.availability == .ready else { return }
-        execute { await self.adapter.perform(command) }
+        execute { await $0.perform(command) }
     }
     public func requestAccess() {
         guard visible, !busy else { return }
-        execute { await self.adapter.requestAccess() }
+        execute { await $0.requestAccess() }
     }
-    private func execute(_ operation: @escaping @Sendable () async -> MusicAvailability) {
+    private func execute(_ operation: @escaping @Sendable (any MusicPlayerAdapter) async -> MusicAvailability) {
         busy = true; commandFailed = false
+        let previousLoop = loop
+        previousLoop?.cancel()
+        loop = nil
         let token = generation
         action = Task { [weak self] in
-            let result = await operation()
+            // The adapter can suspend during a read. Drain it before issuing a command
+            // so obsolete metadata cannot race the post-command refresh.
+            await previousLoop?.value
             guard let self, !Task.isCancelled, self.visible, token == self.generation else { return }
+            let result = await operation(self.adapter)
+            guard !Task.isCancelled, self.visible, token == self.generation else { return }
             self.commandFailed = result != .ready
             if result == .ready { await self.refresh(token: token) }
             else { self.snapshot = MusicSnapshot(availability: result) }
             guard !Task.isCancelled, self.visible, token == self.generation else { return }
             self.busy = false; self.action = nil
+            self.startLoop(readImmediately: false)
         }
     }
 }

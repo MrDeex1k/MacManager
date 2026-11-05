@@ -75,6 +75,7 @@ struct IslandView: View {
         .frame(height: coordinator.displayedSectionHeight, alignment: .topLeading)
         .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity, alignment: .topLeading)
         .background { IslandBackgroundView() }
+        .environment(\.locale, coordinator.preferences.locale)
         #if DEBUG && MM_RESERVED_REGION_PROBE
         .background {
             if UITestConfiguration.current.contains("--island-reserved-region-probe"),

@@ -13,7 +13,7 @@ actor PodcastArtworkAccess {
     }
     var configured: Bool { !testing && defaults.data(forKey: bookmarkKey) != nil }
 
-    func read(title: String, expandedMetadata: String) -> PodcastLocalArtwork? {
+    func read(title: String, expandedMetadata: String, showTitle: String) -> PodcastLocalArtwork? {
         guard !testing, !Task.isCancelled, let data = defaults.data(forKey: bookmarkKey) else { return nil }
         var stale = false
         guard let url = try? URL(resolvingBookmarkData: data, options: [.withSecurityScope, .withoutUI],
@@ -24,7 +24,7 @@ actor PodcastArtworkAccess {
         if stale, let refreshed = try? url.bookmarkData(options: [.withSecurityScope, .securityScopeAllowOnlyReadAccess], includingResourceValuesForKeys: nil, relativeTo: nil) {
             defaults.set(refreshed, forKey: bookmarkKey)
         }
-        return PodcastLocalArtworkReader(directory: url).read(title: title, expandedMetadata: expandedMetadata)
+        return PodcastLocalArtworkReader(directory: url).read(title: title, expandedMetadata: expandedMetadata, showTitle: showTitle)
     }
 
     /// nil means cancellation, false means the selected folder could not be authorized.
