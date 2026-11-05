@@ -11,6 +11,8 @@ struct ClipboardSettingsView: View {
     @State private var confirming = false
     @State private var error = false
     @State private var saving = false
+    @State private var proposedPreferences: ClipboardPreferences?
+    @State private var saveTask: Task<Void, Never>?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 22) {
@@ -49,7 +51,8 @@ struct ClipboardSettingsView: View {
             }
             .frame(height: 100)
             Text(state.strings("clipboard.privacy.note")).font(.callout).foregroundStyle(.secondary)
-            Text(String(format: state.strings("clipboard.databaseSize"), Double(state.clipboard.databaseBytes) / 1_000_000))
+            Text(String(format: state.strings("clipboard.databaseSize"), locale: state.preferences.locale,
+                        Double(state.clipboard.databaseBytes) / 1_000_000))
                 .font(.caption).foregroundStyle(.secondary)
             if error { Text(state.strings("clipboard.error.storage")).foregroundStyle(.orange) }
             HStack {
@@ -61,11 +64,15 @@ struct ClipboardSettingsView: View {
                     .accessibilityIdentifier("clipboard.settings.save")
             }
         }
+        .disabled(saving)
         .padding(28).frame(width: 560)
         .onAppear { draft = state.clipboard.preferences }
+        .onDisappear { saveTask?.cancel(); saveTask = nil }
         .alert(state.strings("clipboard.retention.confirm"), isPresented: $confirming) {
-            Button(state.strings("clipboard.cancel"), role: .cancel) {}
-            Button(state.strings("clipboard.save"), role: .destructive) { save() }
+            Button(state.strings("clipboard.cancel"), role: .cancel) { proposedPreferences = nil }
+            Button(state.strings("clipboard.save"), role: .destructive) {
+                if let proposedPreferences { save(proposedPreferences) }
+            }
                 .accessibilityIdentifier("clipboard.retention.confirm")
         } message: { Text(String(format: state.strings("clipboard.retention.removals"), removalCount)) }
     }
@@ -92,17 +99,31 @@ struct ClipboardSettingsView: View {
         }
     }
     private func prepareSave() {
+        guard draft.isValid, !saving else { return }
+        let proposed = draft
+        proposedPreferences = proposed
+        error = false
         saving = true
-        Task {
+        saveTask = Task {
             do {
-                removalCount = try await state.clipboard.removalCount(for: draft)
+                let count = try await state.clipboard.removalCount(for: proposed)
+                guard !Task.isCancelled else { return }
+                removalCount = count
                 saving = false
-                if removalCount > 0 { confirming = true } else { save() }
-            } catch { self.error = true; saving = false }
+                if removalCount > 0 { confirming = true } else { save(proposed) }
+            } catch {
+                guard !Task.isCancelled else { return }
+                self.error = true; saving = false
+            }
         }
     }
-    private func save() {
+    private func save(_ proposed: ClipboardPreferences) {
         saving = true
-        Task { await state.clipboard.updatePreferences(draft); saving = false; dismiss() }
+        saveTask = Task {
+            guard !Task.isCancelled else { return }
+            await state.clipboard.updatePreferences(proposed)
+            guard !Task.isCancelled else { return }
+            saving = false; dismiss()
+        }
     }
 }

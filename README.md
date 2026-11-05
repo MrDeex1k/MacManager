@@ -74,6 +74,8 @@ Keep useful text and images within reach, with search, previews and restore in t
 
 If a restore fails in the main window, the entry details stay open so you can retry. The island labels damaged entries and disables their restore action.
 
+Pausing capture does not pause retention: expired entries are also removed from visible history and cannot be restored. Invalid database metadata stops history access with a storage error instead of being treated as an expired entry; existing encrypted files are preserved.
+
 The default limits are **50 items, 7 days and 200 MB**. History is enabled on a fresh install. Capture starts when macOS allows ongoing clipboard access. If prompted, use **Check access** and follow the system settings available on your Mac. Recording skips the copy already on the clipboard at startup. Revoking access stops new captures and preserves saved entries. After access returns, recording starts with the next new copy. Marked confidential entries are skipped.
 
 ## A little space at the top. A lot within reach.

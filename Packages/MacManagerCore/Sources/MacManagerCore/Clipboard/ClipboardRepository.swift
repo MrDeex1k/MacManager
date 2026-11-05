@@ -56,6 +56,7 @@ public actor ClipboardRepository {
         try Task.checkCancellation()
         try open()
         let key = try currentKey()
+        try Task.checkCancellation()
         try prune(preferences: preferences, now: now)
         let records = try sql.records()
         try payloads.removeOrphans(records: records)
@@ -81,10 +82,12 @@ public actor ClipboardRepository {
 
     @discardableResult
     public func insert(_ content: ClipboardContent, preferences: ClipboardPreferences, now: Date) throws -> ClipboardMutation {
+        guard memoryAccessAllowed else { throw CancellationError() }
         try Task.checkCancellation()
         guard content.isValid, preferences.isValid else { throw ClipboardFailure.tooLarge }
         try open()
         let key = try currentKey()
+        try Task.checkCancellation()
         var removed = try prune(preferences: preferences, now: now)
         if let latest = try sql.records(limit: 1).first, latest.kind == content.kind,
            let previous = try? payloads.decrypt(latest.id, role: "payload", key: key, maximumBytes: 21_000_000),
@@ -133,6 +136,7 @@ public actor ClipboardRepository {
         try Task.checkCancellation()
         try open()
         let key = try currentKey()
+        try Task.checkCancellation()
         try prune(preferences: preferences, now: now)
         guard let record = try sql.records(id: id).first else { throw ClipboardFailure.damagedEntry }
         let cacheKey = ClipboardMemoryCache.Key(id: id, role: "payload")
@@ -169,12 +173,17 @@ public actor ClipboardRepository {
         guard limit > 0 else { return [] }
         try open()
         let live = Set(ClipboardRetention.retained(try sql.records(), preferences: preferences, now: now).map(\.id))
+        if query.isEmpty {
+            // These previews are already decrypted. Listing them requires no hardware key operation.
+            let result = Array(entries.lazy.filter { live.contains($0.id) && !$0.damaged }.prefix(limit))
+            try Task.checkCancellation()
+            return result
+        }
         let key = try currentKey()
         var result: [ClipboardEntry] = []
         for entry in entries where live.contains(entry.id) && !entry.damaged {
             try Task.checkCancellation()
-            if query.isEmpty { result.append(entry) }
-            else if entry.record.kind == .text {
+            if entry.record.kind == .text {
                 // Do not fill the cache with the entire history during a scan.
                 do {
                     let cacheKey = ClipboardMemoryCache.Key(id: entry.id, role: "payload")
@@ -212,7 +221,8 @@ public actor ClipboardRepository {
         defer { sqlite3_finalize(query) }
         let result = sqlite3_step(query)
         if result == SQLITE_DONE { return nil }
-        guard result == SQLITE_ROW else { throw ClipboardFailure.storage }
+        guard result == SQLITE_ROW,
+              [SQLITE_INTEGER, SQLITE_FLOAT].contains(sqlite3_column_type(query, 0)) else { throw ClipboardFailure.storage }
         let captured = sqlite3_column_double(query, 0)
         guard captured.isFinite else { throw ClipboardFailure.storage }
         return Date(timeIntervalSince1970: captured + Double(preferences.maximumDays) * 86_400)
