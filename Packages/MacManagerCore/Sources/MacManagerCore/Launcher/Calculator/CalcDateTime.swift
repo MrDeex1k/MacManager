@@ -182,7 +182,8 @@ enum CalcDateTime {
             !duration.subDay, !duration.businessDays,
             let landing = calendar.date(
                 byAdding: duration.component, value: duration.count,
-                to: calendar.startOfDay(for: now))
+                to: calendar.startOfDay(for: now)),
+            isSupported(landing, calendar: calendar)
         else { return nil }
 
         // The weekday inside the landing week, so `monday in 3 weeks` is that week's Monday.
@@ -406,7 +407,7 @@ enum CalcDateTime {
                 duration.businessDays
                 ? addBusinessDays(signed, to: result.date, calendar: calendar)
                 : calendar.date(byAdding: duration.component, value: signed, to: result.date)
-            guard let date, (1...9999).contains(calendar.component(.year, from: date)) else { return nil }
+            guard let date, isSupported(date, calendar: calendar) else { return nil }
             result = Moment(date: date, hasTime: result.hasTime || duration.subDay)
         }
         return result
@@ -511,7 +512,7 @@ enum CalcDateTime {
     private static func parseTriple(
         _ a: String, _ b: String, _ c: String, calendar: Calendar
     ) -> Moment? {
-        guard let year = Int(c) else { return nil }
+        guard let year = Int(c), year >= 0 else { return nil }
         let month: Int
         let day: Int
         if let named = monthByName[a], let value = ordinalDay(b) {
@@ -859,12 +860,13 @@ enum CalcDateTime {
     )
         -> Date?
     {
-        guard (1...12).contains(month), (1...31).contains(day) else { return nil }
+        guard (1...9999).contains(year), (1...12).contains(month), (1...31).contains(day) else { return nil }
         var components = DateComponents()
         components.year = year
         components.month = month
         components.day = day
         guard let date = calendar.date(from: components),
+            calendar.component(.year, from: date) == year,
             calendar.component(.day, from: date) == day,
             calendar.component(.month, from: date) == month
         else { return nil }
@@ -872,7 +874,18 @@ enum CalcDateTime {
     }
 
     private static func shift(_ date: Date, days: Int, calendar: Calendar) -> Date? {
-        calendar.date(byAdding: .day, value: days, to: date)
+        guard let shifted = calendar.date(byAdding: .day, value: days, to: date),
+              isSupported(shifted, calendar: calendar) else { return nil }
+        return shifted
+    }
+
+    private static func isSupported(_ date: Date, calendar: Calendar) -> Bool {
+        guard (1...9999).contains(calendar.component(.year, from: date)) else { return false }
+        // Gregorian BCE years are positive too; checking the year alone admits them.
+        if calendar.identifier == .gregorian || calendar.identifier == .iso8601 {
+            return calendar.component(.era, from: date) == 1
+        }
+        return true
     }
 
     /// Whole weeks jump at once; only the weekend alignment and remainder walk individual days.

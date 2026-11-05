@@ -33,8 +33,10 @@ public actor LauncherFileSearch {
         return clauses.joined(separator: " && ")
     }
     public static func isWithinRoots(_ url: URL, roots: [URL]) -> Bool {
+        guard url.isFileURL else { return false }
         let path = url.standardizedFileURL.resolvingSymlinksInPath().path
         return roots.contains {
+            guard $0.isFileURL else { return false }
             let root = $0.standardizedFileURL.resolvingSymlinksInPath().path
             return path == root || path.hasPrefix(root == "/" ? "/" : root + "/")
         }

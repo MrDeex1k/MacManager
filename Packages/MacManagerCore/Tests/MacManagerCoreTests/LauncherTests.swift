@@ -148,6 +148,9 @@ private func launcherEntry(_ id: String, _ title: String, alternate: [String] = 
     #expect(LauncherFileSearch.isWithinRoots(URL(fileURLWithPath: "/tmp/allowed/file.txt"), roots: roots))
     #expect(!LauncherFileSearch.isWithinRoots(URL(fileURLWithPath: "/tmp/allowed-other/file.txt"), roots: roots))
     #expect(!LauncherFileSearch.isWithinRoots(URL(fileURLWithPath: "/tmp/allowed/../secret"), roots: roots))
+    #expect(!LauncherFileSearch.isWithinRoots(try #require(URL(string: "https://example.com/tmp/allowed/file.txt")), roots: roots))
+    #expect(!LauncherFileSearch.isWithinRoots(URL(fileURLWithPath: "/tmp/allowed/file.txt"),
+        roots: [try #require(URL(string: "https://example.com/tmp/allowed"))]))
 }
 
 @MainActor @Test func launcherPrivateModeExcludesCatalogAndDiscardsLateResults() async throws {

@@ -61,6 +61,8 @@ Press **Option-Q** and start typing. Open an app, find a file, open a supported 
 
 With the search field focused, arrow keys select a result and **Enter** opens or copies it. **Shift-Tab** moves focus to the mode controls. **Escape** clears the query before closing. Application results open the selected installation even when a different copy with the same bundle identifier is already running. The shortcut is configurable, and the launcher remains available with the main window closed. Calculator keywords use English syntax and calculations run locally. Units can follow division directly (`100 / s`), and conversions work before further arithmetic (`10 m in cm / 2`) and inside functions (`round(10 m in cm)`).
 
+In Polish mode, use a decimal comma and semicolons between function arguments, for example `round(1,25;1)` or `max(1;2)`. Copied numeric results keep a decimal point. Signed percentages retain relative addition/subtraction: `200 + -10%` gives `180`. Calendar calculations accept years 1 through 9999 and reject Gregorian dates before the common era. Closing the launcher, locking the session or putting the Mac to sleep cancels queued actions; item shortcuts remain inactive until the session resumes. An application launch already handed to macOS cannot be undone.
+
 The launcher opens on the screen under the pointer. If the screen’s usable area changes while you type, the panel adjusts to fit. If that display disconnects and another is available, the panel moves there with your query intact. After sleep, use **Option-Q** to reopen it.
 
 ## Copy once. Find it again.

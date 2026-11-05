@@ -54,7 +54,7 @@ public enum LocalCalculator {
     }
     public static func result(_ query: String, context: Context) -> LauncherEntry? {
         let language = context.language, now = context.now, calendar = context.calendar
-        let format = language == "pl" && query.contains(",")
+        let format = language == "pl"
             ? CalcNumberFormat(decimalSeparator: ",", groupingSeparator: " ") ?? .english : .english
         guard let result = CalcEngine.evaluate(query, now: now, calendar: calendar, format: format),
               case .value(let display, let copy) = result.payload else { return nil }

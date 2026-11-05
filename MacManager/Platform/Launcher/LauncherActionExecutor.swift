@@ -1,8 +1,12 @@
 import AppKit
 import MacManagerCore
 
+@MainActor protocol LauncherActionExecuting {
+    func execute(_ entry: LauncherEntry, options: LauncherPreferences, clipboard: ClipboardService?) async -> LauncherActionExecutor.Outcome
+}
+
 /// Framework effects live here; the controller retains presentation and focus policy.
-@MainActor final class LauncherActionExecutor {
+@MainActor final class LauncherActionExecutor: LauncherActionExecuting {
     enum Outcome { case copied, opened, section(String), failed }
     private let writer: LocalClipboardWriter
     init(testing: Bool) {
@@ -16,6 +20,7 @@ import MacManagerCore
             ? NSPasteboard(name: .init(testName)) : .general)
     }
     func execute(_ entry: LauncherEntry, options: LauncherPreferences, clipboard: ClipboardService?) async -> Outcome {
+        guard !Task.isCancelled else { return .failed }
         switch entry.action {
         case .clipboard(let id):
             guard let clipboard, !clipboard.suspended else { return .failed }

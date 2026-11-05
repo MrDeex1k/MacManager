@@ -37,7 +37,8 @@ final class LauncherController: ApplicationLifecycleParticipant {
     @ObservationIgnored var openMainWindow: (() -> Void)?
     @ObservationIgnored var navigate: ((String) -> Void)?
     @ObservationIgnored private let preferences: PreferencesStore
-    @ObservationIgnored private let actionExecutor: LauncherActionExecutor
+    @ObservationIgnored private let actionExecutor: any LauncherActionExecuting
+    @ObservationIgnored private let sessionMonitor: SystemSessionMonitor
     @ObservationIgnored private let hotKey = LauncherHotKey()
     @ObservationIgnored private var panel: LauncherPanel?
     @ObservationIgnored private var hosting: NSHostingView<AnyView>?
@@ -52,12 +53,16 @@ final class LauncherController: ApplicationLifecycleParticipant {
     @ObservationIgnored private var testDisplays: [LauncherPanelGeometry.Display]?
     #endif
     @ObservationIgnored private var presentationID = UUID()
+    @ObservationIgnored private var actionTask: Task<Void, Never>?
     private(set) var executing = false
     var strings: AppStrings { AppStrings(languageCode: preferences.language.resolvedCode()) }
 
-    init(preferences: PreferencesStore, testing: Bool = false) {
+    init(preferences: PreferencesStore, testing: Bool = false,
+         actionExecutor: (any LauncherActionExecuting)? = nil,
+         sessionMonitor: SystemSessionMonitor = .shared) {
         self.preferences = preferences; self.testing = testing
-        actionExecutor = LauncherActionExecutor(testing: testing)
+        self.actionExecutor = actionExecutor ?? LauncherActionExecutor(testing: testing)
+        self.sessionMonitor = sessionMonitor
     }
     func start() {
         guard !running else { return }; running = true
@@ -90,7 +95,7 @@ final class LauncherController: ApplicationLifecycleParticipant {
         }
         registerItemShortcuts()
         reconcileApplicationShortcuts()
-        SystemSessionMonitor.shared.subscribe(in: observers) { [weak self] state in
+        sessionMonitor.subscribe(in: observers) { [weak self] state in
             guard let self else { return }
             self.suspended = state.suspended
             guard state.suspended else { return }
@@ -131,6 +136,7 @@ final class LauncherController: ApplicationLifecycleParticipant {
         reconcileApplicationShortcuts()
         applicationIcons.refreshIfNeeded(after: catalogRefreshSeconds)
         previousApplication = NSWorkspace.shared.frontmostApplication
+        actionTask?.cancel(); actionTask = nil
         actionFailed = false; executing = false; presentationID = UUID()
         model.preferences = preferences.launcher
         model.load(providers: [ApplicationProvider(), SystemSettingsProvider()],
@@ -353,8 +359,11 @@ final class LauncherController: ApplicationLifecycleParticipant {
     #endif
     func hide(restoreFocus: Bool = true) {
         clipboardSearch.reset()
+        // Item shortcuts can enqueue actions while the panel is already hidden.
+        actionTask?.cancel(); actionTask = nil
+        presentationID = UUID(); executing = false
         guard visible else { return }
-        visible = false; presentationID = UUID(); executing = false
+        visible = false
         rowMenuOpen = false; searchSelection = nil
         panel?.orderOut(nil)
         // Reuse the host, but release the private mode's SwiftUI subtree immediately.
@@ -371,14 +380,20 @@ final class LauncherController: ApplicationLifecycleParticipant {
         guard visible, !executing, model.canPerform(entry) else { return }
         execute(entry)
     }
-    private func execute(_ entry: LauncherEntry) {
-        guard running, !executing else { return }
+    @discardableResult func execute(_ entry: LauncherEntry) -> Task<Void, Never>? {
+        guard running, !suspended, !executing else { return nil }
         executing = true
         let token = presentationID
-        Task {
+        actionTask = Task { [weak self] in
+            guard let self else { return }
+            defer {
+                if token == presentationID { executing = false; actionTask = nil }
+            }
+            guard running, !suspended,
+                  token == self.presentationID, !Task.isCancelled else { return }
             let outcome = await actionExecutor.execute(entry, options: preferences.launcher, clipboard: clipboard)
-            guard running, token == presentationID else { return }
-            executing = false
+            guard running, !suspended, token == presentationID, !Task.isCancelled else { return }
+            executing = false; actionTask = nil
             switch outcome {
             case .copied: hide()
             case .opened: hide(restoreFocus: false)
@@ -392,5 +407,6 @@ final class LauncherController: ApplicationLifecycleParticipant {
                 }
             }
         }
+        return actionTask
     }
 }

@@ -416,7 +416,7 @@ struct CalcExpressionParser {
             position += 1
             guard let value = parseExpression(minBindingPower: Self.unaryBindingPower), !value.isBoolean
             else { return nil }
-            return CalcValue(amount: -value.effective, kind: value.kind)
+            return CalcValue(amount: -value.amount, kind: value.kind, isPercent: value.isPercent)
         case .op(.add):
             position += 1
             guard let value = parseExpression(minBindingPower: Self.unaryBindingPower), !value.isBoolean
