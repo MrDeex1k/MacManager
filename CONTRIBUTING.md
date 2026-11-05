@@ -73,6 +73,15 @@ Use the repository issue forms. Include macOS version, Mac model class, reproduc
 - `MM_LAUNCHER_TEST_ROOT="$PWD"`: Spotlight integration against this indexed repository.
 - `MM_BENCHMARKS=1`: opt-in benchmarks for launcher ranking and clipboard image normalization, pasteboard capture and hardware key derivation. Run separately in Release with a test filter such as `-c release --filter launcherRankingBenchmark`. Pasteboard capture and hardware key derivation also require `MM_SYSTEM_TESTS=1`.
 
+`MacManagerTests` exercises the actual application controllers with injected session notifications, activation policies, login services and samplers. It is an unhosted test bundle: application sources compile with `MM_UNIT_TESTS` to exclude the app entry point, so tests do not launch production integrations. Run it with:
+
+```sh
+xcodebuild -project MacManager.xcodeproj -scheme MacManager \
+  -destination 'platform=macOS,arch=arm64' -only-testing:MacManagerTests test
+```
+
+Lifecycle regression tests cover same-turn lock/unlock and sleep/wake, rejected Dock and login-item changes, explicit AppState startup and visible metric consumers. Core tests also cover observation cancellation, settings application without mounted views and partial preference recovery. `SystemTests/testRecoveredPreferencesAndLoginFailureRetryInBothLanguages` checks the recovery notice and login error/retry flow in PL and EN using isolated fixtures. Real sleep/wake and ServiceManagement failure behavior still require device checks.
+
 UI tests are grouped by feature and share AppUITestSupport. Run the MacManager scheme on macOS. Quit other MacManager copies with the same bundle identifier first, so XCTest targets only its isolated fixture process. The Debug-only `--ui-testing` fixture mode uses isolated preferences and clipboard data. An ordinary Debug launch uses the development app’s preferences. Performance reports must distinguish engine timings from end-to-end UI latency and record skipped or unavailable checks explicitly.
 
 For clipboard permission compatibility checks after a macOS update:

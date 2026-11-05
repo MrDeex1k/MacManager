@@ -11,11 +11,17 @@ final class ClipboardController: ApplicationLifecycleParticipant {
     private var maintenance: Task<Void, Never>?
     private var polling: Task<Void, Never>?
     private let observers = NotificationTokens()
+    private let captureObservation = ObservationSubscription()
+    private let maintenanceObservation = ObservationSubscription()
     private let testing: Bool
     private let fixture: Bool
-    private var suspendedReasons: Set<String> = []
+    private var session = SessionState()
+    private var sessionChange: Task<Void, Never>?
+    private let sessionMonitor: SystemSessionMonitor
 
-    init(preferences: PreferencesStore, testing: Bool = false, diagnostics: DiagnosticsStore? = nil) {
+    init(preferences: PreferencesStore, testing: Bool = false, diagnostics: DiagnosticsStore? = nil,
+         sessionMonitor: SystemSessionMonitor = .shared) {
+        self.sessionMonitor = sessionMonitor
         let testing = testing && UITestConfiguration.current.enabled
         self.testing = testing
         fixture = testing && UITestConfiguration.current.contains("--clipboard-fixture")
@@ -51,20 +57,15 @@ final class ClipboardController: ApplicationLifecycleParticipant {
                                    savePreferences: { preferences.clipboard = $0 })
     }
 
+    init(service: ClipboardService, repository: ClipboardRepository, sessionMonitor: SystemSessionMonitor) {
+        self.service = service; self.repository = repository; self.sessionMonitor = sessionMonitor
+        testing = false; fixture = false
+    }
+
     func start() {
         guard loop == nil else { return }
         if !testing {
-            SystemSessionMonitor.shared.subscribe(in: observers) { [weak self] state in
-                guard let self else { return }
-                let wasSleeping = self.suspendedReasons.contains("sleep")
-                self.suspendedReasons = Set(state.reasons.map { $0 == .sleep ? "sleep" : $0 == .lock ? "lock" : "session" })
-                self.scheduleMaintenance()
-                Task { @MainActor [weak self] in
-                    guard let self, self.loop != nil else { return }
-                    if wasSleeping && !state.sleeping { await self.service.maintain() }
-                    await self.service.setSuspended(!self.suspendedReasons.isEmpty)
-                }
-            }
+            sessionMonitor.subscribe(in: observers) { [weak self] state in self?.sessionChanged(state) }
         }
         let clockCenter = NotificationCenter.default
         let clockToken = clockCenter.addObserver(forName: .NSSystemClockDidChange, object: nil, queue: .main) { [weak self] _ in
@@ -76,16 +77,25 @@ final class ClipboardController: ApplicationLifecycleParticipant {
             #if DEBUG
             if self.fixture { await ClipboardFixture.seed(repository: self.repository, preferences: self.service.preferences) }
             #endif
-            await self.service.setSuspended(!self.suspendedReasons.isEmpty)
+            await self.service.setSuspended(self.session.suspended)
             guard !Task.isCancelled else { return }
             await self.service.start()
             guard !Task.isCancelled else { return }
-            self.watchCaptureState()
-            self.watchMaintenance()
+            self.captureObservation.start(read: { [weak self] in
+                guard let self else { return (false, 1.0) }
+                return (self.service.preferences.enabled && !self.service.preferences.paused && !self.service.suspended,
+                        self.service.pollingSeconds)
+            }, apply: { [weak self] capture, seconds in self?.scheduleCapture(capture: capture, seconds: seconds) })
+            self.maintenanceObservation.start(read: { [weak self] in
+                _ = self?.service.revision
+                _ = self?.service.preferences
+            }, apply: { [weak self] in self?.scheduleMaintenance() })
         }
     }
 
     func stop() {
+        captureObservation.stop(); maintenanceObservation.stop()
+        sessionChange?.cancel(); sessionChange = nil
         loop?.cancel(); loop = nil
         maintenance?.cancel(); maintenance = nil
         polling?.cancel(); polling = nil
@@ -93,15 +103,26 @@ final class ClipboardController: ApplicationLifecycleParticipant {
         service.stop()
     }
 
-    private func watchCaptureState() {
+    private func sessionChanged(_ state: SessionState) {
+        let wasSleeping = session.sleeping
+        session = state
+        sessionChange?.cancel()
+        if state.suspended {
+            service.suspend()
+            polling?.cancel(); polling = nil
+        }
+        scheduleMaintenance()
+        sessionChange = Task { [weak self] in
+            guard let self, self.loop != nil, !Task.isCancelled else { return }
+            if wasSleeping && !state.sleeping { await self.service.maintain() }
+            guard self.loop != nil, !Task.isCancelled else { return }
+            if !state.suspended { await self.service.setSuspended(false) }
+        }
+    }
+
+    private func scheduleCapture(capture: Bool, seconds: Double) {
         guard loop != nil else { return }
         polling?.cancel(); polling = nil
-        let (capture, seconds) = withObservationTracking {
-            (service.preferences.enabled && !service.preferences.paused && !service.suspended,
-             service.pollingSeconds)
-        } onChange: { [weak self] in
-            Task { @MainActor [weak self] in self?.watchCaptureState() }
-        }
         guard capture else { return }
         polling = Task { [weak self] in
             while !Task.isCancelled {
@@ -112,21 +133,10 @@ final class ClipboardController: ApplicationLifecycleParticipant {
         }
     }
 
-    private func watchMaintenance() {
-        guard loop != nil else { return }
-        withObservationTracking {
-            _ = service.revision
-            _ = service.preferences
-        } onChange: { [weak self] in
-            Task { @MainActor [weak self] in self?.watchMaintenance() }
-        }
-        scheduleMaintenance()
-    }
-
     private func scheduleMaintenance() {
         guard loop != nil else { return }
         maintenance?.cancel(); maintenance = nil
-        guard !suspendedReasons.contains("sleep") else { return }
+        guard !session.sleeping else { return }
         maintenance = Task { [weak self] in
             var attemptedDate: Date?
             while !Task.isCancelled {

@@ -18,18 +18,39 @@
     },
   ],
   "files": [
-    { "kind": "folder", "path": "MacManager", "target-membership": [ "MacManager" ] },
+    { "kind": "folder", "path": "MacManager", "target-membership": [ "MacManager", "MacManagerTests" ] },
+    { "kind": "folder", "path": "MacManagerTests", "target-membership": [ "MacManagerTests" ] },
     { "kind": "folder", "path": "MacManagerUITests", "target-membership": [ "MacManagerUITests" ] },
     {
       "kind": "group",
       "name": "Products",
       "children": [
         { "path": "<PRODUCTS>/MacManager.app", "id": "A00000000000000000000006", "type": "wrapper.application", "index": false },
+        { "path": "<PRODUCTS>/MacManagerTests.xctest", "id": "A00000000000000000000008", "type": "wrapper.cfbundle", "index": false },
         { "path": "<PRODUCTS>/MacManagerUITests.xctest", "id": "A00000000000000000000007", "type": "wrapper.cfbundle", "index": false },
       ],
     },
   ],
   "targets": [
+    {
+      "name": "MacManagerTests",
+      "id": "A00000000000000000000012",
+      "product": "Products/MacManagerTests.xctest",
+      "product-type": "bundle.unit-test",
+      "build-phases": [ "compile-sources", "frameworks", "resources" ],
+      "package-product-members": [
+        { "product-name": "MacManagerCore", "build-phase": { "build-phase": "frameworks" } },
+      ],
+      "build-settings": {
+        "CODE_SIGN_IDENTITY": "-",
+        "CODE_SIGN_STYLE": "Manual",
+        "GENERATE_INFOPLIST_FILE": "YES",
+        "PRODUCT_BUNDLE_IDENTIFIER": "dev.macmanager.MacManager.Tests",
+        "PRODUCT_NAME": "$(TARGET_NAME)",
+        "SWIFT_ACTIVE_COMPILATION_CONDITIONS": "$(inherited) MM_UNIT_TESTS",
+        "SWIFT_EMIT_LOC_STRINGS": "NO",
+      },
+    },
     {
       "name": "MacManager",
       "id": "A00000000000000000000010",

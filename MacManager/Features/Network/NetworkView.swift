@@ -21,7 +21,6 @@ struct NetworkView: View {
                     get: { state.preferences.publicIPEnabled },
                     set: {
                         state.preferences.publicIPEnabled = $0
-                        network.setEnabled($0, now: ProcessInfo.processInfo.systemUptime)
                     }))
                     .accessibilityIdentifier("network.public.enabled")
                 Spacer()

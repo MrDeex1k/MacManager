@@ -162,6 +162,8 @@ class AppUITestSupport: XCTestCase {
         scrollPermission: Bool = false,
         inputMonitoringRequired: Bool = false,
         loginItemRequiresApproval: Bool = false,
+        loginItemUnregisterFailsOnce: Bool = false,
+        damagedPreferences: Bool = false,
         launchedAtLogin: Bool = false,
         updateFixture: UpdateFixture = .noRelease,
         expectsWindow: Bool = true
@@ -188,6 +190,8 @@ class AppUITestSupport: XCTestCase {
         if scrollPermission { app.launchArguments.append("--scroll-permission-granted") }
         if inputMonitoringRequired { app.launchArguments.append("--scroll-input-monitoring-required") }
         if loginItemRequiresApproval { app.launchArguments.append("--login-item-requires-approval") }
+        if loginItemUnregisterFailsOnce { app.launchArguments.append("--login-item-unregister-fails-once") }
+        if damagedPreferences { app.launchArguments.append("--damaged-preferences") }
         if launchedAtLogin { app.launchArguments.append("--launched-at-login") }
         if let argument = updateFixture.argument { app.launchArguments.append(argument) }
         app.launch()

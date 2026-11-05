@@ -6,22 +6,36 @@ import MacManagerCore
     static let shared = SystemSessionMonitor()
     private static let changed = Notification.Name("MacManager.sessionStateChanged")
     private let observers = NotificationTokens()
+    private let initialState: SessionState?
+    private let workspaceCenter: NotificationCenter
+    private let distributedCenter: NotificationCenter
+    private let center: NotificationCenter
     private(set) var state = SessionState()
+    init(initialState: SessionState? = nil,
+         workspaceCenter: NotificationCenter = NSWorkspace.shared.notificationCenter,
+         distributedCenter: NotificationCenter = DistributedNotificationCenter.default(),
+         center: NotificationCenter = .default) {
+        self.initialState = initialState
+        self.workspaceCenter = workspaceCenter
+        self.distributedCenter = distributedCenter
+        self.center = center
+        super.init()
+    }
     func start() {
         guard observers.isEmpty else { return }
-        state = SessionState()
-        if let session = CGSessionCopyCurrentDictionary() as? [String: Any] {
+        state = initialState ?? SessionState()
+        if initialState == nil, let session = CGSessionCopyCurrentDictionary() as? [String: Any] {
             state.set(.lock, active: session["CGSSessionScreenIsLocked"] as? Bool == true)
             state.set(.inactiveSession, active: session[kCGSessionOnConsoleKey as String] as? Bool == false)
         }
-        let workspace = NSWorkspace.shared.notificationCenter
+        let workspace = workspaceCenter
         for (name, reason, active) in [
             (NSWorkspace.willSleepNotification, SessionSuspensionReason.sleep, true),
             (NSWorkspace.didWakeNotification, .sleep, false),
             (NSWorkspace.sessionDidResignActiveNotification, .inactiveSession, true),
             (NSWorkspace.sessionDidBecomeActiveNotification, .inactiveSession, false)
         ] { observe(workspace, name, reason, active) }
-        let distributed = DistributedNotificationCenter.default()
+        let distributed = distributedCenter
         observe(distributed, .init("com.apple.screenIsLocked"), .lock, true)
         observe(distributed, .init("com.apple.screenIsUnlocked"), .lock, false)
     }
@@ -32,23 +46,23 @@ import MacManagerCore
                 guard let self else { return }
                 let previous = self.state
                 self.state.set(reason, active: active)
-                if self.state != previous { NotificationCenter.default.post(name: Self.changed, object: self) }
+                if self.state != previous { self.center.post(name: Self.changed, object: self) }
             }
         }
         observers.append((center, token))
     }
     func subscribe(in tokens: NotificationTokens, _ action: @escaping @MainActor (SessionState) -> Void) {
-        let token = NotificationCenter.default.addObserver(forName: Self.changed, object: self, queue: .main) { [weak self] _ in
+        let token = center.addObserver(forName: Self.changed, object: self, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { if let self { action(self.state) } }
         }
-        tokens.append((.default, token))
+        tokens.append((center, token))
         action(state)
     }
     #if DEBUG
     func setSleepingForTesting(_ active: Bool) {
         guard UITestConfiguration.current.enabled else { return }
         state.set(.sleep, active: active)
-        NotificationCenter.default.post(name: Self.changed, object: self)
+        center.post(name: Self.changed, object: self)
     }
     #endif
     func stop() { observers.removeAll() }

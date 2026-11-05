@@ -3,6 +3,8 @@ import MacManagerCore
 import Observation
 import ServiceManagement
 
+enum LoginItemOperation: Equatable { case register, unregister }
+
 enum LoginItemServiceStatus: Equatable {
     case notRegistered
     case enabled
@@ -49,15 +51,19 @@ final class SystemLoginItemService: LoginItemServiceProviding {
 @Observable
 final class LoginItemController: ApplicationLifecycleParticipant {
     private(set) var state: LaunchAtLoginState = .unknown
+    private(set) var failedOperation: LoginItemOperation?
 
     @ObservationIgnored private let preferences: PreferencesStore
     @ObservationIgnored private let service: any LoginItemServiceProviding
     @ObservationIgnored private var activationObserver: NSObjectProtocol?
     @ObservationIgnored private var isRunning = false
+    @ObservationIgnored private let diagnostics: DiagnosticsStore?
 
-    init(preferences: PreferencesStore, service: any LoginItemServiceProviding = SystemLoginItemService()) {
+    init(preferences: PreferencesStore, service: any LoginItemServiceProviding = SystemLoginItemService(),
+         diagnostics: DiagnosticsStore? = nil) {
         self.preferences = preferences
         self.service = service
+        self.diagnostics = diagnostics
     }
 
     func start() {
@@ -88,6 +94,7 @@ final class LoginItemController: ApplicationLifecycleParticipant {
 
     @discardableResult
     func setEnabled(_ isEnabled: Bool) -> Bool {
+        failedOperation = nil
         preferences.appIntegration.requestsLaunchAtLogin = isEnabled
         if isEnabled {
             return enable()
@@ -97,6 +104,19 @@ final class LoginItemController: ApplicationLifecycleParticipant {
 
     func openSystemSettings() {
         service.openSystemSettings()
+    }
+
+    func retry() {
+        guard let failedOperation else { return }
+        _ = setEnabled(failedOperation == .register)
+    }
+
+    private func failed(_ operation: LoginItemOperation) -> Bool {
+        // Preserve the authoritative system state independently of the last operation's error.
+        refresh()
+        failedOperation = operation
+        diagnostics?.record(.lifecycle, kind: operation == .register ? "loginRegisterFailed" : "loginUnregisterFailed")
+        return false
     }
 
     private func enable() -> Bool {
@@ -112,17 +132,15 @@ final class LoginItemController: ApplicationLifecycleParticipant {
                 try service.register()
                 refresh()
                 guard state == .enabled || state == .requiresApproval else {
-                    state = .failed
-                    return false
+                    return failed(.register)
                 }
                 return true
             } catch {
                 refresh()
-                if state == .requiresApproval {
+                if state == .enabled || state == .requiresApproval {
                     return true
                 }
-                state = .failed
-                return false
+                return failed(.register)
             }
         }
     }
@@ -137,8 +155,7 @@ final class LoginItemController: ApplicationLifecycleParticipant {
                 try service.unregister()
                 refresh()
                 guard state == .disabled else {
-                    state = .failed
-                    return false
+                    return failed(.unregister)
                 }
                 return true
             } catch {
@@ -146,8 +163,7 @@ final class LoginItemController: ApplicationLifecycleParticipant {
                 if state == .disabled {
                     return true
                 }
-                state = .failed
-                return false
+                return failed(.unregister)
             }
         }
     }

@@ -3,6 +3,42 @@ import XCTest
 
 final class SystemTests: AppUITestSupport {
     @MainActor
+    func testRecoveredPreferencesAndLoginFailureRetryInBothLanguages() throws {
+        let app = launch(reset: true, loginItemUnregisterFailsOnce: true, damagedPreferences: true)
+        defer { app.terminate() }
+        app.typeKey(",", modifierFlags: .command)
+        let notice = app.staticTexts["settings.recovered"]
+        XCTAssertTrue(notice.waitForExistence(timeout: 5))
+        XCTAssertTrue((notice.value as? String ?? notice.label).contains("Some saved settings"))
+        capture("Recovered preferences EN", app: app)
+        let toggle = element("integration.launchAtLogin", in: app)
+        scrollTo(toggle, in: app)
+        XCTAssertEqual(switchValue(toggle), 1)
+        toggle.click()
+        XCTAssertEqual(switchValue(toggle), 1)
+        let error = app.staticTexts["integration.launchAtLogin.error"]
+        XCTAssertTrue(error.waitForExistence(timeout: 3))
+        XCTAssertTrue((error.value as? String ?? error.label).contains("Could not disable"))
+        let retry = app.buttons["integration.launchAtLogin.retry"]
+        scrollTo(retry, in: app)
+        XCTAssertEqual(retry.label, "Retry")
+        capture("Login failure EN", app: app)
+        let language = element("settings.language", in: app)
+        scrollTo(language, in: app)
+        language.click()
+        app.menuItems["Polski"].click()
+        XCTAssertTrue((notice.value as? String ?? notice.label).contains("Część zapisanych ustawień"))
+        capture("Recovered preferences PL", app: app)
+        scrollTo(retry, in: app)
+        XCTAssertTrue((error.value as? String ?? error.label).contains("Nie udało się wyłączyć"))
+        XCTAssertEqual(retry.label, "Ponów próbę")
+        capture("Login failure PL", app: app)
+        retry.click()
+        XCTAssertTrue(error.waitForNonExistence(timeout: 3))
+        XCTAssertEqual(switchValue(toggle), 0)
+    }
+
+    @MainActor
     func testIndependentScrollAxesPersistAndLocalize() throws {
         var app = launch(reset: true, scrollPermission: true)
         defer { app.terminate() }

@@ -9,6 +9,7 @@ public enum DiagnosticCategory: String, CaseIterable, Codable, Sendable {
     case scroll
     case updates
     case clipboard
+    case preferences
 }
 
 public struct DiagnosticErrorRecord: Codable, Equatable, Sendable {
@@ -31,7 +32,10 @@ public final class DiagnosticsStore {
     public func record(_ category: DiagnosticCategory, kind: String, at date: Date = Date()) {
         let allowed = [
             "offline", "timeout", "rateLimited", "server", "http", "invalidResponse", "transport",
-            "sampleFailed", "requestFailed", "driverFailed", "interrupted"
+            "sampleFailed", "requestFailed", "driverFailed", "interrupted",
+            "islandPreferencesRecovered", "launcherPreferencesRecovered", "launcherShortcutPreferencesRecovered",
+            "clipboardPreferencesRecovered", "updates.cachePreferencesRecovered", "preferencesEncodingFailed",
+            "loginRegisterFailed", "loginUnregisterFailed"
         ] + ClipboardKeyDiagnostic.allCases.map(\.rawValue)
 
         lastErrors[category] = DiagnosticErrorRecord(

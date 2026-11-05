@@ -10,6 +10,9 @@
   <TestAction buildConfiguration="Debug" selectedDebuggerIdentifier="Xcode.DebuggerFoundation.Debugger.LLDB" selectedLauncherIdentifier="Xcode.IDEFoundation.Launcher.LLDB" shouldUseLaunchSchemeArgsEnv="YES">
     <Testables>
       <TestableReference skipped="NO" parallelizable="NO">
+        <BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="A00000000000000000000012" BuildableName="MacManagerTests.xctest" BlueprintName="MacManagerTests" ReferencedContainer="container:MacManager.xcodeproj"/>
+      </TestableReference>
+      <TestableReference skipped="NO" parallelizable="NO">
         <BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="A00000000000000000000011" BuildableName="MacManagerUITests.xctest" BlueprintName="MacManagerUITests" ReferencedContainer="container:MacManager.xcodeproj"/>
       </TestableReference>
     </Testables>

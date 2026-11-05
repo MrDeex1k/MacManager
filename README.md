@@ -40,7 +40,7 @@
 See what your Mac is doing without opening a collection of separate utilities.
 
 - **Follow the load.** Live CPU, GPU and RAM readings, plus an estimated power reading when supported.
-- **See the trend.** Five-minute charts with a choice of 1, 2 or 5 second sampling. The default is 2 seconds with Low Power Mode adaptation enabled. Gaps stay visible when readings stop.
+- **See the trend.** Five-minute charts with a choice of 1, 2 or 5 second sampling. The default is 2 seconds with Low Power Mode adaptation enabled. Readings are collected for visible screens and the values selected for the menu bar. Sampling pauses when none are needed, and gaps stay visible in history.
 - **Check the hardware.** CPU/GPU temperatures in °C or °F and individual fan speeds. Temperature mapping is currently validated on M4 Pro. CPU and GPU averages include readings above 0 °C and up to and including 120 °C.
 - **Keep essentials in sight.** Choose the readings shown in the menu bar and open the compact panel for a quick check.
 - **Find your connection.** View and copy your local and public IPv4 addresses, with optional visibility in the menu bar panel.
@@ -106,7 +106,7 @@ The interface supports **Polish and English**, with an immediate language switch
 
 **No accounts. No ads. No telemetry. No application-managed cloud sync.**
 
-Clipboard history, preferences and searches stay local. Locking the session clears private previews and the clipboard data cache. Diagnostics are local and shown before you choose to copy a report.
+Clipboard history, preferences and searches stay local. Locking the session clears private previews and the clipboard data cache. Damaged settings are recovered field by field where possible. Unreadable clipboard settings disable capture until reviewed; Settings shows a recovery notice. Diagnostics are local and shown before you choose to copy a report.
 
 Public IPv4 discovery contacts **ipify**, and release checks contact **GitHub**. Those services see the request's source IP. Both features have controls in the app; system metrics, clipboard contents and launcher queries are not sent to them. Media controls communicate with local players, which have their own network activity.
 

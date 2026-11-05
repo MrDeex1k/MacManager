@@ -5,6 +5,7 @@ extension Notification.Name {
     static let openMainWindowRequested = Notification.Name("dev.macmanager.open-main-window")
 }
 
+#if !MM_UNIT_TESTS
 @main
 struct MacManagerApp: App {
     @NSApplicationDelegateAdaptor(AppearanceDelegate.self) private var delegate
@@ -37,6 +38,8 @@ struct MacManagerApp: App {
         .menuBarExtraStyle(.window)
     }
 }
+
+#endif
 
 final class AppearanceDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }

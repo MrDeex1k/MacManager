@@ -24,7 +24,7 @@ import Testing
     #expect(policy.pausesMetrics)
     #expect(!policy.allowsAutomaticUpdates)
     policy.sleeping = false
-    #expect(policy.request == .full)
+    #expect(policy.request == policy.backgroundRequest)
     #expect(policy.metricsInterval(saved: .one) == 1)
     #expect(policy.publicNetworkInterval == 900)
     #expect(policy.allowsAutomaticUpdates)

@@ -12,6 +12,13 @@ public struct MetricSamplingRequest: Equatable, Sendable {
         self.gpuTemperature = gpuTemperature; self.fans = fans
     }
     public static let full = Self()
+    public static let none = Self(kinds: [], cpuTemperature: false, gpuTemperature: false, fans: false)
+    public static let overview = Self(cpuTemperature: false, gpuTemperature: false, fans: false)
+    public static let sensors = Self(kinds: [])
+    public func union(_ other: Self) -> Self {
+        Self(kinds: kinds.union(other.kinds), cpuTemperature: cpuTemperature || other.cpuTemperature,
+             gpuTemperature: gpuTemperature || other.gpuTemperature, fans: fans || other.fans)
+    }
     public var isEmpty: Bool { kinds.isEmpty && !cpuTemperature && !gpuTemperature && !fans }
 }
 
@@ -21,11 +28,14 @@ public final class EnergyPolicy {
     public var sleeping = false
     public var adaptsToLowPower = true
     public var metricsVisible = true
+    public var visibleRequest = MetricSamplingRequest.full
     public var networkVisible = false
     public var backgroundRequest = MetricSamplingRequest(kinds: [], cpuTemperature: false, gpuTemperature: false, fans: false)
     public init() {}
     public var lowPower: Bool { systemLowPower && adaptsToLowPower }
-    public var request: MetricSamplingRequest { !lowPower || metricsVisible ? .full : backgroundRequest }
+    public var request: MetricSamplingRequest {
+        (metricsVisible ? visibleRequest : .none).union(backgroundRequest)
+    }
     public var pausesMetrics: Bool { sleeping || request.isEmpty }
     public func metricsInterval(saved: SamplingInterval) -> Double {
         lowPower ? (metricsVisible ? 5 : 10) : Double(saved.rawValue)

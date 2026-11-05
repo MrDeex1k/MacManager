@@ -11,36 +11,45 @@ final class MetricsController: ApplicationLifecycleParticipant {
     private let observers = NotificationTokens()
     private var running = false
     private var reportedFailure = false
+    private let energyObservation = ObservationSubscription()
+    private let sessionMonitor: SystemSessionMonitor
+    private var sleeping = false
 
-    init(service: MetricsService, diagnostics: DiagnosticsStore, energy: EnergyPolicy? = nil) {
+    init(service: MetricsService, diagnostics: DiagnosticsStore, energy: EnergyPolicy? = nil,
+         sessionMonitor: SystemSessionMonitor = .shared) {
         self.service = service
         self.energy = energy
         self.diagnostics = diagnostics
+        self.sessionMonitor = sessionMonitor
     }
 
     func start() {
         guard !running else { return }
         running = true
-        service.setSuspended(false)
-        if energy == nil {
-            SystemSessionMonitor.shared.subscribe(in: observers) { [weak self] state in
-                self?.service.setSuspended(state.sleeping)
-            }
+        sessionMonitor.subscribe(in: observers) { [weak self] state in
+            guard let self else { return }
+            self.sleeping = state.sleeping
+            // Sleep is an event boundary, not a coalescible rendering preference.
+            if state.sleeping { self.service.setSuspended(true) }
+            self.scheduleSampling()
         }
-        scheduleSampling()
+        energyObservation.start(read: { [weak self] in
+            guard let self else { return }
+            _ = self.energy?.metricsInterval(saved: self.service.interval)
+            _ = self.service.interval
+            _ = self.energy?.pausesMetrics
+            _ = self.energy?.request
+        }, apply: { [weak self] in self?.scheduleSampling() })
     }
 
     private func scheduleSampling() {
         guard running else { return }
         loop?.cancel()
         loop = nil
-        let (interval, suspended, request) = withObservationTracking {
-            (energy?.metricsInterval(saved: service.interval) ?? Double(service.interval.rawValue),
-             energy?.pausesMetrics ?? service.suspended, energy?.request ?? .full)
-        } onChange: { [weak self] in
-            Task { @MainActor [weak self] in self?.scheduleSampling() }
-        }
-        if energy != nil { service.setSuspended(suspended) }
+        let interval = energy?.metricsInterval(saved: service.interval) ?? Double(service.interval.rawValue)
+        let suspended = sleeping || (energy?.pausesMetrics ?? false)
+        let request = energy?.request ?? .full
+        service.setSuspended(suspended)
         service.configure(intervalSeconds: interval, request: request)
         guard !suspended else { return }
         loop = Task { [weak self] in
@@ -63,6 +72,7 @@ final class MetricsController: ApplicationLifecycleParticipant {
 
     func stop() {
         running = false
+        energyObservation.stop()
         loop?.cancel()
         loop = nil
         observers.removeAll()
