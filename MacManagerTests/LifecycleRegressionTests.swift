@@ -7,6 +7,7 @@ import Testing
     override var visibleRect: NSRect { bounds.insetBy(dx: -200, dy: -200) }
 }
 
+/// Reproduces a reported visible rectangle that covers a neighboring row.
 @MainActor @Test func launcherContextMenuCannotSelectANeighborOutsideRowBounds() throws {
     let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 100, height: 200),
                           styleMask: .borderless, backing: .buffered, defer: false)
@@ -80,6 +81,7 @@ import Testing
     }
 }
 
+/// Changes the lifecycle before queued actions can enter the executor on the main actor.
 @MainActor @Test func launcherCancelsQueuedActionsAndRejectsSuspendedShortcuts() async throws {
     let suite = "LauncherLifecycle-\(UUID())"
     let defaults = try #require(UserDefaults(suiteName: suite))
@@ -113,6 +115,62 @@ import Testing
     session.workspace.post(name: NSWorkspace.didWakeNotification, object: nil)
     await controller.execute(entry)?.value
     #expect(executor.entries == [entry])
+    #expect(!controller.executing)
+}
+
+@MainActor private final class GatedLauncherExecutor: LauncherActionExecuting {
+    let outcome: LauncherActionExecutor.Outcome
+    private var pending: CheckedContinuation<LauncherActionExecutor.Outcome, Never>?
+    var hasStarted: Bool { pending != nil }
+
+    init(outcome: LauncherActionExecutor.Outcome) { self.outcome = outcome }
+
+    func execute(_ entry: LauncherEntry, options: LauncherPreferences,
+                 clipboard: ClipboardService?) async -> LauncherActionExecutor.Outcome {
+        await withCheckedContinuation { pending = $0 }
+    }
+
+    /// Delivers the outcome even when the caller has been cancelled.
+    func finish() {
+        let continuation = pending
+        pending = nil
+        continuation?.resume(returning: outcome)
+    }
+}
+
+/// Simulates an executor that returns after cancellation and after a new presentation has begun.
+@MainActor @Test(.serialized, arguments: [LauncherActionExecutor.Outcome.failed, .copied])
+func launcherIgnoresAnInFlightOutcomeAfterReopening(_ outcome: LauncherActionExecutor.Outcome) async throws {
+    let suite = "LauncherLifecycle-\(UUID())"
+    let defaults = try #require(UserDefaults(suiteName: suite))
+    defer { defaults.removePersistentDomain(forName: suite) }
+    let session = SessionFixture(), executor = GatedLauncherExecutor(outcome: outcome)
+    let controller = LauncherController(preferences: PreferencesStore(defaults: defaults), testing: true,
+        actionExecutor: executor, sessionMonitor: session.monitor)
+    defer { controller.stop(); executor.finish(); session.monitor.stop() }
+
+    controller.start()
+    controller.show()
+    try #require(controller.visible)
+    let entry = LauncherEntry(id: "fixture", title: "Fixture", action: .copy("123"))
+    let action = try #require(controller.execute(entry))
+    let deadline = ContinuousClock.now + .seconds(2)
+    while !executor.hasStarted && ContinuousClock.now < deadline {
+        try await Task.sleep(for: .milliseconds(1))
+    }
+    try #require(executor.hasStarted)
+
+    controller.hide(restoreFocus: false)
+    #expect(!controller.visible)
+    #expect(action.isCancelled)
+    controller.show()
+    try #require(controller.visible)
+    #expect(!controller.actionFailed)
+
+    executor.finish()
+    await action.value
+    #expect(controller.visible)
+    #expect(!controller.actionFailed)
     #expect(!controller.executing)
 }
 

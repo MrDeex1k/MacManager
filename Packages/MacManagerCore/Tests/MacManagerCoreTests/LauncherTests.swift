@@ -139,6 +139,7 @@ private func launcherEntry(_ id: String, _ title: String, alternate: [String] = 
     #expect(answer("2026-09-23 + 2 days")?.contains("25") == true)
 }
 
+/// Checks query escaping and rejects traversal, sibling prefixes, and non-file URLs in scope checks.
 @Test func launcherFilesEscapeQueryAndRespectRootBoundaries() throws {
     let expression = try #require(LauncherFileSearch.expression("a\"*?\\ b", filter: .images))
     #expect(expression.contains("a\\\"\\*\\?\\\\"))

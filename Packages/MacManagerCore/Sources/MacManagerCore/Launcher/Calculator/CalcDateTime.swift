@@ -855,6 +855,7 @@ enum CalcDateTime {
         return (hour, 0)
     }
 
+    /// Builds a date only when the calendar round-trips its supported year, month, and day.
     @inline(never) private static func makeDate(
         _ year: Int, _ month: Int, _ day: Int, _ calendar: Calendar
     )
@@ -873,12 +874,14 @@ enum CalcDateTime {
         return date
     }
 
+    /// Adds calendar days and rejects a result outside the supported date range.
     private static func shift(_ date: Date, days: Int, calendar: Calendar) -> Date? {
         guard let shifted = calendar.date(byAdding: .day, value: days, to: date),
               isSupported(shifted, calendar: calendar) else { return nil }
         return shifted
     }
 
+    /// Accepts years 1 through 9999 and requires the common era for Gregorian and ISO calendars.
     private static func isSupported(_ date: Date, calendar: Calendar) -> Bool {
         guard (1...9999).contains(calendar.component(.year, from: date)) else { return false }
         // Gregorian BCE years are positive too; checking the year alone admits them.

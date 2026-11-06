@@ -57,6 +57,7 @@ final class LauncherController: ApplicationLifecycleParticipant {
     private(set) var executing = false
     var strings: AppStrings { AppStrings(languageCode: preferences.language.resolvedCode()) }
 
+    /// Accepts an executor and session monitor for isolated tests, with system-backed defaults.
     init(preferences: PreferencesStore, testing: Bool = false,
          actionExecutor: (any LauncherActionExecuting)? = nil,
          sessionMonitor: SystemSessionMonitor = .shared) {
@@ -64,6 +65,8 @@ final class LauncherController: ApplicationLifecycleParticipant {
         self.actionExecutor = actionExecutor ?? LauncherActionExecutor(testing: testing)
         self.sessionMonitor = sessionMonitor
     }
+    /// Registers shortcuts and session observers once. Session suspension hides the panel and
+    /// cancels its work before a later wake or unlock can accept another action.
     func start() {
         guard !running else { return }; running = true
         model.onCatalogLoaded = { [weak self] entries in self?.reconcileCatalogApplications(entries) }
@@ -130,6 +133,7 @@ final class LauncherController: ApplicationLifecycleParticipant {
         return success
     }
     func toggle() { visible ? hide() : show() }
+    /// Brings the existing panel forward or starts a new presentation with a fresh action state.
     func show() {
         guard running, !suspended, let display = targetDisplay(preferredID: visible ? displayID : nil) else { return }
         if visible { panel?.makeKeyAndOrderFront(nil); return }
@@ -357,6 +361,8 @@ final class LauncherController: ApplicationLifecycleParticipant {
         NotificationCenter.default.post(name: NSApplication.didChangeScreenParametersNotification, object: nil)
     }
     #endif
+    /// Cancels action work even when a shortcut queued it with the panel hidden.
+    /// If the panel was visible, clears its private view and optionally restores focus.
     func hide(restoreFocus: Bool = true) {
         clipboardSearch.reset()
         // Item shortcuts can enqueue actions while the panel is already hidden.
@@ -380,6 +386,8 @@ final class LauncherController: ApplicationLifecycleParticipant {
         guard visible, !executing, model.canPerform(entry) else { return }
         execute(entry)
     }
+    /// Starts one action for the current presentation and returns its task, or nil when blocked.
+    /// Checks ownership before executing and again before applying the asynchronous outcome.
     @discardableResult func execute(_ entry: LauncherEntry) -> Task<Void, Never>? {
         guard running, !suspended, !executing else { return nil }
         executing = true

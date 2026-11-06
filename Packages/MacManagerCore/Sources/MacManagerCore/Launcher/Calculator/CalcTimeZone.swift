@@ -309,6 +309,7 @@ enum CalcTimeZone {
     }()
 
     /// Curated: `abbreviationDictionary` is unusable, its `BDT` being the Bangladeshi taka.
+    /// Groups place names and abbreviations by time zone so conversions use the offset for the given date.
     private static let aliasGroups: [String: [String]] = [
         "UTC": ["utc", "zulu"],
         "GMT": ["gmt"],

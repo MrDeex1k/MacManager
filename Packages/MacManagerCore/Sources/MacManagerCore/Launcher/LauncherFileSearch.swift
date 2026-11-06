@@ -32,6 +32,7 @@ public actor LauncherFileSearch {
         if let clause = filter.clause { clauses.append(clause) }
         return clauses.joined(separator: " && ")
     }
+    /// Requires file URLs and checks containment after normalizing paths and resolving symlinks.
     public static func isWithinRoots(_ url: URL, roots: [URL]) -> Bool {
         guard url.isFileURL else { return false }
         let path = url.standardizedFileURL.resolvingSymlinksInPath().path

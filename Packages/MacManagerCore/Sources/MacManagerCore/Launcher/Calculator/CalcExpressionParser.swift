@@ -397,6 +397,8 @@ struct CalcExpressionParser {
         }
     }
 
+    /// Parses a leading value or operator. Unary signs preserve percentage semantics for
+    /// later relative addition and subtraction.
     private mutating func parsePrefix() -> CalcValue? {
         switch current {
         case .number(let value), .compactNumber(let value):

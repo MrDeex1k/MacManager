@@ -2,6 +2,7 @@ import Foundation
 import Testing
 @testable import MacManagerCore
 
+/// Exercises both seasons to distinguish Nashville's changing UTC offset from Bali's fixed offset.
 @Test func calculatorCityAliasesUseLocalZoneInWinterAndSummer() throws {
     var calendar = Calendar(identifier: .gregorian)
     calendar.locale = Locale(identifier: "en_GB")
@@ -19,6 +20,7 @@ import Testing
     }
 }
 
+/// Checks that unary signs preserve relative percentages without changing multiplication or exponent precedence.
 @Test func calculatorPreservesSignedRelativePercentages() {
     for (query, expected) in [
         ("200 + -10%", "180"), ("200 - -10%", "220"),
@@ -30,6 +32,7 @@ import Testing
     }
 }
 
+/// Checks Polish function arguments with and without fractions alongside English comma-separated arguments.
 @Test func calculatorAcceptsPolishArgumentSeparatorsWithoutDecimalFractions() {
     for (query, expected) in [
         ("max(1;2)", "2"), ("pow(2;3)", "8"),
@@ -41,6 +44,7 @@ import Testing
     #expect(LocalCalculator.result("max(1,2)", language: "en")?.action == .copy("2"))
 }
 
+/// Covers direct date parsing and date arithmetic at the supported calendar boundaries.
 @Test func calculatorRejectsDatesOutsideSupportedYears() {
     var calendar = Calendar(identifier: .gregorian)
     calendar.timeZone = TimeZone(secondsFromGMT: 0)!

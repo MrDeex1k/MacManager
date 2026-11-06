@@ -10,6 +10,8 @@ public struct ApplicationProvider: LauncherProvider {
         let task = Task.detached(priority: .utility) { try scan(language: language) }
         return try await withTaskCancellationHandler { try await task.value } onCancel: { task.cancel() }
     }
+    /// Scans the configured scopes for foreground application bundles, keeping one entry per ID
+    /// and adding Polish and English names as search aliases.
     private func scan(language: String) throws -> [LauncherEntry] {
         var result: [LauncherEntry] = []
         var seen = Set<String>()
@@ -30,6 +32,8 @@ public struct ApplicationProvider: LauncherProvider {
         }
         return result
     }
+    /// Resolves the requested languages using one localization table read per bundle scan.
+    /// Falls back to per-language strings and the bundle metadata when a table entry is missing.
     private static func localizedNames(_ bundle: Bundle, languages: Set<String>, info: [String: Any]) -> [String: String] {
         // Modern system apps ship InfoPlist.loctable instead of per-language
         // InfoPlist.strings. Resolve the requested app language, not the process locale.
