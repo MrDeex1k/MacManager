@@ -91,7 +91,7 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
     #if DEBUG
     func setSessionSuspendedForTesting(_ value: Bool) {
         guard UITestConfiguration.current.contains("--ui-testing") else { return }
-        if value { suspend("test-session") } else { resume("test-session") }
+        if value { suspend(.testSession) } else { resume(.testSession) }
     }
     #endif
     var query: String {
@@ -101,7 +101,8 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
     private(set) var topInset: CGFloat = 24
     var strings: AppStrings { AppStrings(languageCode: preferences.language.resolvedCode()) }
     @ObservationIgnored private var running = false
-    @ObservationIgnored private var suspensionReasons: Set<String> = []
+    private enum SuspensionReason { case systemSession, testSession }
+    @ObservationIgnored private var suspensionReasons: Set<SuspensionReason> = []
     private var suspended: Bool { !suspensionReasons.isEmpty }
     @ObservationIgnored private var menuTracking = false
     @ObservationIgnored private var interaction = IslandInteraction()
@@ -176,8 +177,8 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
         observe(.default, NSMenu.didEndTrackingNotification) { $0.setMenuTracking(false) }
         SystemSessionMonitor.shared.subscribe(in: observers) { [weak self] state in
             guard let self else { return }
-            if state.suspended { self.suspend("system-session") }
-            else if self.suspensionReasons.contains("system-session") { self.resume("system-session") }
+            if state.suspended { self.suspend(.systemSession) }
+            else if self.suspensionReasons.contains(.systemSession) { self.resume(.systemSession) }
         }
         watchPreferences()
         reposition()
@@ -234,10 +235,10 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
         if registered { preferences.island.shortcut = value }
     }
 
-    private func suspend(_ reason: String) {
+    private func suspend(_ reason: SuspensionReason) {
         suspensionReasons.insert(reason); dismiss(restoreFocus: false, animated: false); interaction.reset()
     }
-    private func resume(_ reason: String) { suspensionReasons.remove(reason); reposition() }
+    private func resume(_ reason: SuspensionReason) { suspensionReasons.remove(reason); reposition() }
     private func environmentChanged() {
         guard available else { dismiss(restoreFocus: false, animated: false); return }
         if visible, let panel, panel.isKeyWindow == false,

@@ -95,7 +95,10 @@ private func launcherEntry(_ id: String, _ title: String, alternate: [String] = 
     shortcut.keyCode = UInt32.max
     store.launcherShortcut = shortcut
     #expect(!shortcut.isValid)
-    #expect(PreferencesStore(defaults: defaults).launcherShortcut == LauncherShortcut())
+    let repaired = PreferencesStore(defaults: defaults)
+    #expect(repaired.launcherShortcut.isValid)
+    #expect(!repaired.launcherShortcut.enabled)
+    #expect(repaired.recoveredPreferenceGroups.contains("launcherShortcut"))
 }
 
 @MainActor @Test func launcherPersonalizationPersistsAndControlsRanking() async throws {

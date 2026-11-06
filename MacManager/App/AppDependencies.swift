@@ -18,14 +18,22 @@ import MacManagerCore
     let updateController: UpdateController
     let lifecycle: ApplicationLifecycleCoordinator
 
+}
+
+extension AppDependencies {
     init(energy: EnergyPolicy, diagnostics: DiagnosticsStore, artworkAccess: PodcastArtworkAccess,
          showsMainWindow: Bool, appVersion: String) {
         let arguments = UITestConfiguration.current.arguments
         let testing = UITestConfiguration.current.enabled
         if testing, let defaults = UserDefaults(suiteName: "dev.macmanager.MacManager.UITests") {
             if arguments.contains("--reset-preferences") { defaults.removePersistentDomain(forName: "dev.macmanager.MacManager.UITests") }
-            preferences = PreferencesStore(defaults: defaults)
-        } else { preferences = PreferencesStore() }
+            #if DEBUG
+            if arguments.contains("--damaged-preferences") {
+                defaults.set(Data("invalid".utf8), forKey: "preferences.clipboard")
+            }
+            #endif
+            preferences = PreferencesStore(defaults: defaults, diagnostics: diagnostics)
+        } else { preferences = PreferencesStore(diagnostics: diagnostics) }
         let musicAdapter: any MusicPlayerAdapter
         let podcastAdapter: any MusicPlayerAdapter
         let scrollDriver: any ScrollDriving
@@ -55,22 +63,30 @@ import MacManagerCore
         dock = DockController(showsDockIcon: preferences.appIntegration.showsDockIcon, mainWindowVisible: showsMainWindow)
         #if DEBUG
         if testing {
-            loginItem = LoginItemController(preferences: preferences, service: TestLoginItemService(arguments: arguments))
+            loginItem = LoginItemController(preferences: preferences, service: TestLoginItemService(arguments: arguments), diagnostics: diagnostics)
             updates = UpdateService(preferences: preferences, installedVersion: appVersion, diagnostics: diagnostics,
                                     fetch: TestUpdateFixture(arguments: arguments).fetch)
         } else {
-            loginItem = LoginItemController(preferences: preferences)
+            loginItem = LoginItemController(preferences: preferences, diagnostics: diagnostics)
             updates = UpdateService(preferences: preferences, installedVersion: appVersion, diagnostics: diagnostics)
         }
         #else
-        loginItem = LoginItemController(preferences: preferences)
+        loginItem = LoginItemController(preferences: preferences, diagnostics: diagnostics)
         updates = UpdateService(preferences: preferences, installedVersion: appVersion, diagnostics: diagnostics)
         #endif
         let offline = testing && arguments.contains("--update-offline")
         if testing { updates.setOnline(!offline) }
         updateController = UpdateController(service: updates, energy: energy)
+        let runtimePreferences = RuntimePreferencesController(preferences: preferences,
+            setInterval: metrics.setInterval,
+            setScroll: { [scroll] enabled in
+                if scroll.enabled != enabled { scroll.setEnabled(enabled) }
+            }, setAxes: scroll.setAxes,
+            setPublicIP: { [network] enabled in
+                network.setEnabled(!testing && enabled, now: ProcessInfo.processInfo.systemUptime)
+            })
         var participants: [any ApplicationLifecycleParticipant] = [
-            SystemSessionMonitor.shared, EnergyController(policy: energy), dock, loginItem, clipboardController,
+            SystemSessionMonitor.shared, EnergyController(policy: energy), runtimePreferences, dock, loginItem, clipboardController,
             launcher, island, ScrollController(service: scroll, diagnostics: diagnostics)
         ]
         if !testing {

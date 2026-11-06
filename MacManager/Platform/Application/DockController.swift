@@ -67,12 +67,17 @@ final class DockController: ApplicationLifecycleParticipant {
 
     @discardableResult
     func setVisible(_ isVisible: Bool) -> Bool {
+        let previous = requestedVisibility
         requestedVisibility = isVisible
         guard isRunning else {
             state = isVisible && mainWindowVisible ? .visible : .hidden
             return true
         }
-        return applyEffectiveVisibility()
+        guard applyEffectiveVisibility() else {
+            requestedVisibility = previous
+            return false
+        }
+        return true
     }
 
     @discardableResult

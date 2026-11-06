@@ -18,7 +18,6 @@ struct ScrollSettingsView: View {
                     }
                     .toggleStyle(.switch)
                     .accessibilityIdentifier("scroll.enabled")
-                    .onChange(of: preferences.reverseMouseScroll) { _, enabled in state.scroll.setEnabled(enabled) }
                     Text(strings("scroll.description"))
                         .font(.callout).foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -71,7 +70,6 @@ struct ScrollSettingsView: View {
                 }
             }
         }
-        .onChange(of: preferences.scrollAxes) { _, axes in state.scroll.setAxes(axes) }
     }
 
     private func permissionRow(_ title: String, granted: Bool) -> some View {

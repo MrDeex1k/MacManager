@@ -24,7 +24,7 @@ enum AppSection: String, CaseIterable, Identifiable {
 @MainActor
 @Observable
 final class AppState {
-    let energy = EnergyPolicy()
+    let energy: EnergyPolicy
     var menuBarPanelVisible = false
     let preferences: PreferencesStore
     let metrics: MetricsService
@@ -38,7 +38,7 @@ final class AppState {
     let island: IslandCoordinator
     let music: MusicService
     let podcasts: MusicService
-    let podcastArtworkAccess = PodcastArtworkAccess()
+    let podcastArtworkAccess: PodcastArtworkAccess
     let clipboardController: ClipboardController
     var clipboard: ClipboardService { clipboardController.service }
     let diagnostics: DiagnosticsStore
@@ -50,15 +50,28 @@ final class AppState {
     var mainWindowVisible = false
     var mainWindowContentVisible = true
 
-    init() {
+    @ObservationIgnored private let energyObservation = ObservationSubscription()
+    @ObservationIgnored private var started = false
+
+    convenience init() {
         let launchContext = ApplicationLaunchContextDetector.detect()
-        self.launchContext = launchContext
         let initiallyShowsMainWindow = launchContext != .loginItem
-        mainWindowVisible = initiallyShowsMainWindow
-        diagnostics = DiagnosticsStore()
+        let energy = EnergyPolicy(), diagnostics = DiagnosticsStore(), artworkAccess = PodcastArtworkAccess()
         let appVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.8.11"
-        let dependencies = AppDependencies(energy: energy, diagnostics: diagnostics, artworkAccess: podcastArtworkAccess,
+        let dependencies = AppDependencies(energy: energy, diagnostics: diagnostics, artworkAccess: artworkAccess,
                                            showsMainWindow: initiallyShowsMainWindow, appVersion: appVersion)
+        self.init(dependencies: dependencies, energy: energy, diagnostics: diagnostics,
+                  artworkAccess: artworkAccess, launchContext: launchContext)
+        start()
+    }
+
+    init(dependencies: AppDependencies, energy: EnergyPolicy, diagnostics: DiagnosticsStore,
+         artworkAccess: PodcastArtworkAccess, launchContext: ApplicationLaunchContext) {
+        self.energy = energy
+        self.diagnostics = diagnostics
+        self.podcastArtworkAccess = artworkAccess
+        self.launchContext = launchContext
+        mainWindowVisible = launchContext != .loginItem
         preferences = dependencies.preferences
         island = dependencies.island
         music = dependencies.music
@@ -73,27 +86,55 @@ final class AppState {
         updates = dependencies.updates
         updateController = dependencies.updateController
         lifecycle = dependencies.lifecycle
-        observeLaunch()
-        observeTermination()
         connectLauncher()
+    }
+
+    func start(observeSystemEvents: Bool = true) {
+        guard !started, lifecycle.phase == .idle else { return }
+        started = true
+        if observeSystemEvents { observeLaunch(); observeTermination() }
         watchEnergyPreferences()
         lifecycle.start()
     }
 
+    func stop() {
+        energyObservation.stop()
+        for observer in [launchObserver, terminationObserver].compactMap({ $0 }) {
+            NotificationCenter.default.removeObserver(observer)
+        }
+        launchObserver = nil; terminationObserver = nil
+        lifecycle.terminate()
+    }
+
     private func watchEnergyPreferences() {
-        withObservationTracking {
-            energy.adaptsToLowPower = preferences.adaptsToLowPower
-            energy.metricsVisible = menuBarPanelVisible || (mainWindowVisible && mainWindowContentVisible && (section == .overview || section == .sensors))
-            energy.networkVisible = menuBarPanelVisible || (mainWindowVisible && mainWindowContentVisible && section == .network)
+        energyObservation.start(read: { [weak self] in
+            guard let self else { return (true, MetricSamplingRequest.none, false, MetricSamplingRequest.none, 60.0) }
+            let mainVisible = mainWindowVisible && mainWindowContentVisible
+            var request: MetricSamplingRequest = .none
+            if mainVisible && section == .overview { request = request.union(.overview) }
+            if mainVisible && section == .sensors { request = request.union(.sensors) }
+            if menuBarPanelVisible { request = request.union(.overview) }
+            let networkVisible = (mainVisible && section == .network) ||
+                (menuBarPanelVisible && (preferences.showsLocalIPInMenuBar || preferences.showsPublicIPInMenuBar))
             let display = preferences.appIntegration.menuBar
             var kinds: Set<MetricKind> = []
             if display.showsCPU { kinds.insert(.cpu) }
             if display.showsGPU { kinds.insert(.gpu) }
             if display.showsRAM { kinds.insert(.memory) }
             if display.showsPower { kinds.insert(.power) }
-            energy.backgroundRequest = MetricSamplingRequest(kinds: kinds, cpuTemperature: display.showsCPUTemperature, gpuTemperature: display.showsGPUTemperature, fans: display.showsFans)
-            launcher.catalogRefreshSeconds = energy.launcherCatalogInterval
-        } onChange: { [weak self] in Task { @MainActor [weak self] in self?.watchEnergyPreferences() } }
+            let background = MetricSamplingRequest(kinds: kinds, cpuTemperature: display.showsCPUTemperature,
+                gpuTemperature: display.showsGPUTemperature, fans: display.showsFans)
+            let catalogInterval = energy.systemLowPower && preferences.adaptsToLowPower ? 300.0 : 60.0
+            return (preferences.adaptsToLowPower, request, networkVisible, background, catalogInterval)
+        }, apply: { [weak self] adapts, request, networkVisible, background, catalogInterval in
+            guard let self else { return }
+            energy.adaptsToLowPower = adapts
+            energy.metricsVisible = !request.isEmpty
+            energy.visibleRequest = request
+            energy.networkVisible = networkVisible
+            energy.backgroundRequest = background
+            launcher.catalogRefreshSeconds = catalogInterval
+        })
     }
 
     private func connectLauncher() {
@@ -172,13 +213,12 @@ final class AppState {
     }
 
     private func observeTermination() {
-        let lifecycle = lifecycle
         terminationObserver = NotificationCenter.default.addObserver(
             forName: NSApplication.willTerminateNotification,
             object: nil,
             queue: .main
-        ) { _ in
-            MainActor.assumeIsolated { lifecycle.terminate() }
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.stop() }
         }
     }
 

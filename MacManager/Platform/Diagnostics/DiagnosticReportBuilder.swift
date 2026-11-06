@@ -18,6 +18,7 @@ enum DiagnosticReportBuilder {
                 ("macos_version", operatingSystemVersion()),
                 ("architecture", architecture),
                 ("mac_model", hardwareModel()),
+                ("recovered_preferences", state.preferences.recoveredPreferenceGroups.sorted().joined(separator: ",")),
                 ("sampling_interval_seconds", String(state.preferences.samplingInterval.rawValue)),
                 ("metrics_status", metricsStatus(state.metrics)),
                 ("energy_profile", state.energy.sleeping ? "sleep" : state.energy.lowPower ? "lowPower" : "normal"),

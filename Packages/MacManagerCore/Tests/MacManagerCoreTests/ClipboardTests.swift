@@ -592,6 +592,12 @@ func clipboardRevocationCancelsPendingCaptureAndPreservesHistory(revokedAccess: 
     #expect(await service.content(id) == nil)
     #expect(await service.thumbnail(id) == nil)
     await #expect(throws: CancellationError.self) { try await service.search("private-tail") }
+    let cancelledResume = Task { await service.setSuspended(false) }
+    cancelledResume.cancel()
+    await cancelledResume.value
+    #expect(service.suspended)
+    await service.setSuspended(true)
+    #expect(await repo.cachedBytes == 0)
     await service.setSuspended(false)
     #expect(try await service.search("private-tail").map(\.id) == [id])
     await service.restore(id)

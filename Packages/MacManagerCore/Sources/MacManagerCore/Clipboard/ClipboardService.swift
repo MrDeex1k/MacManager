@@ -84,13 +84,31 @@ public final class ClipboardService {
         entries = []; restoredID = nil
     }
 
-    public func setSuspended(_ suspended: Bool) async {
-        guard self.suspended != suspended else { return }
-        self.suspended = suspended
+    /// Session boundaries must invalidate private work before returning to the notification sender.
+    public func suspend() {
+        suspended = true
         invalidateCapture()
-        if suspended { entries = []; restoredID = nil }
-        await configureMemoryAccess(!suspended && running).value
-        if !self.suspended && running && storageStarted { await refresh() }
+        entries = []; restoredID = nil
+        configureMemoryAccess(false)
+    }
+
+    public func setSuspended(_ suspended: Bool) async {
+        if suspended {
+            suspend()
+            await memoryAccessTask?.value
+            return
+        }
+        guard self.suspended else { return }
+        // Each resume owns a generation, including overlapping or cancelled resumes.
+        invalidateCapture()
+        let token = generation
+        await configureMemoryAccess(running).value
+        guard token == generation else { return }
+        guard !Task.isCancelled else { suspend(); return }
+        self.suspended = false
+        // Ignore the copy present at resume, including copies made while locked.
+        invalidateCapture()
+        if running && storageStarted { await refresh() }
     }
 
     public func updatePreferences(_ value: ClipboardPreferences) async {

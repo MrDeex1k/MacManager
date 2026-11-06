@@ -25,32 +25,30 @@ public final class PreferencesStore {
     }
 
     @ObservationIgnored private let defaults: UserDefaults
+    @ObservationIgnored private let diagnostics: DiagnosticsStore?
+    public private(set) var recoveredPreferenceGroups: Set<String> = []
 
     public var island: IslandPreferences {
         didSet {
-            if let data = try? JSONEncoder().encode(island) { defaults.set(data, forKey: "preferences.island") }
+            persist(island, forKey: "preferences.island")
         }
     }
 
     public var launcher: LauncherPreferences {
         didSet {
-            if let data = try? JSONEncoder().encode(launcher) { defaults.set(data, forKey: "preferences.launcher") }
+            persist(launcher, forKey: "preferences.launcher")
         }
     }
 
     public var launcherShortcut: LauncherShortcut {
         didSet {
-            if let data = try? JSONEncoder().encode(launcherShortcut) {
-                defaults.set(data, forKey: "preferences.launcherShortcut")
-            }
+            persist(launcherShortcut, forKey: "preferences.launcherShortcut")
         }
     }
 
     public var clipboard: ClipboardPreferences {
         didSet {
-            if let data = try? JSONEncoder().encode(clipboard) {
-                defaults.set(data, forKey: "preferences.clipboard")
-            }
+            persist(clipboard, forKey: "preferences.clipboard")
         }
     }
 
@@ -95,15 +93,15 @@ public final class PreferencesStore {
     public var appIntegration: AppIntegrationPreferences {
         didSet {
             guard appIntegration != oldValue else { return }
-            defaults.set(appIntegration.showsDockIcon, forKey: Key.showsDockIcon)
-            defaults.set(appIntegration.requestsLaunchAtLogin, forKey: Key.requestsLaunchAtLogin)
-            defaults.set(appIntegration.menuBar.showsCPU, forKey: Key.showsCPUInMenuBar)
-            defaults.set(appIntegration.menuBar.showsGPU, forKey: Key.showsGPUInMenuBar)
-            defaults.set(appIntegration.menuBar.showsRAM, forKey: Key.showsRAMInMenuBar)
-            defaults.set(appIntegration.menuBar.showsCPUTemperature, forKey: Key.showsCPUTemperatureInMenuBar)
-            defaults.set(appIntegration.menuBar.showsGPUTemperature, forKey: Key.showsGPUTemperatureInMenuBar)
-            defaults.set(appIntegration.menuBar.showsFans, forKey: Key.showsFansInMenuBar)
-            defaults.set(appIntegration.menuBar.showsPower, forKey: Key.showsPowerInMenuBar)
+            if appIntegration.showsDockIcon != oldValue.showsDockIcon { defaults.set(appIntegration.showsDockIcon, forKey: Key.showsDockIcon) }
+            if appIntegration.requestsLaunchAtLogin != oldValue.requestsLaunchAtLogin { defaults.set(appIntegration.requestsLaunchAtLogin, forKey: Key.requestsLaunchAtLogin) }
+            if appIntegration.menuBar.showsCPU != oldValue.menuBar.showsCPU { defaults.set(appIntegration.menuBar.showsCPU, forKey: Key.showsCPUInMenuBar) }
+            if appIntegration.menuBar.showsGPU != oldValue.menuBar.showsGPU { defaults.set(appIntegration.menuBar.showsGPU, forKey: Key.showsGPUInMenuBar) }
+            if appIntegration.menuBar.showsRAM != oldValue.menuBar.showsRAM { defaults.set(appIntegration.menuBar.showsRAM, forKey: Key.showsRAMInMenuBar) }
+            if appIntegration.menuBar.showsCPUTemperature != oldValue.menuBar.showsCPUTemperature { defaults.set(appIntegration.menuBar.showsCPUTemperature, forKey: Key.showsCPUTemperatureInMenuBar) }
+            if appIntegration.menuBar.showsGPUTemperature != oldValue.menuBar.showsGPUTemperature { defaults.set(appIntegration.menuBar.showsGPUTemperature, forKey: Key.showsGPUTemperatureInMenuBar) }
+            if appIntegration.menuBar.showsFans != oldValue.menuBar.showsFans { defaults.set(appIntegration.menuBar.showsFans, forKey: Key.showsFansInMenuBar) }
+            if appIntegration.menuBar.showsPower != oldValue.menuBar.showsPower { defaults.set(appIntegration.menuBar.showsPower, forKey: Key.showsPowerInMenuBar) }
         }
     }
 
@@ -126,26 +124,34 @@ public final class PreferencesStore {
 
     public private(set) var updateCache: UpdateCache {
         didSet {
-            if let data = try? JSONEncoder().encode(updateCache) {
-                defaults.set(data, forKey: Key.updateCache)
-            }
+            persist(updateCache, forKey: Key.updateCache)
         }
     }
 
-    public init(defaults: UserDefaults = .standard) {
+    public init(defaults: UserDefaults = .standard, diagnostics: DiagnosticsStore? = nil) {
         self.defaults = defaults
-        island = defaults.data(forKey: "preferences.island")
-            .flatMap { try? JSONDecoder().decode(IslandPreferences.self, from: $0) }
-            .flatMap { $0.isValid ? $0 : nil } ?? IslandPreferences()
+        self.diagnostics = diagnostics
+        var recovered = Set<String>()
+        func load<Value: Codable>(_ group: String, defaults fallback: Value, safe: Value,
+                                   isValid: (Value) -> Bool = { _ in true }) -> Value {
+            let result = PreferenceRecovery.load(defaults.object(forKey: "preferences." + group),
+                                                 defaults: fallback, safe: safe, isValid: isValid)
+            if result.recovered {
+                recovered.insert(group)
+                diagnostics?.record(.preferences, kind: group + "PreferencesRecovered")
+            }
+            return result.value
+        }
+        var safeIsland = IslandPreferences(); safeIsland.enabled = false
+        island = load("island", defaults: IslandPreferences(), safe: safeIsland, isValid: { $0.isValid })
         adaptsToLowPower = Self.bool(defaults, forKey: "preferences.adaptsToLowPower", default: true)
-        launcher = defaults.data(forKey: "preferences.launcher")
-            .flatMap { try? JSONDecoder().decode(LauncherPreferences.self, from: $0) } ?? LauncherPreferences()
-        let shortcut = defaults.data(forKey: "preferences.launcherShortcut")
-            .flatMap { try? JSONDecoder().decode(LauncherShortcut.self, from: $0) }
-        launcherShortcut = shortcut.flatMap { $0.isValid ? $0 : nil } ?? LauncherShortcut()
-        let savedClipboard = defaults.data(forKey: "preferences.clipboard")
-            .flatMap { try? JSONDecoder().decode(ClipboardPreferences.self, from: $0) }
-        clipboard = savedClipboard.flatMap { $0.isValid ? $0 : nil } ?? ClipboardPreferences()
+        launcher = load("launcher", defaults: LauncherPreferences(), safe: LauncherPreferences())
+        var safeShortcut = LauncherShortcut(); safeShortcut.enabled = false
+        var restoredShortcut = load("launcherShortcut", defaults: LauncherShortcut(), safe: safeShortcut, isValid: { $0.isValid })
+        if recovered.contains("launcherShortcut") { restoredShortcut.enabled = false }
+        launcherShortcut = restoredShortcut
+        var safeClipboard = ClipboardPreferences(); safeClipboard.enabled = false; safeClipboard.paused = true
+        clipboard = load("clipboard", defaults: ClipboardPreferences(), safe: safeClipboard, isValid: { $0.isValid })
         temperatureUnit = defaults.string(forKey: "preferences.temperatureUnit").flatMap(TemperatureUnit.init(rawValue:)) ?? .celsius
         reverseVerticalMouseScroll = Self.bool(defaults, forKey: "preferences.reverseVerticalMouseScroll", default: true)
         reverseHorizontalMouseScroll = Self.bool(defaults, forKey: "preferences.reverseHorizontalMouseScroll", default: true)
@@ -174,9 +180,8 @@ public final class PreferencesStore {
             forKey: Key.automaticUpdateChecksEnabled,
             default: true
         )
-        updateCache = defaults.data(forKey: Key.updateCache)
-            .flatMap { try? JSONDecoder().decode(UpdateCache.self, from: $0) }
-            ?? UpdateCache()
+        updateCache = load("updates.cache", defaults: UpdateCache(), safe: UpdateCache())
+        recoveredPreferenceGroups = recovered
     }
 
     public var locale: Locale { Locale(identifier: language.resolvedCode()) }
@@ -187,6 +192,11 @@ public final class PreferencesStore {
 
     public func saveUpdateCache(_ cache: UpdateCache) {
         updateCache = cache
+    }
+
+    private func persist<Value: Encodable>(_ value: Value, forKey key: String) {
+        do { defaults.set(try JSONEncoder().encode(value), forKey: key) }
+        catch { diagnostics?.record(.preferences, kind: "preferencesEncodingFailed") }
     }
 
     private static func bool(_ defaults: UserDefaults, forKey key: String, default defaultValue: Bool) -> Bool {

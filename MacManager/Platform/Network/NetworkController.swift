@@ -20,8 +20,10 @@ final class NetworkController: ApplicationLifecycleParticipant {
     private var revision = 0
     private var online = false
     private var suspended = false
+    private var sessionSleeping = false
     private var lastRead = -Double.infinity
     private var reportedState: PublicIPState?
+    private let energyObservation = ObservationSubscription()
 
     init(service: NetworkService, diagnostics: DiagnosticsStore, energy: EnergyPolicy? = nil) {
         self.service = service
@@ -44,21 +46,26 @@ final class NetworkController: ApplicationLifecycleParticipant {
         }
         monitor.start(queue: DispatchQueue(label: "dev.macmanager.network-path"))
         SystemSessionMonitor.shared.subscribe(in: observers) { [weak self] state in
-            guard let self, self.suspended != state.sleeping else { return }
+            guard let self, self.sessionSleeping != state.sleeping else { return }
             self.revision += 1
+            self.sessionSleeping = state.sleeping
             self.suspended = state.sleeping; self.lastRead = -.infinity
             self.service.setSuspended(state.sleeping, now: ProcessInfo.processInfo.systemUptime)
             self.schedule()
         }
-        schedule()
+        energyObservation.start(read: { [weak self] in
+            _ = self?.energy?.sleeping
+            _ = self?.energy?.localNetworkInterval
+            _ = self?.energy?.publicNetworkInterval
+        }, apply: { [weak self] in self?.schedule() })
     }
 
     private func schedule() {
         guard running else { return }
         loop?.cancel(); loop = nil
-        let (sleeping, interval, publicInterval) = withObservationTracking {
-            (energy?.sleeping ?? suspended, energy?.localNetworkInterval ?? 5, energy?.publicNetworkInterval ?? 900)
-        } onChange: { [weak self] in Task { @MainActor [weak self] in self?.schedule() } }
+        let sleeping = sessionSleeping || (energy?.sleeping ?? false)
+        let interval = energy?.localNetworkInterval ?? 5
+        let publicInterval = energy?.publicNetworkInterval ?? 900
         if suspended != sleeping { revision += 1; lastRead = -.infinity }
         suspended = sleeping
         service.setSuspended(sleeping, now: ProcessInfo.processInfo.systemUptime)
@@ -122,6 +129,7 @@ final class NetworkController: ApplicationLifecycleParticipant {
 
     func stop() {
         running = false
+        energyObservation.stop()
         revision += 1
         loop?.cancel()
         loop = nil

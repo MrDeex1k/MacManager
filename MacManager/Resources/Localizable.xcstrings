@@ -5246,6 +5246,74 @@
           }
         }
       }
+    },
+    "settings.recovered": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Some saved settings were damaged and have been recovered. Review Clipboard, Island and Launcher settings before enabling them again."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Część zapisanych ustawień była uszkodzona i została odzyskana. Sprawdź ustawienia schowka, wyspy i launchera przed ich ponownym włączeniem."
+          }
+        }
+      }
+    },
+    "integration.loginItem.registerFailed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Could not enable launch at login. The status above reflects the current macOS setting."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nie udało się włączyć autostartu. Status powyżej pokazuje aktualne ustawienie macOS."
+          }
+        }
+      }
+    },
+    "integration.loginItem.unregisterFailed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Could not disable launch at login. The status above reflects the current macOS setting."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nie udało się wyłączyć autostartu. Status powyżej pokazuje aktualne ustawienie macOS."
+          }
+        }
+      }
+    },
+    "integration.loginItem.retry": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Retry"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ponów próbę"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

@@ -35,6 +35,15 @@ struct LaunchAtLoginSettingsView: View {
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
+            if let operation = state.loginItem.failedOperation {
+                Text(state.strings(operation == .register ? "integration.loginItem.registerFailed" : "integration.loginItem.unregisterFailed"))
+                    .font(.callout)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("integration.launchAtLogin.error")
+                Button(state.strings("integration.loginItem.retry")) { state.loginItem.retry() }
+                    .buttonStyle(.glass)
+                    .accessibilityIdentifier("integration.launchAtLogin.retry")
+            }
             if state.loginItem.state == .requiresApproval {
                 Button(state.strings("integration.loginItem.openSettings"), systemImage: "gear") {
                     state.loginItem.openSystemSettings()

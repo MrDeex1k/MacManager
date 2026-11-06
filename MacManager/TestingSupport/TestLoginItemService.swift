@@ -7,6 +7,7 @@ final class TestLoginItemService: LoginItemServiceProviding {
     private(set) var status: LoginItemServiceStatus
     private let requiresApprovalOnRegistration: Bool
     private let failsChanges: Bool
+    private var failsUnregisterOnce: Bool
 
     init(arguments: [String]) {
         if arguments.contains("--login-item-requires-approval") {
@@ -18,6 +19,7 @@ final class TestLoginItemService: LoginItemServiceProviding {
         }
         requiresApprovalOnRegistration = arguments.contains("--login-item-registration-requires-approval")
         failsChanges = arguments.contains("--login-item-fails")
+        failsUnregisterOnce = arguments.contains("--login-item-unregister-fails-once")
     }
 
     func register() throws {
@@ -26,6 +28,10 @@ final class TestLoginItemService: LoginItemServiceProviding {
     }
 
     func unregister() throws {
+        if failsUnregisterOnce {
+            failsUnregisterOnce = false
+            throw TestLoginItemError.changeRejected
+        }
         if failsChanges { throw TestLoginItemError.changeRejected }
         status = .notRegistered
     }

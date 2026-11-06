@@ -7,6 +7,15 @@ public struct LauncherCustomization: Codable, Equatable, Sendable {
     public var shortcut: LauncherShortcut?
     public var entry: LauncherEntry
     public init(entry: LauncherEntry) { self.entry = entry }
+    private enum CodingKeys: String, CodingKey { case alias, favorite, hidden, shortcut, entry }
+    public init(from decoder: any Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        entry = try values.decode(LauncherEntry.self, forKey: .entry)
+        alias = try values.decodeIfPresent(String.self, forKey: .alias) ?? ""
+        favorite = try values.decodeIfPresent(Bool.self, forKey: .favorite) ?? false
+        hidden = try values.decodeIfPresent(Bool.self, forKey: .hidden) ?? false
+        shortcut = try values.decodeIfPresent(LauncherShortcut.self, forKey: .shortcut)
+    }
 }
 
 public struct LauncherPreferences: Codable, Equatable, Sendable {

@@ -9,6 +9,12 @@ struct SettingsView: View {
         let strings = state.strings
         VStack(alignment: .leading, spacing: 28) {
             PageHeading(title: strings("settings.title"), subtitle: strings("settings.subtitle"))
+            if !preferences.recoveredPreferenceGroups.isEmpty {
+                Label(strings("settings.recovered"), systemImage: "exclamationmark.triangle")
+                    .font(.callout)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("settings.recovered")
+            }
             Surface {
                 VStack(alignment: .leading, spacing: 22) {
                     HStack {
@@ -42,9 +48,7 @@ struct SettingsView: View {
                 .labelsHidden()
                 .fixedSize(horizontal: true, vertical: false)
                 .accessibilityIdentifier("metrics.interval")
-                .onChange(of: preferences.samplingInterval) { _, interval in
-                    state.metrics.setInterval(interval)
-                }
+
             }
             .padding(.trailing, 20)
             Divider()
