@@ -88,8 +88,15 @@ final class LoginItemController: ApplicationLifecycleParticipant {
         }
     }
 
+    /// Reconciles the displayed state and any pending retry with the system status.
     func refresh() {
         state = mappedState(service.status)
+        switch (failedOperation, state) {
+        case (.register?, .enabled), (.register?, .requiresApproval), (.unregister?, .disabled):
+            failedOperation = nil
+        default:
+            break
+        }
     }
 
     @discardableResult

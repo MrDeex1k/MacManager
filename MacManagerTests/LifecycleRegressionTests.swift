@@ -80,6 +80,40 @@ import Testing
     controller.stop()
 }
 
+@MainActor @Test func activationRefreshClearsOnlyConfirmedLoginItemFailures() throws {
+    let suite = "LoginController-\(UUID())"
+    let defaults = try #require(UserDefaults(suiteName: suite))
+    defer { defaults.removePersistentDomain(forName: suite) }
+    let preferences = PreferencesStore(defaults: defaults)
+    preferences.markLaunchAtLoginDefaultAttempted()
+    let service = LoginStub()
+    service.status = .notRegistered
+    let controller = LoginItemController(preferences: preferences, service: service)
+    controller.start()
+    defer { controller.stop() }
+
+    func reportOnActivation(_ status: LoginItemServiceStatus) {
+        service.status = status
+        NotificationCenter.default.post(name: NSApplication.didBecomeActiveNotification, object: nil)
+    }
+
+    for (status, expectedState) in [(LoginItemServiceStatus.enabled, LaunchAtLoginState.enabled),
+                                   (.requiresApproval, .requiresApproval)] {
+        reportOnActivation(.notRegistered)
+        #expect(!controller.setEnabled(true))
+        reportOnActivation(.notFound)
+        #expect(controller.state == .unavailable && controller.failedOperation == .register)
+        reportOnActivation(status)
+        #expect(controller.state == expectedState && controller.failedOperation == nil)
+    }
+
+    #expect(!controller.setEnabled(false))
+    reportOnActivation(.notFound)
+    #expect(controller.state == .unavailable && controller.failedOperation == .unregister)
+    reportOnActivation(.notRegistered)
+    #expect(controller.state == .disabled && controller.failedOperation == nil)
+}
+
 private actor DelayedSampler: MetricsSampling {
     private var continuation: CheckedContinuation<MetricsSnapshot, Never>?
     private(set) var started = false
