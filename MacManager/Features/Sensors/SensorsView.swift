@@ -23,14 +23,23 @@ struct SensorsView: View {
                 .frame(width: 120)
                 .accessibilityIdentifier("sensors.unit")
             }
+            if sensors.isTemperatureAndFanSample {
+                currentReadings(sensors, strings: strings)
+            } else {
+                Text(strings("metrics.state.loading")).foregroundStyle(.secondary)
+            }
+            SensorsHistoryView()
+        }
+    }
+
+    private func currentReadings(_ sensors: HardwareSensorSnapshot, strings: AppStrings) -> some View {
+        Group {
             HStack(spacing: 32) {
                 temperature(title: "CPU", value: sensors.cpuTemperature, note: strings("sensors.cpu.mean"))
                 Divider().frame(height: 100)
                 temperature(title: "GPU", value: sensors.gpuTemperature, note: strings("sensors.gpu.mean"))
             }
-            if !sensors.isSampled {
-                Text(strings("metrics.state.loading")).foregroundStyle(.secondary)
-            } else if !sensors.catalog.supported {
+            if !sensors.catalog.supported {
                 Text(strings("sensors.unsupported")).foregroundStyle(.secondary)
             } else if sensors.isStale {
                 Text(strings("sensors.stale")).foregroundStyle(.secondary)
@@ -59,7 +68,6 @@ struct SensorsView: View {
                     }
                 }
             }
-            SensorsHistoryView()
         }
     }
 

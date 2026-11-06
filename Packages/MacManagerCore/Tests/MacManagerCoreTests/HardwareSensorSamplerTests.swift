@@ -92,6 +92,27 @@ private final class SMCStub: SMCReading {
     await sampler.reset()
 }
 
+@Test func sensorScreenRequiresATemperatureAndFanSample() async {
+    let reader = SMCStub(), sampler = HardwareSensorSampler(reader: reader)
+    let catalog = SensorCatalog(processor: "Apple M4 Pro")
+    let overview = await sampler.sample(catalog: catalog, request: .overview)
+    #expect(overview.isSampled && overview.powerWatts == 50)
+    #expect(!overview.isTemperatureAndFanSample)
+
+    let cpuOnly = MetricSamplingRequest(kinds: [], cpuTemperature: true, gpuTemperature: false, fans: false)
+    let background = await sampler.sample(catalog: catalog, request: cpuOnly)
+    #expect(background.cpuTemperature == 50 && !background.isTemperatureAndFanSample)
+
+    let sensors = await sampler.sample(catalog: catalog, request: .sensors)
+    #expect(sensors.isTemperatureAndFanSample && sensors.fans == .passive)
+    #expect(sensors.stale().isTemperatureAndFanSample)
+
+    await sampler.reset()
+    reader.state.withLock { $0.failsOpen = true }
+    let unavailable = await sampler.sample(catalog: catalog, request: .sensors)
+    #expect(unavailable.isTemperatureAndFanSample && unavailable.fans == .unavailable)
+}
+
 @Test func hardwareBridgeRejectsMissingOutputPointersBeforeReadingSystem() {
     #expect(mm_cpu_read(nil) != 0)
     #expect(mm_memory_read(nil) != 0)

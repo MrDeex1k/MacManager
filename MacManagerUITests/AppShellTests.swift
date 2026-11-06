@@ -8,6 +8,7 @@ final class AppShellTests: AppUITestSupport {
         defer { app.terminate() }
         element("navigation.sensors", in: app).click()
         XCTAssertTrue(app.staticTexts["Waiting for sample"].waitForExistence(timeout: 5))
+        XCTAssertFalse(element("sensors.temperature.cpu", in: app).exists)
         XCTAssertFalse(app.staticTexts["Temperature mapping is not available for this Mac yet."].exists)
         capture("Sensors waiting EN", app: app)
         element("navigation.settings", in: app).click()

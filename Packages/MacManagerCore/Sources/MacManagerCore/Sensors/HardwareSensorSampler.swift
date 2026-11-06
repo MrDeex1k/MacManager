@@ -7,14 +7,17 @@ public struct HardwareSensorSnapshot: Sendable {
     public let catalog: SensorCatalog
     public let isStale: Bool
     public let isSampled: Bool
+    /// The sample attempted CPU and GPU temperatures and fan inventory.
+    public let isTemperatureAndFanSample: Bool
     public let powerWatts: Double?
 
     public init(uptime: Double, fans: FanInventory, readings: [HardwareSensorReading],
                 catalog: SensorCatalog = SensorCatalog(processor: ""), isStale: Bool = false,
-                powerWatts: Double? = nil, isSampled: Bool = true) {
+                powerWatts: Double? = nil, isSampled: Bool = true, isTemperatureAndFanSample: Bool = false) {
         self.uptime = uptime; self.fans = fans; self.readings = readings
         self.catalog = catalog; self.isStale = isStale
         self.isSampled = isSampled
+        self.isTemperatureAndFanSample = isTemperatureAndFanSample
         self.powerWatts = powerWatts
     }
 
@@ -34,7 +37,7 @@ public struct HardwareSensorSnapshot: Sendable {
     public func stale() -> Self {
         Self(uptime: uptime, fans: fans, readings: readings.map {
             HardwareSensorReading(sensor: $0.sensor, rawValue: nil)
-        }, catalog: catalog, isStale: true, isSampled: isSampled)
+        }, catalog: catalog, isStale: true, isSampled: isSampled, isTemperatureAndFanSample: isTemperatureAndFanSample)
     }
 }
 
@@ -67,6 +70,7 @@ public actor HardwareSensorSampler {
         }
         let keys = sortedKeys.filter { (request.cpuTemperature && catalog.cpuKeys.contains($0)) || (request.gpuTemperature && catalog.gpuKeys.contains($0)) }
         let requested = request.cpuTemperature || request.gpuTemperature || request.fans || request.kinds.contains(.power)
+        let isTemperatureAndFanSample = request.cpuTemperature && request.gpuTemperature && request.fans
         guard !keys.isEmpty || request.fans || request.kinds.contains(.power) else {
             reset()
             return HardwareSensorSnapshot(uptime: uptime, fans: .unavailable, readings: [], catalog: catalog,
@@ -76,7 +80,7 @@ public actor HardwareSensorSampler {
             connection = 0
             return HardwareSensorSnapshot(uptime: uptime, fans: .unavailable, readings: keys.map {
                 HardwareSensorReading(sensor: .init(key: $0, kind: .temperature), rawValue: nil)
-            }, catalog: catalog)
+            }, catalog: catalog, isTemperatureAndFanSample: isTemperatureAndFanSample)
         }
         var successfulReads = 0
         defer { if successfulReads == 0 { reset() } }
@@ -108,6 +112,7 @@ public actor HardwareSensorSampler {
                 readings.append(HardwareSensorReading(sensor: .init(key: key, kind: .fan), rawValue: read(key)))
             }
         }
-        return HardwareSensorSnapshot(uptime: uptime, fans: fans, readings: readings, catalog: catalog, powerWatts: power)
+        return HardwareSensorSnapshot(uptime: uptime, fans: fans, readings: readings, catalog: catalog,
+                                      powerWatts: power, isTemperatureAndFanSample: isTemperatureAndFanSample)
     }
 }
