@@ -5,14 +5,24 @@ extension Notification.Name {
     static let openMainWindowRequested = Notification.Name("dev.macmanager.open-main-window")
 }
 
+enum MainWindow {
+    static let id = "main"
+
+    /// Matches AppKit window notifications to the SwiftUI scene identifier.
+    @MainActor static func matches(_ object: Any?) -> Bool {
+        (object as? NSWindow)?.identifier?.rawValue == id
+    }
+}
+
 #if !MM_UNIT_TESTS
 @main
 struct MacManagerApp: App {
     @NSApplicationDelegateAdaptor(AppearanceDelegate.self) private var delegate
     @State private var state = AppState()
 
+    /// Defines the main window and menu bar surface. Login launches suppress the main window.
     var body: some Scene {
-        Window("Mac Manager", id: "main") {
+        Window("Mac Manager", id: MainWindow.id) {
             AppShellView()
                 .environment(state)
                 .environment(\.locale, state.preferences.locale)
@@ -44,11 +54,10 @@ struct MacManagerApp: App {
 final class AppearanceDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
 
+    /// Signals the main scene to display its content and brings its window forward if it exists.
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows _: Bool) -> Bool {
         NotificationCenter.default.post(name: .openMainWindowRequested, object: nil)
-        if let mainWindow = sender.windows.first(where: {
-            $0.canBecomeMain && $0.styleMask.contains(.titled) && $0.level == .normal
-        }) {
+        if let mainWindow = sender.windows.first(where: { MainWindow.matches($0) }) {
             mainWindow.makeKeyAndOrderFront(nil)
             sender.activate()
         }
@@ -100,10 +109,11 @@ struct AppCommands: Commands {
         }
     }
 
+    /// Selects the destination and opens the main scene before activating the app.
     private func navigate(_ section: AppSection) {
         state.section = section
         state.setMainWindowVisible(true)
-        openWindow(id: "main")
+        openWindow(id: MainWindow.id)
         NSApp.activate()
     }
 }

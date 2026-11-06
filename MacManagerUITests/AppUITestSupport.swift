@@ -1,7 +1,11 @@
 import AppKit
+import CryptoKit
 import XCTest
 
 class AppUITestSupport: XCTestCase {
+    @MainActor
+    private var didLaunchFixture = false
+
     @MainActor
     var expectedClipboardIslandHeight: CGFloat {
         let screen = NSScreen.screens.first { candidate in
@@ -74,6 +78,7 @@ class AppUITestSupport: XCTestCase {
         XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: idle, object: state)], timeout: 3), .completed)
     }
 
+    /// Scopes the audit to the requested visible surface and filters known framework findings.
     @MainActor
     func performAccessibilityAudit(
         in app: XCUIApplication,
@@ -83,6 +88,12 @@ class AppUITestSupport: XCTestCase {
         // XCTest audits the whole process, including dimmed windows behind sheets.
         // Keep checks on the visible surface being exercised, not its backdrop.
         let surfaceSnapshot = try surface?.snapshot()
+        let mainWindow = app.windows["main"]
+        let nativeTitles = mainWindow.exists ? try mainWindow.snapshot().children.filter {
+            $0.elementType == .staticText && $0.identifier.isEmpty
+                && ($0.value as? String ?? $0.label) == mainWindow.title
+        } : []
+        /// Matches by accessibility attributes, using the frame when there is no identifier.
         func contains(_ snapshot: any XCUIElementSnapshot, _ element: XCUIElement) -> Bool {
             if snapshot.elementType == element.elementType,
                snapshot.identifier == element.identifier,
@@ -119,19 +130,20 @@ class AppUITestSupport: XCTestCase {
             let isSystemTouchBar = issue.auditType == .sufficientElementDescription
                 && element.elementType == .touchBar
                 && !element.isEnabled
-            let sidebarLabels = [
-                "Overview", "Sensors", "Network", "Scroll", "Dock", "Settings",
-                "Przegląd", "Czujniki", "Sieć", "Przewijanie", "Ustawienia"
-            ]
-            let isNativeSidebarSelectionContrast = issue.auditType == .contrast
+            // XCTest reports contrast on the native title even when its screenshot is legible.
+            let isNativeWindowTitleContrast = issue.auditType == .contrast
                 && element.elementType == .staticText
-                && sidebarLabels.contains(element.value as? String ?? element.label)
+                && element.identifier.isEmpty
+                && nativeTitles.contains {
+                    $0.frame == element.frame
+                        && ($0.value as? String ?? $0.label) == (element.value as? String ?? element.label)
+                }
 
             // XCTest reports framework-owned SwiftUI, Liquid Glass and window chrome as findings.
             // Their actionable descendants and labels remain subject to every audit.
             let isFrameworkIssue = isLayoutGroup || isSidebarNavigationLink || isNativePickerAction
                 || isWindowControlContainer || isSystemTouchBar
-                || isNativeSidebarSelectionContrast
+                || isNativeWindowTitleContrast
             if !isFrameworkIssue {
                 // Keep enough context even if XCTest cannot attach a screenshot.
                 print("AX audit: \(issue.compactDescription); type=\(element.elementType); id=\(element.identifier)")
@@ -173,9 +185,13 @@ class AppUITestSupport: XCTestCase {
         continueAfterFailure = false
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        // Reuse a bounded set of domains across runs. Each test starts with an empty domain.
+        app.launchEnvironment["MM_UI_TEST_ID"] = SHA256.hash(data: Data(name.utf8))
+            .prefix(16).map { String(format: "%02x", $0) }.joined()
         if let launcherPasteboardName { app.launchEnvironment["MM_LAUNCHER_TEST_PASTEBOARD"] = launcherPasteboardName }
         if let diagnosticsPasteboardName { app.launchEnvironment["MM_DIAGNOSTICS_TEST_PASTEBOARD"] = diagnosticsPasteboardName }
-        if reset { app.launchArguments.append("--reset-preferences") }
+        if reset || !didLaunchFixture { app.launchArguments.append("--reset-preferences") }
+        didLaunchFixture = true
         if liveMetrics { app.launchArguments.append("--live-metrics") }
         if launcherLiveTesting { app.launchArguments.append("--launcher-live-testing") }
         if clipboardFixture { app.launchArguments.append("--clipboard-fixture") }

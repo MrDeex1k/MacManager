@@ -20,9 +20,11 @@ final class AppShellTests: AppUITestSupport {
         capture("Sensors waiting PL", app: app)
     }
 
+    /// Audits representative main pages and scrolls the Sensors content fully into the audit area.
     @MainActor
     func testAccessibilityAuditAcrossMainSections() throws {
         let app = launch(reset: true)
+        defer { app.terminate() }
         let auditTypes: XCUIAccessibilityAuditType = [
             .contrast,
             .elementDetection,
@@ -42,7 +44,6 @@ final class AppShellTests: AppUITestSupport {
             }
             try performAccessibilityAudit(in: app, for: auditTypes)
         }
-        app.terminate()
     }
 
     @MainActor

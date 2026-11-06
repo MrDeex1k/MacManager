@@ -4,6 +4,7 @@ import SwiftUI
 struct AppShellView: View {
     @Environment(AppState.self) private var state
 
+    /// Tracks occlusion, minimization, and closing for the main scene window.
     var body: some View {
         @Bindable var state = state
         Group {
@@ -17,23 +18,24 @@ struct AppShellView: View {
             state.setMainWindowVisible(true)
         }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didChangeOcclusionStateNotification)) { notification in
-            guard isMainWindow(notification.object), let window = notification.object as? NSWindow else { return }
+            guard let window = notification.object as? NSWindow, MainWindow.matches(window) else { return }
             state.mainWindowContentVisible = window.occlusionState.contains(.visible) && !window.isMiniaturized
         }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didMiniaturizeNotification)) { notification in
-            guard isMainWindow(notification.object) else { return }
+            guard MainWindow.matches(notification.object) else { return }
             state.mainWindowContentVisible = false
         }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didDeminiaturizeNotification)) { notification in
-            guard isMainWindow(notification.object) else { return }
+            guard MainWindow.matches(notification.object) else { return }
             state.mainWindowContentVisible = true
         }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.willCloseNotification)) { notification in
-            guard isMainWindow(notification.object) else { return }
+            guard MainWindow.matches(notification.object) else { return }
             state.mainWindowWillClose()
         }
     }
 
+    /// Uses the same effective selection for the displayed page and its navigation title.
     private func content(state source: AppState) -> some View {
         @Bindable var state = source
         return NavigationSplitView {
@@ -56,7 +58,7 @@ struct AppShellView: View {
         } detail: {
             ScrollView {
                 Group {
-                    switch state.section ?? .overview {
+                    switch state.displayedSection {
                     case .overview: OverviewView()
                     case .sensors: SensorsView()
                     case .network: NetworkView()
@@ -73,7 +75,7 @@ struct AppShellView: View {
             }
             .accessibilityIdentifier("main.detailScroll")
             .background(AppTheme.canvas)
-            .navigationTitle(state.strings((state.section ?? .overview).titleKey))
+            .navigationTitle(state.strings(state.displayedSection.titleKey))
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button {
@@ -86,10 +88,5 @@ struct AppShellView: View {
             }
         }
         .navigationSplitViewStyle(.balanced)
-    }
-
-    private func isMainWindow(_ object: Any?) -> Bool {
-        guard let window = object as? NSWindow else { return false }
-        return window.canBecomeMain && window.styleMask.contains(.titled) && window.level == .normal
     }
 }

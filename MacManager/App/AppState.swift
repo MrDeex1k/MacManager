@@ -47,6 +47,8 @@ final class AppState {
     @ObservationIgnored private var terminationObserver: NSObjectProtocol?
     @ObservationIgnored private var launchObserver: NSObjectProtocol?
     var section: AppSection? = .overview
+    /// The effective page for navigation and sampling, including an empty sidebar selection.
+    var displayedSection: AppSection { section ?? .overview }
     var mainWindowVisible = false
     var mainWindowContentVisible = true
 
@@ -106,15 +108,16 @@ final class AppState {
         lifecycle.terminate()
     }
 
+    /// Combines the sampling needs of the visible page and menu bar with the background preferences.
     private func watchEnergyPreferences() {
         energyObservation.start(read: { [weak self] in
             guard let self else { return (true, MetricSamplingRequest.none, false, MetricSamplingRequest.none, 60.0) }
             let mainVisible = mainWindowVisible && mainWindowContentVisible
             var request: MetricSamplingRequest = .none
-            if mainVisible && section == .overview { request = request.union(.overview) }
-            if mainVisible && section == .sensors { request = request.union(.sensors) }
+            if mainVisible && displayedSection == .overview { request = request.union(.overview) }
+            if mainVisible && displayedSection == .sensors { request = request.union(.sensors) }
             if menuBarPanelVisible { request = request.union(.overview) }
-            let networkVisible = (mainVisible && section == .network) ||
+            let networkVisible = (mainVisible && displayedSection == .network) ||
                 (menuBarPanelVisible && (preferences.showsLocalIPInMenuBar || preferences.showsPublicIPInMenuBar))
             let display = preferences.appIntegration.menuBar
             var kinds: Set<MetricKind> = []
