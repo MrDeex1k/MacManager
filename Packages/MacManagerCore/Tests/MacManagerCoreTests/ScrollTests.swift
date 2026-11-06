@@ -98,6 +98,7 @@ private func wheel(continuous: Bool) throws -> CGEvent {
     #expect(event.data == before)
 }
 
+/// A horizontal field that cannot be negated must leave vertical-only reversal available.
 @Test func invalidDeltaOnUnselectedAxisDoesNotBlockSelectedAxis() throws {
     let event = try wheel(continuous: false)
     event.setIntegerValueField(.scrollWheelEventPointDeltaAxis2, value: Int64(Int32.min))
@@ -217,6 +218,7 @@ private final class FakeScrollDriver: ScrollDriving {
         == [.trackpad, .mouse, .trackpad, .trackpad, .mouse, .trackpad, .trackpad])
 }
 
+/// Alternates the continuous flag during one glide and checks that ownership survives until the end.
 @Test func momentumPhaseTakesPriorityOverMissingContinuousFlag() {
     var classifier = ScrollSourceClassifier()
     classifier.observeTouches(2, at: 1)
@@ -227,6 +229,7 @@ private final class FakeScrollDriver: ScrollDriving {
     #expect(classifier.classify(continuous: false, momentum: 2, at: 1.05) == .unknown)
 }
 
+/// Lets touch evidence age during a phased gesture and checks cancellation clears the momentum candidate.
 @Test func phasedTrackpadGestureKeepsOwnershipFromMayBeginThroughCancellation() {
     var classifier = ScrollSourceClassifier()
     classifier.observeTouches(2, at: 1)
@@ -237,6 +240,7 @@ private final class FakeScrollDriver: ScrollDriving {
     #expect(classifier.classify(continuous: true, momentum: 1, at: 1.52) == .unknown)
 }
 
+/// Compares unrelated wheel input with a recent continuous gesture that can seed one glide.
 @Test func orphanMomentumDoesNotInheritAnOldWheelEvent() {
     var classifier = ScrollSourceClassifier()
     #expect(classifier.classify(continuous: false, momentum: 0, at: 1) == .mouse)
@@ -247,6 +251,7 @@ private final class FakeScrollDriver: ScrollDriving {
     #expect(classifier.classify(continuous: true, momentum: 1, at: 4) == .unknown)
 }
 
+/// Switches devices before momentum starts to verify the new continuous source owns the glide.
 @Test func identifiedPhaseLessMouseCanStartItsOwnGlideAfterTrackpad() throws {
     var classifier = ScrollSourceClassifier()
     let event = try wheel(continuous: true)
@@ -372,6 +377,7 @@ private final class FakeScrollDriver: ScrollDriving {
     #expect(driver.axes == horizontalOnly)
 }
 
+/// Checks the off, active, and off transitions without changing the main preference.
 @MainActor @Test func scrollWithBothAxesOffDoesNotStartOrAskForPermissions() {
     let driver = FakeScrollDriver()
     let noAxes = ScrollAxes(vertical: false, horizontal: false)
@@ -387,6 +393,7 @@ private final class FakeScrollDriver: ScrollDriving {
     #expect(service.enabled && service.status == .off && driver.state == .stopped)
 }
 
+/// Covers both suspension and shutdown when an enable or settings action would otherwise prompt.
 @MainActor @Test func suspendedOrTerminatedScrollCannotRequestPermission() {
     let driver = FakeScrollDriver()
     let service = ScrollService(enabled: false, driver: driver)

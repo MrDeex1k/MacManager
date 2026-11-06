@@ -21,6 +21,8 @@ public struct ScrollSourceClassifier: Sendable {
         touching = max(touching, count)
     }
 
+    /// Uses identified device input when available and records its gesture or momentum ownership.
+    /// Otherwise classifies from the event phases and recent touch evidence.
     public mutating func classify(_ event: CGEvent, identified: ScrollSource? = nil, at now: TimeInterval) -> ScrollSource {
         if identified == .application { return .application }
         let primaryMomentum = event.getIntegerValueField(.scrollWheelEventMomentumPhase)
@@ -47,6 +49,7 @@ public struct ScrollSourceClassifier: Sendable {
     }
 
     /// Quartz momentum: 0 none, 1 begin, 2 continue, 3 end. Gesture phases are a bit mask.
+    /// Momentum retains its owner even when an individual packet omits the continuous flag.
     public mutating func classify(continuous: Bool, momentum: Int64, phase: Int64 = 0,
                                   at now: TimeInterval) -> ScrollSource {
         guard now.isFinite else { return .unknown }
@@ -81,6 +84,8 @@ public struct ScrollSourceClassifier: Sendable {
         return source
     }
 
+    /// Ends gesture ownership at completion or cancellation. A completed gesture can seed
+    /// momentum, while a cancelled one discards the candidate.
     private mutating func remember(_ source: ScrollSource, phase: Int64, at now: TimeInterval) {
         if phase != 0 {
             gestureSource = phase & (4 | 8) != 0 ? .unknown : source

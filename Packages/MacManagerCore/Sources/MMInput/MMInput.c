@@ -80,6 +80,8 @@ bool mm_scroll_reverse_event(CGEventRef event) {
     return mm_scroll_reverse_axes(event, true, true);
 }
 
+/// Validates every representation of the selected axes before reversing their deltas.
+/// Captures the original values before setters can change related fields.
 bool mm_scroll_reverse_axes(CGEventRef event, bool vertical, bool horizontal) {
     if ((!vertical && !horizontal) || !event || CGEventGetType(event) != kCGEventScrollWheel || !mm_scroll_bridge_available()) return false;
     const bool reversed[] = {vertical, horizontal};

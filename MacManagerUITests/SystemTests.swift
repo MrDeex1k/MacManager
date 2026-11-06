@@ -38,6 +38,8 @@ final class SystemTests: AppUITestSupport {
         XCTAssertEqual(switchValue(toggle), 0)
     }
 
+    /// Verifies that both axes can stay off across a relaunch while the main toggle stays on.
+    /// Also checks that one enabled axis restores active status and the labels localize.
     @MainActor
     func testIndependentScrollAxesPersistAndLocalize() throws {
         var app = launch(reset: true, scrollPermission: true)

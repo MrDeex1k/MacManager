@@ -35,6 +35,7 @@ public final class ScrollService {
     @ObservationIgnored private var suspended = false
     @ObservationIgnored private var terminated = false
 
+    /// Configures the initial axis selection and listens for driver state changes.
     public init(enabled: Bool, driver: any ScrollDriving, axes: ScrollAxes = ScrollAxes()) {
         self.enabled = enabled
         self.driver = driver
@@ -43,6 +44,8 @@ public final class ScrollService {
         driver.onStateChange = { [weak self] in self?.refreshDriverState() }
     }
 
+    /// Updates the driver axes and reevaluates activation only when the selection becomes
+    /// empty or gains its first enabled axis.
     public func setAxes(_ axes: ScrollAxes) {
         guard !terminated, self.axes != axes else { return }
         let activationChanged = self.axes.hasEnabledAxis != axes.hasEnabledAxis
@@ -51,6 +54,8 @@ public final class ScrollService {
         if activationChanged { refresh() }
     }
 
+    /// Updates the main toggle. Requests missing permission only when an axis needs reversal
+    /// and the session is available.
     public func setEnabled(_ enabled: Bool) {
         guard !terminated, self.enabled != enabled else { return }
         self.enabled = enabled
@@ -60,6 +65,8 @@ public final class ScrollService {
 
     private var wantsReversal: Bool { enabled && axes.hasEnabledAxis }
 
+    /// Reads both permissions and reconciles the driver with the axis selection and session state.
+    /// Starts a stopped driver only when reversal is requested and both permissions are granted.
     public func refresh() {
         guard !terminated else { return }
         accessibilityGranted = driver.accessibilityGranted
@@ -75,6 +82,7 @@ public final class ScrollService {
         refreshDriverState()
     }
 
+    /// Publishes driver status only while this service still wants reversal.
     private func refreshDriverState() {
         guard !terminated, wantsReversal, !suspended else { return }
         switch driver.state {
@@ -85,6 +93,7 @@ public final class ScrollService {
         }
     }
 
+    /// Opens the permission flow only for an active reversal request in an available session.
     public func showPermissionSettings() {
         guard !terminated, wantsReversal, !suspended else { return }
         driver.requestPermission()
@@ -92,18 +101,21 @@ public final class ScrollService {
         refresh()
     }
 
+    /// Stops the current driver before reevaluating permissions and starting it if eligible.
     public func retry() {
         guard !terminated, wantsReversal, !suspended else { return }
         driver.stop()
         refresh()
     }
 
+    /// Reconciles the driver after a session change while retaining the user's axis preferences.
     public func setSuspended(_ suspended: Bool) {
         guard !terminated else { return }
         self.suspended = suspended
         refresh()
     }
 
+    /// Detaches the driver callback and stops the driver for the rest of this service's lifetime.
     public func shutdown() {
         guard !terminated else { return }
         terminated = true

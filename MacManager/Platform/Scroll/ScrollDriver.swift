@@ -92,6 +92,7 @@ private final class ScrollTapWorker: @unchecked Sendable {
         Thread.detachNewThread { [self] in run() }
     }
 
+    /// Closes the callback gate before waking the worker run loop and removing the gesture tap.
     func stop() {
         let loop = lock.withLock {
             wanted = false
@@ -107,6 +108,7 @@ private final class ScrollTapWorker: @unchecked Sendable {
         stopGestureObservation()
     }
 
+    /// Routes scroll events and their tap-disable notifications to the worker.
     private static let scrollCallback: CGEventTapCallBack = { _, type, event, context in
         guard let context else { return Unmanaged.passUnretained(event) }
         let worker = Unmanaged<ScrollTapWorker>.fromOpaque(context).takeUnretainedValue()
@@ -114,6 +116,7 @@ private final class ScrollTapWorker: @unchecked Sendable {
         return Unmanaged.passUnretained(event)
     }
 
+    /// Supplies touch evidence and identifies the gesture tap for recovery.
     private static let gestureCallback: CGEventTapCallBack = { _, type, event, context in
         guard let context else { return Unmanaged.passUnretained(event) }
         let worker = Unmanaged<ScrollTapWorker>.fromOpaque(context).takeUnretainedValue()
@@ -123,6 +126,7 @@ private final class ScrollTapWorker: @unchecked Sendable {
 
     /// AppKit only reports gesture touches reliably from its main run loop. The modifying
     /// scroll tap remains on the worker thread so event transformation cannot stall the UI.
+    /// Invalidates the gesture tap if its run loop source cannot be created.
     private func startGestureObservation() -> Bool {
         precondition(Thread.isMainThread)
         guard let gestureTap = CGEvent.tapCreate(
@@ -159,6 +163,7 @@ private final class ScrollTapWorker: @unchecked Sendable {
         }
     }
 
+    /// Owns the modifying tap and checks both taps for interruption when the run loop returns.
     private func run() {
         Thread.current.name = "Mac Manager scroll"
         let loop = CFRunLoopGetCurrent()!
@@ -218,6 +223,8 @@ private final class ScrollTapWorker: @unchecked Sendable {
         }
     }
 
+    /// Handles touch evidence and wheel transformation under the same stop gate. Recovers
+    /// only the tap that timed out, within the retry budget.
     private func handle(_ type: CGEventType, event: CGEvent, isGestureTap: Bool) {
         lock.withLock {
             guard wanted else { return }

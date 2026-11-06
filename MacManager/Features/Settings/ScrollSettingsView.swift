@@ -5,6 +5,8 @@ import SwiftUI
 struct ScrollSettingsView: View {
     @Environment(AppState.self) private var state
 
+    /// Keeps the main preference and each axis independent. Permission controls appear
+    /// only when reversal is enabled for at least one axis.
     var body: some View {
         @Bindable var preferences = state.preferences
         let strings = state.strings
@@ -53,6 +55,7 @@ struct ScrollSettingsView: View {
         }
     }
 
+    /// Reports both permissions and offers recovery controls when either one is missing.
     @ViewBuilder private var permissionControls: some View {
         let strings = state.strings
         permissionRow(strings("scroll.accessibility.title"), granted: state.scroll.accessibilityGranted)

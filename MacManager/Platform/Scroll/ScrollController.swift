@@ -16,6 +16,7 @@ final class ScrollController: ApplicationLifecycleParticipant {
         self.diagnostics = diagnostics
     }
 
+    /// Observes session state, refreshes permissions on activation, and tracks driver status.
     func start() {
         guard !running else { return }
         running = true
@@ -33,6 +34,8 @@ final class ScrollController: ApplicationLifecycleParticipant {
         })
     }
 
+    /// Replaces the permission check when status changes. Checks more often while permissions
+    /// are missing and stops polling while reversal is off or suspended.
     private func updateState(_ status: ScrollStatus) {
         guard status != reportedStatus else { return }
         recordState(status)
@@ -51,6 +54,7 @@ final class ScrollController: ApplicationLifecycleParticipant {
         }
     }
 
+    /// Stops observation and polling before shutting down the service.
     func stop() {
         running = false
         observation.stop()
@@ -60,6 +64,7 @@ final class ScrollController: ApplicationLifecycleParticipant {
         service.shutdown()
     }
 
+    /// Records the transition and adds a diagnostic for driver failure or interruption.
     private func recordState(_ status: ScrollStatus) {
         reportedStatus = status
         switch status {
