@@ -51,6 +51,8 @@ public actor ClipboardRepository {
         memory = ClipboardMemoryCache(limit: max(0, min(16_000_000, memoryLimitBytes)))
     }
 
+    /// Prunes history before loading previews and reuses loaded previews for matching records.
+    /// Returns unreadable previews as damaged entries.
     public func load(preferences: ClipboardPreferences, now: Date, reusing existing: [ClipboardEntry] = []) throws -> ClipboardLibrary {
         guard memoryAccessAllowed else { throw CancellationError() }
         try Task.checkCancellation()
@@ -80,6 +82,8 @@ public actor ClipboardRepository {
         return ClipboardLibrary(entries: entries, databaseBytes: databaseBytes)
     }
 
+    /// Encrypts and stores a new copy unless it duplicates the latest payload. The returned
+    /// mutation includes retention removals even when the copy is a duplicate.
     @discardableResult
     public func insert(_ content: ClipboardContent, preferences: ClipboardPreferences, now: Date) throws -> ClipboardMutation {
         guard memoryAccessAllowed else { throw CancellationError() }
@@ -131,6 +135,7 @@ public actor ClipboardRepository {
         text.map { String(String(decoding: $0.utf8.prefix(1_200), as: UTF8.self).prefix(300)) }
     }
 
+    /// Applies retention before reading the payload and caches it only after validation.
     public func restore(_ id: UUID, preferences: ClipboardPreferences, now: Date) throws -> ClipboardRestoredContent {
         guard memoryAccessAllowed else { throw CancellationError() }
         try Task.checkCancellation()
@@ -164,6 +169,8 @@ public actor ClipboardRepository {
         return preview.thumbnail
     }
 
+    /// Filters supplied previews against retained records. An empty query reuses loaded previews
+    /// without deriving a key, while a text query searches the full text payload.
     public func search(_ query: String, entries: [ClipboardEntry], preferences: ClipboardPreferences,
                        now: Date, limit: Int) throws -> [ClipboardEntry] {
         guard memoryAccessAllowed else { throw CancellationError() }
@@ -215,6 +222,8 @@ public actor ClipboardRepository {
         return try prune(preferences: preferences, now: now)
     }
 
+    /// Returns the age-limit deadline for the oldest record, or nil for empty history.
+    /// Rejects invalid timestamps so maintenance never schedules work using a coerced value.
     public func nextExpiration(preferences: ClipboardPreferences) throws -> Date? {
         try open()
         let query = try sql.statement("SELECT captured FROM entries ORDER BY captured ASC LIMIT 1")

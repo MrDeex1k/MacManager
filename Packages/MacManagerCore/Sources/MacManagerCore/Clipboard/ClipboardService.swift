@@ -127,6 +127,8 @@ public final class ClipboardService {
         invalidateCapture()
     }
 
+    /// Reconciles permission and expiry even while capture is paused. Starts a capture only for
+    /// an eligible pasteboard change when no capture is already running.
     public func poll() {
         guard running, !suspended else { return }
         let currentAccess = pasteboard.access
@@ -190,6 +192,8 @@ public final class ClipboardService {
         return try await repository.nextExpiration(preferences: preferences)
     }
 
+    /// Expires visible history and uses metadata to prune stored history without decrypting content.
+    /// Reconciles the visible list even when an earlier read already pruned the database.
     public func maintain() async {
         guard running, storageStarted else { return }
         // A read may already have pruned these records from SQLite, leaving no removal delta.
@@ -206,6 +210,8 @@ public final class ClipboardService {
         }
     }
 
+    /// Replaces any pending history load. Only the current request in the current session may
+    /// publish its entries or storage error.
     public func refresh() async {
         guard running, !suspended, !Task.isCancelled else { return }
         let token = generation
@@ -230,6 +236,8 @@ public final class ClipboardService {
         }
     }
 
+    /// Searches the current history and filters out entries that expire or disappear during the
+    /// read. Session invalidation cancels the search.
     public func search(_ query: String, limit: Int = 1_000) async throws -> [ClipboardEntry] {
         guard running, !suspended else { throw CancellationError() }
         expireEntries()
@@ -246,6 +254,8 @@ public final class ClipboardService {
         return result.filter { live.contains($0.id) }
     }
 
+    /// Reads an entry without changing the pasteboard. Returns nil if the entry is no longer
+    /// retained or the session changes while the read is in flight.
     public func content(_ id: UUID) async -> ClipboardRestoredContent? {
         expireEntries()
         guard running, !suspended, entries.contains(where: { $0.id == id }) else { return nil }
@@ -262,6 +272,7 @@ public final class ClipboardService {
         }
     }
 
+    /// Returns an image preview only while its entry remains available in the current session.
     public func thumbnail(_ id: UUID) async -> Data? {
         expireEntries()
         guard running, !suspended, entries.contains(where: { $0.id == id }) else { return nil }
@@ -273,6 +284,8 @@ public final class ClipboardService {
         return data
     }
 
+    /// Writes a retained entry to the pasteboard only if the same session still owns the read.
+    /// Records the pasteboard change count so capture does not reimport the restored copy.
     @discardableResult public func restore(_ id: UUID) async -> Bool {
         expireEntries()
         guard running, !suspended, !Task.isCancelled, entries.contains(where: { $0.id == id }) else { return false }
@@ -324,6 +337,8 @@ public final class ClipboardService {
         return try await repository.removalCount(preferences: preferences, now: now())
     }
 
+    /// Removes expired entries from the in-memory history, invalidates older loads, and clears
+    /// the restore marker if its entry expired.
     private func expireEntries() {
         let cutoff = now().addingTimeInterval(-Double(preferences.maximumDays) * 86_400)
         guard let oldestEntryDate, oldestEntryDate <= cutoff else { return }
@@ -332,6 +347,8 @@ public final class ClipboardService {
         if let restoredID, !entries.contains(where: { $0.id == restoredID }) { self.restoredID = nil }
     }
 
+    /// Cancels private work and advances both the session generation and UI search revision,
+    /// even when the list of entries has not changed.
     private func invalidateCapture() {
         generation += 1
         // Surface tasks use revision as their request identity. A cancelled history search

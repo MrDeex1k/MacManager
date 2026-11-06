@@ -10,6 +10,7 @@ private final class AuditKey: ClipboardKeyProviding {
     struct State { var calls = 0; var block = false; var entered = false; var cancelled = false }
     let state = Mutex(State())
     let release = DispatchSemaphore(value: 0)
+    /// Counts lookups and can hold one synchronous lookup until a cancellation test releases it.
     func key(createIfMissing: Bool) throws -> SymmetricKey {
         let block = state.withLock { state in
             state.calls += 1
@@ -36,6 +37,7 @@ private func auditDirectory() -> URL {
     FileManager.default.temporaryDirectory.appendingPathComponent("ClipboardAudit-\(UUID())")
 }
 
+/// Verifies the repository rejects a blocked insert before touching storage or requesting a key.
 @Test func clipboardBlockedRepositoryDoesNotInsertOrCreateKeys() async throws {
     let directory = auditDirectory(), key = AuditKey()
     defer { try? FileManager.default.removeItem(at: directory) }
@@ -51,6 +53,7 @@ private func auditDirectory() -> URL {
                                        preferences: .init(), now: Date()).inserted != nil)
 }
 
+/// Compares repeated preview listings with a full-text search using the same counting key provider.
 @Test func clipboardListingLoadedPreviewsDoesNotDeriveAnotherKey() async throws {
     let directory = auditDirectory(), key = AuditKey(), now = Date()
     defer { try? FileManager.default.removeItem(at: directory) }
@@ -66,6 +69,7 @@ private func auditDirectory() -> URL {
     #expect(key.state.withLock { $0.calls } == calls + 1)
 }
 
+/// Exercises the maintenance path after a direct repository read has removed the database row.
 @MainActor @Test func clipboardMaintenanceReconcilesEntriesAlreadyPrunedByRead() async throws {
     let directory = auditDirectory(), key = AuditKey()
     defer { try? FileManager.default.removeItem(at: directory) }
@@ -88,6 +92,7 @@ private func auditDirectory() -> URL {
     #expect(service.entries.map(\.id) == [id])
 }
 
+/// Checks that a permission change replaces the UI search request even with unchanged history.
 @MainActor @Test func clipboardPermissionChangeInvalidatesSearchRequest() async throws {
     let directory = auditDirectory()
     defer { try? FileManager.default.removeItem(at: directory) }
@@ -102,6 +107,7 @@ private func auditDirectory() -> URL {
     #expect(request != ClipboardSearchModel.Request(query: "synthetic", service: service))
 }
 
+/// Suspends the service during a blocked key lookup and checks that resuming loads history again.
 @MainActor @Test func clipboardSuspendCancelsRefreshStorageWork() async throws {
     let directory = auditDirectory(), key = AuditKey()
     defer { try? FileManager.default.removeItem(at: directory) }
@@ -126,6 +132,7 @@ private func auditDirectory() -> URL {
     service.stop()
 }
 
+/// Exercises SQLite values that would be silently coerced and compares the ciphertext after rejection.
 @Test(arguments: ["captured = 'invalid date'", "bytes = 1.5"])
 func clipboardMalformedMetadataFailsWithoutPruningCiphertext(assignment: String) async throws {
     let directory = auditDirectory(), key = AuditKey(), now = Date()
@@ -146,6 +153,7 @@ func clipboardMalformedMetadataFailsWithoutPruningCiphertext(assignment: String)
     #expect(try Data(contentsOf: payload) == before)
 }
 
+/// Advances the clock while capture is paused, after a preview and restore have populated memory.
 @MainActor @Test func clipboardPausedReadsCannotExposeExpiredThumbnailsOrRestoreMarkers() async throws {
     let directory = auditDirectory()
     defer { try? FileManager.default.removeItem(at: directory) }

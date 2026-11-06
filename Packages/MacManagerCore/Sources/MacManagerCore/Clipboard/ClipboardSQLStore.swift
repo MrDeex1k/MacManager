@@ -50,6 +50,7 @@ final class ClipboardSQLStore {
         }
     }
 
+    /// Reads newest-first metadata and rejects invalid SQLite types or values before they reach retention.
     func records(id: UUID? = nil, limit: Int? = nil) throws -> [ClipboardRecord] {
         let selection = id == nil ? "" : " WHERE id = ?"
         let bound = limit.map { " LIMIT \($0)" } ?? ""

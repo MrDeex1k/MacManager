@@ -14,6 +14,7 @@ struct ClipboardSettingsView: View {
     @State private var proposedPreferences: ClipboardPreferences?
     @State private var saveTask: Task<Void, Never>?
 
+    /// Keeps edits in a local draft and disables the sheet while a retention check or save is pending.
     var body: some View {
         VStack(alignment: .leading, spacing: 22) {
             Text(state.strings("clipboard.options")).font(.title2.weight(.semibold))
@@ -98,6 +99,7 @@ struct ClipboardSettingsView: View {
             }
         }
     }
+    /// Counts removals for a snapshot of the draft so confirmation applies to the exact settings checked.
     private func prepareSave() {
         guard draft.isValid, !saving else { return }
         let proposed = draft
@@ -117,6 +119,7 @@ struct ClipboardSettingsView: View {
             }
         }
     }
+    /// Applies the checked proposal and dismisses the sheet if its save task is still active.
     private func save(_ proposed: ClipboardPreferences) {
         saving = true
         saveTask = Task {
