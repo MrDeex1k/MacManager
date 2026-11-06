@@ -13,11 +13,14 @@ public final class NetworkService {
     public var nextRefreshDeadline: TimeInterval? {
         enabled && !suspended && receivedEnvironment && environment.online && request == nil ? nextAttempt : nil
     }
+    /// Updates the regular lookup cadence without replacing a route-change or cancellation deadline.
     public func setRefreshInterval(_ seconds: Double) {
+        guard seconds.isFinite, seconds >= 30 else { return }
         refreshIntervalSeconds = seconds
         if periodicDeadline, let lastAttempt { nextAttempt = lastAttempt + seconds }
     }
     @ObservationIgnored private let lookup: @Sendable () async throws -> String
+    @ObservationIgnored private let diagnostics: DiagnosticsStore?
     @ObservationIgnored private var request: Task<String, Error>?
     @ObservationIgnored private var generation = 0
     @ObservationIgnored private var lastAttempt: TimeInterval?
@@ -25,8 +28,10 @@ public final class NetworkService {
     @ObservationIgnored private var receivedEnvironment = false
     @ObservationIgnored private var suspended = false
 
-    public init(enabled: Bool = true, lookup: @escaping @Sendable () async throws -> String = PublicIPClient.lookup) {
-        self.enabled = enabled; self.lookup = lookup
+    /// Accepts an injectable public address lookup and optional diagnostic recorder.
+    public init(enabled: Bool = true, diagnostics: DiagnosticsStore? = nil,
+                lookup: @escaping @Sendable () async throws -> String = PublicIPClient.lookup) {
+        self.enabled = enabled; self.diagnostics = diagnostics; self.lookup = lookup
         if !enabled { state = .disabled }
     }
 
@@ -40,7 +45,12 @@ public final class NetworkService {
         nextAttempt = max(now + (first ? 0 : 2), (lastAttempt ?? -.infinity) + 30)
     }
 
-    public func pathChanged(now: TimeInterval) {
+    /// Clears route-dependent public data immediately while keeping the last local interface snapshot.
+    public func pathChanged(now: TimeInterval, online: Bool? = nil) {
+        if let online, online != environment.online {
+            environment = NetworkEnvironment(online: online, addresses: environment.addresses,
+                                             primary: environment.primary, tunnels: environment.tunnels)
+        }
         invalidate(); state = restingState
         nextAttempt = max(now + 2, (lastAttempt ?? -.infinity) + 30)
     }
@@ -63,22 +73,42 @@ public final class NetworkService {
         enabled && !suspended && receivedEnvironment && environment.online && request == nil && now >= nextAttempt
     }
 
+    /// Starts one lookup for the current online environment. Publishes only validated results
+    /// from the current generation and treats cancellation as a deferred retry.
     public func refresh(now: TimeInterval, manual: Bool = false) async {
-        guard enabled, !suspended, receivedEnvironment, environment.online, request == nil,
+        guard !Task.isCancelled, enabled, !suspended, receivedEnvironment, environment.online, request == nil,
               manual || now >= nextAttempt else { return }
         lastAttempt = now; nextAttempt = now + refreshIntervalSeconds; periodicDeadline = true
         publicAddress = nil; observedAt = nil; state = .loading
         let token = generation
-        let task = Task { try await lookup() }
+        let task = Task {
+            try Task.checkCancellation()
+            return try await lookup()
+        }
         request = task
         defer { if generation == token { request = nil } }
         do {
-            let address = try await task.value
+            let address = try await withTaskCancellationHandler { try await task.value } onCancel: { task.cancel() }
             guard generation == token else { return }
-            guard IPv4.isPublic(address) else { state = .failed; return }
+            try Task.checkCancellation()
+            guard IPv4.isPublic(address) else { throw PublicIPClient.Failure.invalidResponse }
             publicAddress = address; observedAt = Date(); state = .available
         } catch {
             guard generation == token else { return }
+            if Task.isCancelled || task.isCancelled {
+                periodicDeadline = false
+                nextAttempt = now + 30
+                state = restingState
+                return
+            }
+            let kind: String
+            if error is PublicIPClient.Failure { kind = "invalidResponse" }
+            else if let error = error as? URLError, error.code == .timedOut { kind = "timeout" }
+            else if let error = error as? URLError, [.notConnectedToInternet, .networkConnectionLost].contains(error.code) {
+                kind = "offline"
+            } else { kind = "transport" }
+            diagnostics?.record(.network, kind: kind)
+            MacManagerLog.network.error("Public address lookup failed: \(kind, privacy: .public)")
             state = .failed
         }
     }

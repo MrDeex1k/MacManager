@@ -5,13 +5,34 @@ import Testing
 private final class SyntheticHTTPProtocol: URLProtocol, @unchecked Sendable {
     override class func canInit(with request: URLRequest) -> Bool { true }
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+    /// Sends synthetic status and body combinations without accessing the network.
     override func startLoading() {
-        let response = HTTPURLResponse(url: request.url!, statusCode: request.url?.path == "/redirect" ? 302 : 200, httpVersion: "HTTP/1.1", headerFields: nil)!
+        let path = request.url?.path
+        let status = path == "/redirect" ? 302 : path == "/error" ? 503 : 200
+        let headers = path == "/oversized" ? ["Content-Length": "10000"] : nil
+        let response = HTTPURLResponse(url: request.url!, statusCode: status, httpVersion: "HTTP/1.1", headerFields: headers)!
         client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
         client?.urlProtocol(self, didLoad: Data("12345".utf8))
         client?.urlProtocolDidFinishLoading(self)
     }
     override func stopLoading() {}
+}
+
+/// Checks status-only handling at a zero-byte budget and rejects a declared oversized success body.
+@Test func boundedHTTPDoesNotConsumeErrorBodiesOrMutateSuppliedConfiguration() async throws {
+    let configuration = URLSessionConfiguration.ephemeral
+    configuration.protocolClasses = [SyntheticHTTPProtocol.self]
+    configuration.timeoutIntervalForResource = 100
+    let error = URLRequest(url: URL(string: "https://example.invalid/error")!)
+    let (body, response) = try await BoundedHTTPClient.read(error, maximumBytes: 0, timeout: 1,
+                                                           bodyStatuses: [200], configuration: configuration)
+    #expect(response.statusCode == 503 && body.isEmpty)
+    #expect(configuration.timeoutIntervalForResource == 100)
+
+    let oversized = URLRequest(url: URL(string: "https://example.invalid/oversized")!)
+    await #expect(throws: BoundedHTTPClient.Failure.self) {
+        try await BoundedHTTPClient.read(oversized, maximumBytes: 5, timeout: 1, configuration: configuration)
+    }
 }
 
 @Test func boundedHTTPTransportEnforcesBytesAndStatus() async throws {

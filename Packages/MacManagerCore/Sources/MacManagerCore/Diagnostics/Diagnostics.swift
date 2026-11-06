@@ -29,20 +29,29 @@ public final class DiagnosticsStore {
 
     public init() {}
 
+    /// Records the latest error per category. A current error can replace a timestamp
+    /// left in the future by a system clock correction.
     public func record(_ category: DiagnosticCategory, kind: String, at date: Date = Date()) {
-        let allowed = [
-            "offline", "timeout", "rateLimited", "server", "http", "invalidResponse", "transport",
-            "sampleFailed", "requestFailed", "driverFailed", "interrupted",
-            "islandPreferencesRecovered", "launcherPreferencesRecovered", "launcherShortcutPreferencesRecovered",
-            "clipboardPreferencesRecovered", "updates.cachePreferencesRecovered", "preferencesEncodingFailed",
-            "loginRegisterFailed", "loginUnregisterFailed"
-        ] + ClipboardKeyDiagnostic.allCases.map(\.rawValue)
-
-        lastErrors[category] = DiagnosticErrorRecord(
-            kind: allowed.contains(kind) ? kind : "redacted",
-            date: date
-        )
+        guard date.timeIntervalSinceReferenceDate.isFinite else { return }
+        if let previous = lastErrors[category]?.date, previous > date {
+            let now = Date()
+            guard previous > now, date <= now else { return }
+        }
+        lastErrors[category] = DiagnosticErrorRecord(kind: DiagnosticKind.sanitized(kind), date: date)
     }
+}
+
+private enum DiagnosticKind {
+    private static let allowed = Set([
+        "offline", "timeout", "rateLimited", "server", "http", "invalidResponse", "transport",
+        "sampleFailed", "requestFailed", "driverFailed", "interrupted",
+        "islandPreferencesRecovered", "launcherPreferencesRecovered", "launcherShortcutPreferencesRecovered",
+        "clipboardPreferencesRecovered", "updates.cachePreferencesRecovered", "preferencesEncodingFailed",
+        "loginRegisterFailed", "loginUnregisterFailed"
+    ] + ClipboardKeyDiagnostic.allCases.map(\.rawValue))
+
+    /// Keeps known diagnostic codes and redacts arbitrary error text.
+    static func sanitized(_ kind: String) -> String { allowed.contains(kind) ? kind : "redacted" }
 }
 
 public enum MacManagerLog {
@@ -75,20 +84,27 @@ public struct DiagnosticReportSnapshot: Equatable, Sendable {
             && lhs.errors == rhs.errors
     }
 
+    /// Emits the versioned text report with unique field names and single-line values.
     public func render() -> String {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime]
+        let formatter = Date.ISO8601FormatStyle()
         var lines = [
             "Mac Manager Diagnostic Report",
             "report_version: 1",
-            "generated_at: \(formatter.string(from: generatedAt))"
+            "generated_at: \(formatter.format(generatedAt))"
         ]
-        lines.append(contentsOf: values.map { "\($0.key): \($0.value)" })
+        var keys: Set<String> = ["report_version", "generated_at"]
+        for (key, value) in values {
+            guard !key.isEmpty, key.utf8.count <= 64,
+                  key.utf8.allSatisfy({ (97...122).contains($0) || (48...57).contains($0) || $0 == 95 }),
+                  keys.insert(key).inserted else { continue }
+            let safe = value.utf8.count <= 512 && value.rangeOfCharacter(from: CharacterSet.controlCharacters.union(.newlines)) == nil
+            lines.append("\(key): \(safe ? value : "redacted")")
+        }
         for category in DiagnosticCategory.allCases {
             let prefix = "last_error.\(category.rawValue)"
             if let error = errors[category] {
-                lines.append("\(prefix).kind: \(sanitize(error.kind))")
-                lines.append("\(prefix).at: \(formatter.string(from: error.date))")
+                lines.append("\(prefix).kind: \(DiagnosticKind.sanitized(error.kind))")
+                lines.append("\(prefix).at: \(formatter.format(error.date))")
             } else {
                 lines.append("\(prefix): none")
             }
@@ -96,8 +112,4 @@ public struct DiagnosticReportSnapshot: Equatable, Sendable {
         return lines.joined(separator: "\n")
     }
 
-    private func sanitize(_ value: String) -> String {
-        let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "._-"))
-        return String(value.unicodeScalars.map { allowed.contains($0) ? Character(String($0)) : "_" })
-    }
 }

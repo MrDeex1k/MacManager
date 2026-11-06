@@ -44,12 +44,25 @@ struct DiagnosticsView: View {
         .accessibilityIdentifier("diagnostics.content")
     }
 
+    /// Marks the report for exclusion from history and shows confirmation only after a successful write.
     private func copyReport(_ report: String) {
-        let pasteboard = NSPasteboard.general
+        let pasteboard = reportPasteboard
         copied = false
         do {
             try LocalClipboardWriter(pasteboard: pasteboard).writeText(report, history: .excludeFromHistory)
             copied = true
         } catch { /* Do not report success when the pasteboard rejects the write. */ }
+    }
+
+    /// Uses a dedicated pasteboard when the Debug UI fixture supplies its expected name.
+    private var reportPasteboard: NSPasteboard {
+        #if DEBUG
+        if UITestConfiguration.current.enabled,
+           let name = ProcessInfo.processInfo.environment["MM_DIAGNOSTICS_TEST_PASTEBOARD"],
+           name.hasPrefix("MacManagerDiagnosticsTests-") {
+            return NSPasteboard(name: .init(name))
+        }
+        #endif
+        return .general
     }
 }

@@ -6,6 +6,7 @@ import SystemConfiguration
 actor LocalNetworkReader {
     private let store = SCDynamicStoreCreate(nil, "MacManager" as CFString, nil, nil)
     private let preferences = SCPreferencesCreate(nil, "MacManager" as CFString, nil)
+    /// Reads local interfaces and chooses a LAN address from active physical services in system order.
     func read(online: Bool) -> NetworkEnvironment {
         var addresses: [NetworkAddress] = []
         var tunnels = Set<String>()
@@ -33,8 +34,11 @@ actor LocalNetworkReader {
         addresses.sort { $0.id < $1.id }
         let global = store.flatMap { SCDynamicStoreCopyValue($0, "State:/Network/Global/IPv4" as CFString) as? [String: Any] }
         let systemPrimary = global?["PrimaryInterface"] as? String
+        let primaryService = global?["PrimaryService"] as? String
         // Rank configured physical services in the user's service order. A tunnel is never a LAN fallback.
         var physical: [String] = []
+        var activeAddresses: [NetworkAddress] = []
+        var primaryAddress: NetworkAddress?
         if let preferences { SCPreferencesSynchronize(preferences) }
         if let preferences, let services = SCNetworkServiceCopyAll(preferences) as? [SCNetworkService] {
             let order = SCNetworkSetCopyCurrent(preferences).flatMap { SCNetworkSetGetServiceOrder($0) as? [String] } ?? []
@@ -51,13 +55,18 @@ actor LocalNetworkReader {
                       let name = SCNetworkInterfaceGetBSDName(interface) as String? else { continue }
                 guard let store, let id = SCNetworkServiceGetServiceID(service) as String?,
                       let state = SCDynamicStoreCopyValue(store, "State:/Network/Service/\(id)/IPv4" as CFString) as? [String: Any],
-                      let active = state["Addresses"] as? [String],
-                      addresses.contains(where: { $0.interface == name && active.contains($0.address) }) else { continue }
+                      let active = state["Addresses"] as? [String] else { continue }
+                let candidates = active.compactMap { value in
+                    addresses.first { $0.interface == name && $0.address == value }
+                }
+                guard !candidates.isEmpty else { continue }
                 physical.append(name)
+                activeAddresses.append(contentsOf: candidates)
+                if id == primaryService { primaryAddress = candidates.first }
             }
         }
-        let primary = NetworkEnvironment.selectPrimary(addresses: addresses, physicalOrder: physical,
-                                                        systemPrimary: systemPrimary)
+        let primary = primaryAddress ?? NetworkEnvironment.selectPrimary(addresses: activeAddresses,
+            physicalOrder: physical, systemPrimary: systemPrimary)
         return NetworkEnvironment(online: online, addresses: addresses, primary: primary, tunnels: tunnels.sorted())
     }
 }

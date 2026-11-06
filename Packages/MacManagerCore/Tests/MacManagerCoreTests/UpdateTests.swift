@@ -89,6 +89,14 @@ import Testing
     }
 }
 
+/// Checks that malformed validators cannot be reused and that valid weak tags survive parsing.
+@Test func releaseParserDropsInvalidETagValidators() throws {
+    for invalid in ["*", "bare", "\"first\", \"second\"", "\"white space\"", "\"a\nb\""] {
+        #expect(try GitHubReleaseClient.parse(Data(), status: 304, etag: invalid) == .notModified(etag: nil))
+    }
+    #expect(try GitHubReleaseClient.parse(Data(), status: 304, etag: "W/\"weak\"") == .notModified(etag: "W/\"weak\""))
+}
+
 private actor UpdateFetchCounter {
     var count = 0
     let payload: UpdateCheckPayload
@@ -271,6 +279,7 @@ private actor UpdateFetchCounter {
     #expect(noRelease.status == .noPublicRelease)
 }
 
+/// Exercises cache recovery for orphaned validators, contradictory outcomes, and invalid releases.
 @MainActor
 @Test func updateServiceDiscardsInconsistentCacheState() throws {
     let release = compatibleRelease("0.2.0")
@@ -285,7 +294,11 @@ private actor UpdateFetchCounter {
         UpdateCache(outcome: .release),
         UpdateCache(etag: "\"release\"", outcome: .release, release: invalidRelease),
         UpdateCache(etag: "\"empty\"", outcome: .noPublicRelease, release: release),
-        UpdateCache(release: release)
+        UpdateCache(release: release),
+        UpdateCache(outcome: .release, release: UpdateRelease(
+            version: .init(major: 2, minor: -1, patch: 0), tag: "v2.-1.0",
+            pageURL: URL(string: "https://github.com/MrDeex1k/MacManager/releases/tag/v2.-1.0")!,
+            assetName: "MacManager-v2.-1.0-arm64.dmg"))
     ]
 
     for cache in inconsistentCaches {
@@ -326,6 +339,42 @@ private actor UpdateFetchCounter {
     #expect(report.contains("last_error.updates: none"))
 }
 
+/// Simulates an error recorded before the system clock was corrected.
+@MainActor @Test func diagnosticsAcceptCurrentErrorAfterClockCorrection() {
+    let diagnostics = DiagnosticsStore()
+    let corrected = Date().addingTimeInterval(-60)
+    let wrongClock = corrected.addingTimeInterval(86_400)
+    let earlierFuture = wrongClock.addingTimeInterval(-60)
+    diagnostics.record(.network, kind: "timeout", at: wrongClock)
+    diagnostics.record(.network, kind: "transport", at: earlierFuture)
+    #expect(diagnostics.lastErrors[.network] == .init(kind: "timeout", date: wrongClock))
+
+    diagnostics.record(.network, kind: "offline", at: corrected)
+    #expect(diagnostics.lastErrors[.network] == .init(kind: "offline", date: corrected))
+
+    diagnostics.record(.network, kind: "transport", at: corrected.addingTimeInterval(-1))
+    diagnostics.record(.network, kind: "timeout", at: Date(timeIntervalSinceReferenceDate: .infinity))
+    #expect(diagnostics.lastErrors[.network] == .init(kind: "offline", date: corrected))
+}
+
+/// Checks that export rejects injected fields and that ordinary older errors cannot replace newer ones.
+@MainActor @Test func diagnosticsRejectRawErrorsAndInjectedLinesAtExport() {
+    let date = Date(timeIntervalSince1970: 0)
+    let report = DiagnosticReportSnapshot(
+        generatedAt: date,
+        values: [("app_version", "0.1.0\npretend_key: fake"), ("bad\nkey", "fake")],
+        errors: [.network: .init(kind: "203.0.113.7", date: date)]
+    ).render()
+    #expect(report.contains("app_version: redacted"))
+    #expect(report.contains("last_error.network.kind: redacted"))
+    #expect(!report.contains("203.0.113.7") && !report.contains("fake"))
+
+    let diagnostics = DiagnosticsStore()
+    diagnostics.record(.network, kind: "timeout", at: date.addingTimeInterval(10))
+    diagnostics.record(.network, kind: "offline", at: date)
+    #expect(diagnostics.lastErrors[.network]?.kind == "timeout")
+}
+
 private func compatibleRelease(_ version: String) -> UpdateRelease {
     let semantic = SemanticVersion.parse(version)!
     return UpdateRelease(
@@ -358,6 +407,7 @@ private actor PendingUpdateFetch {
     func finish() { continuation?.resume(returning: .noPublicRelease(etag: nil)); continuation = nil }
 }
 
+/// Holds an automatic fetch open to verify that scheduling and cache writes respect cancellation.
 @MainActor @Test func updatesDoNotScheduleAgainWhileFetchIsPendingAndDiscardCancelledResponse() async throws {
     let suite = "MacManagerUpdateScheduling.\(UUID())"
     let defaults = try #require(UserDefaults(suiteName: suite))
@@ -379,4 +429,72 @@ private actor PendingUpdateFetch {
     #expect(service.lastAttempt == nil)
     #expect(service.status == .neverChecked)
     #expect(service.nextAutomaticDate(now: Date()) != nil)
+}
+
+/// Disconnects before a held fetch completes and checks that the late response cannot update the cache.
+@MainActor @Test func goingOfflineInvalidatesPendingUpdateResult() async throws {
+    let suite = "MacManagerOffline.\(UUID())"
+    let defaults = try #require(UserDefaults(suiteName: suite))
+    defer { defaults.removePersistentDomain(forName: suite) }
+    let pending = PendingUpdateFetch()
+    let service = UpdateService(preferences: PreferencesStore(defaults: defaults), installedVersion: "0.8.0",
+        diagnostics: DiagnosticsStore(), fetch: { _ in await pending.fetch() })
+    service.setOnline(true)
+    let task = Task { await service.check(trigger: .manual, now: Date()) }
+    #expect(await waitUntil { await pending.isPending })
+    service.setOnline(false)
+    #expect(service.status == .offline)
+    await pending.finish()
+    _ = await task.value
+    #expect(service.lastAttempt == nil && service.status == .offline)
+}
+
+/// Compares automatic and manual requests when automatic checking is disabled in flight.
+@MainActor @Test func disablingAutomaticChecksCancelsOnlyAutomaticRequests() async throws {
+    for trigger in [UpdateCheckTrigger.automatic, .manual] {
+        let suite = "MacManagerUpdateToggle.\(UUID())"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let pending = PendingUpdateFetch()
+        let service = UpdateService(preferences: PreferencesStore(defaults: defaults), installedVersion: "0.8.0",
+            diagnostics: DiagnosticsStore(), fetch: { _ in await pending.fetch() })
+        service.setOnline(true)
+        let task = Task { await service.check(trigger: trigger, now: Date()) }
+        #expect(await waitUntil { await pending.isPending })
+        service.setAutomaticChecksEnabled(false)
+        await pending.finish()
+        _ = await task.value
+        #expect(service.status == (trigger == .automatic ? .neverChecked : .noPublicRelease))
+        #expect((service.lastAttempt == nil) == (trigger == .automatic))
+    }
+}
+
+/// Rejects a not-modified response when the cached validator was invalid.
+@MainActor @Test func unsolicitedNotModifiedDoesNotRefreshUnvalidatedCache() async throws {
+    let suite = "MacManagerUpdateValidator.\(UUID())"
+    let defaults = try #require(UserDefaults(suiteName: suite))
+    defer { defaults.removePersistentDomain(forName: suite) }
+    let preferences = PreferencesStore(defaults: defaults)
+    preferences.saveUpdateCache(.init(etag: "*", outcome: .noPublicRelease))
+    let service = UpdateService(preferences: preferences, installedVersion: "0.8.0",
+        diagnostics: DiagnosticsStore(), fetch: { _ in .notModified(etag: "\"new\"") })
+    service.setOnline(true)
+    #expect(await service.check(trigger: .manual, now: Date()))
+    #expect(service.status == .failed && service.lastSuccess == nil)
+    #expect(service.lastFailure?.kind == .invalidResponse)
+}
+
+/// Simulates a persisted future attempt and checks both manual and automatic eligibility.
+@MainActor @Test func futureUpdateAttemptDoesNotBlockChecksAfterClockCorrection() throws {
+    let suite = "MacManagerUpdateClock.\(UUID())"
+    let defaults = try #require(UserDefaults(suiteName: suite))
+    defer { defaults.removePersistentDomain(forName: suite) }
+    let preferences = PreferencesStore(defaults: defaults)
+    let now = Date(timeIntervalSince1970: 100)
+    preferences.saveUpdateCache(.init(lastAttempt: now.addingTimeInterval(1e20)))
+    let service = UpdateService(preferences: preferences, installedVersion: "0.8.0",
+        diagnostics: DiagnosticsStore(), fetch: { _ in .noPublicRelease(etag: nil) })
+    service.setOnline(true)
+    #expect(service.nextAutomaticDate(now: now) == now)
+    #expect(service.manualCheckIsAvailable(at: now))
 }

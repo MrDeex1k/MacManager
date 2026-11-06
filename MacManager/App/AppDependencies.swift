@@ -21,6 +21,7 @@ import MacManagerCore
 }
 
 extension AppDependencies {
+    /// Assembles the runtime services and substitutes isolated adapters for UI fixtures.
     init(energy: EnergyPolicy, diagnostics: DiagnosticsStore, artworkAccess: PodcastArtworkAccess,
          showsMainWindow: Bool, appVersion: String) {
         let arguments = UITestConfiguration.current.arguments
@@ -58,7 +59,7 @@ extension AppDependencies {
         launcher = LauncherController(preferences: preferences, testing: testing)
         clipboardController = ClipboardController(preferences: preferences, testing: testing, diagnostics: diagnostics)
         scroll = ScrollService(enabled: preferences.reverseMouseScroll, driver: scrollDriver, axes: preferences.scrollAxes)
-        network = NetworkService(enabled: !testing && preferences.publicIPEnabled)
+        network = NetworkService(enabled: !testing && preferences.publicIPEnabled, diagnostics: diagnostics)
         metrics = MetricsService(interval: preferences.samplingInterval)
         dock = DockController(showsDockIcon: preferences.appIntegration.showsDockIcon, mainWindowVisible: showsMainWindow)
         #if DEBUG
@@ -91,7 +92,7 @@ extension AppDependencies {
         ]
         if !testing {
             participants += [MusicController(service: music, source: .music), MusicController(service: podcasts, source: .podcast),
-                             NetworkController(service: network, diagnostics: diagnostics, energy: energy)]
+                             NetworkController(service: network, energy: energy)]
         }
         if !testing || arguments.contains("--live-metrics") {
             participants.append(MetricsController(service: metrics, diagnostics: diagnostics, energy: energy))

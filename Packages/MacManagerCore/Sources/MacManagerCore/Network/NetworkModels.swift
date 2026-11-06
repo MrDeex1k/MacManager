@@ -9,6 +9,7 @@ public enum IPv4 {
         }
     }
 
+    /// Accepts canonical IPv4 text outside the private and special-use ranges excluded by this lookup.
     public static func isPublic(_ value: String) -> Bool {
         guard isValid(value) else { return false }
         let p = value.split(separator: ".").compactMap { Int($0) }
@@ -18,6 +19,7 @@ public enum IPv4 {
             || (p[0] == 192 && p[1] == 168)
             || (p[0] == 192 && p[1] == 0 && p[2] == 0 && p[3] != 9 && p[3] != 10)
             || (p[0] == 192 && p[1] == 0 && p[2] == 2)
+            || (p[0] == 192 && p[1] == 88 && p[2] == 99) // Deprecated relay block and non-global 6a44 relay.
             || (p[0] == 198 && (p[1] == 18 || p[1] == 19 || (p[1] == 51 && p[2] == 100)))
             || (p[0] == 203 && p[1] == 0 && p[2] == 113))
     }

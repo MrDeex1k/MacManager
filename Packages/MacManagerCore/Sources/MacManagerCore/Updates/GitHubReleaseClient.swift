@@ -10,17 +10,21 @@ public struct GitHubReleaseClient: Sendable {
         self.appVersion = appVersion
     }
 
+    /// Checks the release endpoint with a validated conditional header and rejects an unsolicited 304.
     public func check(etag: String?) async throws -> UpdateCheckPayload {
         var request = URLRequest(url: Self.endpoint)
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
         request.setValue("2026-03-10", forHTTPHeaderField: "X-GitHub-Api-Version")
         request.setValue("MacManager/\(appVersion)", forHTTPHeaderField: "User-Agent")
-        if let etag = Self.validETag(etag) {
-            request.setValue(etag, forHTTPHeaderField: "If-None-Match")
+        let validator = Self.validETag(etag)
+        if let validator {
+            request.setValue(validator, forHTTPHeaderField: "If-None-Match")
         }
 
         do {
-            let (data, http) = try await BoundedHTTPClient.read(request, maximumBytes: Self.maximumResponseBytes, timeout: 8)
+            let (data, http) = try await BoundedHTTPClient.read(request, maximumBytes: Self.maximumResponseBytes,
+                                                               timeout: 8, bodyStatuses: [200])
+            if http.statusCode == 304 && validator == nil { throw UpdateCheckFailure(.invalidResponse) }
             return try Self.parse(
                 data,
                 status: http.statusCode,
@@ -31,6 +35,7 @@ public struct GitHubReleaseClient: Sendable {
         } catch let failure as UpdateCheckFailure {
             throw failure
         } catch let error as URLError {
+            try Task.checkCancellation()
             switch error.code {
             case .notConnectedToInternet, .networkConnectionLost:
                 throw UpdateCheckFailure(.offline)
@@ -46,11 +51,13 @@ public struct GitHubReleaseClient: Sendable {
         }
     }
 
+    /// Maps HTTP outcomes and accepts a stable release only with its matching uploaded arm64 artifact.
     public static func parse(
         _ data: Data,
         status: Int,
         etag: String?
     ) throws -> UpdateCheckPayload {
+        let etag = validETag(etag)
         switch status {
         case 304:
             return .notModified(etag: etag)
@@ -118,7 +125,8 @@ public struct GitHubReleaseClient: Sendable {
         )
     }
 
-    private static func validReleasePage(_ url: URL, tag: String) -> Bool {
+    /// Requires the exact repository release page for the supplied tag.
+    static func validReleasePage(_ url: URL, tag: String) -> Bool {
         guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return false }
         return components.scheme == "https"
             && components.host?.lowercased() == "github.com"
@@ -127,14 +135,16 @@ public struct GitHubReleaseClient: Sendable {
             && components.password == nil
             && components.query == nil
             && components.fragment == nil
-            && components.path == "/MrDeex1k/MacManager/releases/tag/\(tag)"
+            && components.percentEncodedPath == "/MrDeex1k/MacManager/releases/tag/\(tag)"
     }
 
-    private static func validETag(_ value: String?) -> String? {
-        guard let value, !value.isEmpty, value.utf8.count <= 256,
-              value.unicodeScalars.allSatisfy({ $0.value >= 32 && $0.value != 127 }) else {
-            return nil
-        }
+    /// Accepts a single bounded, quoted ASCII validator, including the weak form.
+    static func validETag(_ value: String?) -> String? {
+        guard let value, value.utf8.count <= 256 else { return nil }
+        let tag = value.hasPrefix("W/") ? value.dropFirst(2) : value[...]
+        // This client accepts one quoted ASCII validator, never "*" or a list.
+        guard tag.utf8.count >= 2, tag.utf8.first == 34, tag.utf8.last == 34,
+              tag.utf8.dropFirst().dropLast().allSatisfy({ $0 == 33 || (35...126).contains($0) }) else { return nil }
         return value
     }
 }

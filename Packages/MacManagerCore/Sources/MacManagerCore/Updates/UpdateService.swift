@@ -21,8 +21,10 @@ public final class UpdateService {
     @ObservationIgnored private let diagnostics: DiagnosticsStore
     @ObservationIgnored private let clock: @Sendable () -> Date
     @ObservationIgnored private var request: Task<UpdateCheckPayload, Error>?
+    @ObservationIgnored private var requestTrigger: UpdateCheckTrigger?
     @ObservationIgnored private var requestGeneration = 0
 
+    /// Restores update state from a consistent cache and drops invalid release or validator data.
     public init(
         preferences: PreferencesStore,
         installedVersion: String,
@@ -37,6 +39,7 @@ public final class UpdateService {
         self.fetch = fetch
 
         var cache = preferences.updateCache
+        let originalCache = cache
         let cacheIsConsistent: Bool
         switch cache.outcome {
         case nil:
@@ -50,8 +53,9 @@ public final class UpdateService {
             cache.etag = nil
             cache.outcome = nil
             cache.release = nil
-            preferences.saveUpdateCache(cache)
         }
+        cache.etag = GitHubReleaseClient.validETag(cache.etag)
+        if cache != originalCache { preferences.saveUpdateCache(cache) }
         status = Self.status(for: cache, installedVersion: self.installedVersion)
     }
 
@@ -80,19 +84,24 @@ public final class UpdateService {
         return release
     }
 
+    /// Invalidates an active request when the connection goes offline.
     public func setOnline(_ online: Bool) {
         isOnline = online
+        if !online { cancelCheck(); return }
         guard request == nil else { return }
-        status = online ? cachedStatus : .offline
+        status = cachedStatus
     }
 
+    /// Persists the preference and cancels only automatic requests when disabling it.
     public func setAutomaticChecksEnabled(_ enabled: Bool) {
         preferences.automaticUpdateChecksEnabled = enabled
+        if !enabled, requestTrigger == .automatic { cancelCheck() }
     }
 
+    /// Returns the next automatic deadline only while automatic checks are enabled and idle.
     public func nextAutomaticDate(now: Date) -> Date? {
         guard automaticChecksEnabled, request == nil else { return nil }
-        return lastAttempt.map { $0.addingTimeInterval(Self.automaticInterval) } ?? now
+        return checkDeadline(after: Self.automaticInterval, now: now) ?? now
     }
 
     public func automaticCheckIsDue(at now: Date) -> Bool {
@@ -100,15 +109,28 @@ public final class UpdateService {
         return nextAutomaticDate(now: now).map { $0 <= now } ?? false
     }
 
+    /// Allows a manual request after its cooldown while no request is active.
     public func manualCheckIsAvailable(at now: Date) -> Bool {
-        guard request == nil else { return false }
-        guard let lastAttempt else { return true }
-        return now.timeIntervalSince(lastAttempt) >= Self.manualCooldown
+        request == nil && (manualCooldownDeadline(now: now).map { $0 <= now } ?? true)
     }
 
+    /// Exposes the last valid attempt's deadline so the UI can reevaluate its manual button.
+    public func manualCooldownDeadline(now: Date) -> Date? {
+        checkDeadline(after: Self.manualCooldown, now: now)
+    }
+
+    /// Computes a deadline from an attempt that is at or before the current clock.
+    private func checkDeadline(after interval: TimeInterval, now: Date) -> Date? {
+        // A wall-clock correction can move a persisted attempt into the future.
+        guard let lastAttempt, lastAttempt <= now else { return nil }
+        return lastAttempt.addingTimeInterval(interval)
+    }
+
+    /// Runs one eligible check and returns whether it started. Only the active request
+    /// generation can update the cache or publish a failure.
     @discardableResult
     public func check(trigger: UpdateCheckTrigger, now: Date) async -> Bool {
-        guard request == nil else { return false }
+        guard !Task.isCancelled, request == nil else { return false }
         guard isOnline else {
             status = .offline
             diagnostics.record(.updates, kind: UpdateFailureKind.offline.rawValue, at: now)
@@ -121,38 +143,39 @@ public final class UpdateService {
             guard manualCheckIsAvailable(at: now) else { return false }
         }
 
-        let cache = preferences.updateCache
+        let validator = GitHubReleaseClient.validETag(preferences.updateCache.etag)
         status = .checking
         MacManagerLog.updates.info("Release check started")
 
-        let task = Task { try await fetch(cache.etag) }
+        let task = Task {
+            try Task.checkCancellation()
+            return try await fetch(validator)
+        }
         request = task
+        requestTrigger = trigger
         let token = requestGeneration
-        defer { if token == requestGeneration { request = nil } }
+        defer { if token == requestGeneration { request = nil; requestTrigger = nil } }
 
         do {
-            let payload = try await task.value
+            let payload = try await withTaskCancellationHandler { try await task.value } onCancel: { task.cancel() }
             guard token == requestGeneration else { return true }
-            try apply(payload, at: clock())
+            try Task.checkCancellation()
+            try apply(payload, validator: validator, at: clock())
             MacManagerLog.updates.info("Release check completed")
-        } catch is CancellationError {
-            guard token == requestGeneration else { return true }
-            status = cachedStatus
-            return true
-        } catch let failure as UpdateCheckFailure {
-            guard token == requestGeneration else { return true }
-            applyFailure(failure.kind, at: clock())
         } catch {
             guard token == requestGeneration else { return true }
-            applyFailure(.transport, at: clock())
+            if Task.isCancelled || task.isCancelled { refreshAfterCancellation() }
+            else { applyFailure((error as? UpdateCheckFailure)?.kind ?? .transport, at: clock()) }
         }
         return true
     }
 
+    /// Invalidates in-flight results and restores the display from connectivity and cached status.
     public func cancelCheck() {
         requestGeneration += 1
         request?.cancel(); request = nil
-        status = isOnline ? cachedStatus : .offline
+        requestTrigger = nil
+        refreshAfterCancellation()
     }
 
     public func refreshStatus() {
@@ -164,21 +187,28 @@ public final class UpdateService {
         Self.status(for: preferences.updateCache, installedVersion: installedVersion)
     }
 
-    private func apply(_ payload: UpdateCheckPayload, at date: Date) throws {
+    /// Restores the visible status without consuming a check attempt.
+    private func refreshAfterCancellation() { status = isOnline ? cachedStatus : .offline }
+
+    /// Applies a validated response. A not-modified response must match the validator of
+    /// the cached outcome before it can count as a successful check.
+    private func apply(_ payload: UpdateCheckPayload, validator: String?, at date: Date) throws {
         var cache = preferences.updateCache
         switch payload {
         case let .notModified(etag):
-            guard cache.outcome != nil else { throw UpdateCheckFailure(.invalidResponse) }
-            if let etag { cache.etag = etag }
+            guard let validator, cache.etag == validator, cache.outcome != nil else {
+                throw UpdateCheckFailure(.invalidResponse)
+            }
+            if let etag = GitHubReleaseClient.validETag(etag) { cache.etag = etag }
         case let .noPublicRelease(etag):
-            cache.etag = etag
+            cache.etag = GitHubReleaseClient.validETag(etag)
             cache.outcome = .noPublicRelease
             cache.release = nil
         case let .release(release, etag):
             guard Self.validCachedRelease(release) else {
                 throw UpdateCheckFailure(.invalidResponse)
             }
-            cache.etag = etag
+            cache.etag = GitHubReleaseClient.validETag(etag)
             cache.outcome = .release
             cache.release = release
         }
@@ -214,19 +244,10 @@ public final class UpdateService {
         }
     }
 
+    /// Requires cached version, tag, artifact name, and repository URL to agree.
     private static func validCachedRelease(_ release: UpdateRelease) -> Bool {
-        guard release.tag == release.version.tag,
-              release.assetName == "MacManager-\(release.tag)-arm64.dmg",
-              let components = URLComponents(url: release.pageURL, resolvingAgainstBaseURL: false) else {
-            return false
-        }
-        return components.scheme == "https"
-            && components.host?.lowercased() == "github.com"
-            && components.path == "/MrDeex1k/MacManager/releases/tag/\(release.tag)"
-            && components.query == nil
-            && components.user == nil
-            && components.password == nil
-            && components.port == nil
-            && components.fragment == nil
+        SemanticVersion.parseTag(release.tag) == release.version
+            && release.assetName == "MacManager-\(release.tag)-arm64.dmg"
+            && GitHubReleaseClient.validReleasePage(release.pageURL, tag: release.tag)
     }
 }

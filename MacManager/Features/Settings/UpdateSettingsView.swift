@@ -7,6 +7,7 @@ struct UpdateSettingsView: View {
     @State private var availabilityDate = Date()
     @State private var clockRevision = 0
 
+    /// Presents cached update status and reevaluates manual-check availability after a clock change.
     var body: some View {
         let strings = state.strings
         VStack(alignment: .leading, spacing: 16) {
@@ -86,9 +87,8 @@ struct UpdateSettingsView: View {
         .task(id: CooldownID(lastAttempt: state.updates.lastAttempt, clockRevision: clockRevision, visible: (state.mainWindowContentVisible && !state.energy.sleeping))) {
             guard (state.mainWindowContentVisible && !state.energy.sleeping) else { return }
             availabilityDate = Date()
-            guard let lastAttempt = state.updates.lastAttempt else { return }
-            let deadline = lastAttempt.addingTimeInterval(UpdateService.manualCooldown)
-            guard deadline > availabilityDate else { return }
+            guard let deadline = state.updates.manualCooldownDeadline(now: availabilityDate),
+                  deadline > availabilityDate else { return }
             do { try await Task.sleep(for: .seconds(deadline.timeIntervalSinceNow)) }
             catch { return }
             availabilityDate = Date()
