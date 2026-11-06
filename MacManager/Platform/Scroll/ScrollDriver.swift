@@ -55,9 +55,8 @@ final class ScrollDriver: ScrollDriving {
     }
 }
 
-/// The lock protects the stop gate, reported state and gesture observer resources.
-/// Tap and timeout counters belong to one worker thread. Keeping the gate locked during
-/// transformation makes stop() a barrier for event modification.
+/// The lock protects both taps and the classification shared by their callbacks.
+/// Keeping it locked during transformation makes stop() a barrier for event modification.
 private final class ScrollTapWorker: @unchecked Sendable {
     private let lock = NSLock()
     private var wanted = true
@@ -93,6 +92,7 @@ private final class ScrollTapWorker: @unchecked Sendable {
         Thread.detachNewThread { [self] in run() }
     }
 
+    /// Closes the callback gate before waking the worker run loop and removing the gesture tap.
     func stop() {
         let loop = lock.withLock {
             wanted = false
@@ -102,21 +102,31 @@ private final class ScrollTapWorker: @unchecked Sendable {
         }
         if let loop {
             // A queued stop also works if stop() races with entry into CFRunLoopRunInMode.
-            CFRunLoopPerformBlock(loop, CFRunLoopMode.defaultMode.rawValue) { CFRunLoopStop(loop) }
+            CFRunLoopPerformBlock(loop, CFRunLoopMode.defaultMode.rawValue) { CFRunLoopStop(CFRunLoopGetCurrent()) }
             CFRunLoopWakeUp(loop)
         }
         stopGestureObservation()
     }
 
-    private static let callback: CGEventTapCallBack = { _, type, event, context in
+    /// Routes scroll events and their tap-disable notifications to the worker.
+    private static let scrollCallback: CGEventTapCallBack = { _, type, event, context in
         guard let context else { return Unmanaged.passUnretained(event) }
         let worker = Unmanaged<ScrollTapWorker>.fromOpaque(context).takeUnretainedValue()
-        worker.handle(type, event: event)
+        worker.handle(type, event: event, isGestureTap: false)
+        return Unmanaged.passUnretained(event)
+    }
+
+    /// Supplies touch evidence and identifies the gesture tap for recovery.
+    private static let gestureCallback: CGEventTapCallBack = { _, type, event, context in
+        guard let context else { return Unmanaged.passUnretained(event) }
+        let worker = Unmanaged<ScrollTapWorker>.fromOpaque(context).takeUnretainedValue()
+        worker.handle(type, event: event, isGestureTap: true)
         return Unmanaged.passUnretained(event)
     }
 
     /// AppKit only reports gesture touches reliably from its main run loop. The modifying
     /// scroll tap remains on the worker thread so event transformation cannot stall the UI.
+    /// Invalidates the gesture tap if its run loop source cannot be created.
     private func startGestureObservation() -> Bool {
         precondition(Thread.isMainThread)
         guard let gestureTap = CGEvent.tapCreate(
@@ -124,9 +134,11 @@ private final class ScrollTapWorker: @unchecked Sendable {
             place: .tailAppendEventTap,
             options: .listenOnly,
             eventsOfInterest: NSEvent.EventTypeMask.gesture.rawValue,
-            callback: Self.callback,
+            callback: Self.gestureCallback,
             userInfo: Unmanaged.passUnretained(self).toOpaque()
-        ), let gestureSource = CFMachPortCreateRunLoopSource(nil, gestureTap, 0) else {
+        ) else { return false }
+        guard let gestureSource = CFMachPortCreateRunLoopSource(nil, gestureTap, 0) else {
+            CFMachPortInvalidate(gestureTap)
             return false
         }
         lock.withLock {
@@ -151,6 +163,7 @@ private final class ScrollTapWorker: @unchecked Sendable {
         }
     }
 
+    /// Owns the modifying tap and checks both taps for interruption when the run loop returns.
     private func run() {
         Thread.current.name = "Mac Manager scroll"
         let loop = CFRunLoopGetCurrent()!
@@ -173,12 +186,16 @@ private final class ScrollTapWorker: @unchecked Sendable {
         }
         guard let tap = CGEvent.tapCreate(tap: .cgSessionEventTap, place: .tailAppendEventTap,
                                          options: .defaultTap, eventsOfInterest: 1 << CGEventType.scrollWheel.rawValue,
-                                         callback: Self.callback, userInfo: Unmanaged.passUnretained(self).toOpaque()) else {
+                                         callback: Self.scrollCallback, userInfo: Unmanaged.passUnretained(self).toOpaque()) else {
             lock.withLock { if wanted { reported = .failed } }
             return
         }
-        self.tap = tap
-        defer { CGEvent.tapEnable(tap: tap, enable: false); CFMachPortInvalidate(tap); self.tap = nil }
+        lock.withLock { self.tap = tap }
+        defer {
+            lock.withLock { self.tap = nil }
+            CGEvent.tapEnable(tap: tap, enable: false)
+            CFMachPortInvalidate(tap)
+        }
         guard let source = CFMachPortCreateRunLoopSource(nil, tap, 0) else {
             lock.withLock { if wanted { reported = .failed } }
             return
@@ -188,7 +205,7 @@ private final class ScrollTapWorker: @unchecked Sendable {
         lock.withLock { if wanted { reported = .active } }
         // A slow watchdog catches invalidated taps even if no disable callback arrives.
         while lock.withLock({ wanted }) {
-            autoreleasepool { _ = CFRunLoopRunInMode(.defaultMode, 30, false) }
+            let result = autoreleasepool { CFRunLoopRunInMode(.defaultMode, 30, false) }
             lock.withLock {
                 guard let gestureTap else {
                     if wanted {
@@ -197,7 +214,7 @@ private final class ScrollTapWorker: @unchecked Sendable {
                     }
                     return
                 }
-                if wanted && (!CFMachPortIsValid(tap) || !CFMachPortIsValid(gestureTap)
+                if wanted && (result == .finished || !CFMachPortIsValid(tap) || !CFMachPortIsValid(gestureTap)
                     || !CGEvent.tapIsEnabled(tap: tap) || !CGEvent.tapIsEnabled(tap: gestureTap)) {
                     wanted = false
                     reported = .interrupted
@@ -206,19 +223,21 @@ private final class ScrollTapWorker: @unchecked Sendable {
         }
     }
 
-    private func handle(_ type: CGEventType, event: CGEvent) {
+    /// Handles touch evidence and wheel transformation under the same stop gate. Recovers
+    /// only the tap that timed out, within the retry budget.
+    private func handle(_ type: CGEventType, event: CGEvent, isGestureTap: Bool) {
         lock.withLock {
             guard wanted else { return }
             defer {
                 if !wanted, let runLoop {
-                    CFRunLoopPerformBlock(runLoop, CFRunLoopMode.defaultMode.rawValue) { CFRunLoopStop(runLoop) }
+                    CFRunLoopPerformBlock(runLoop, CFRunLoopMode.defaultMode.rawValue) { CFRunLoopStop(CFRunLoopGetCurrent()) }
                     CFRunLoopWakeUp(runLoop)
                 }
             }
             if type == .tapDisabledByTimeout {
-                if recovery.shouldRetry(at: MetricsTime.now()), let tap {
-                    CGEvent.tapEnable(tap: tap, enable: true)
-                    if let gestureTap { CGEvent.tapEnable(tap: gestureTap, enable: true) }
+                if let disabledTap = isGestureTap ? gestureTap : tap,
+                   CFMachPortIsValid(disabledTap), recovery.shouldRetry(at: MetricsTime.now()) {
+                    CGEvent.tapEnable(tap: disabledTap, enable: true)
                     classifier = ScrollSourceClassifier()
                     sourceResolver.reset()
                 } else {
@@ -232,11 +251,11 @@ private final class ScrollTapWorker: @unchecked Sendable {
                 reported = .interrupted
                 return
             }
-            if type.rawValue == NSEvent.EventType.gesture.rawValue {
+            if isGestureTap && type.rawValue == NSEvent.EventType.gesture.rawValue {
                 if let gesture = NSEvent(cgEvent: event) {
                     classifier.observeTouches(gesture.touches(matching: .touching, in: nil).count, at: MetricsTime.now())
                 }
-            } else if type == .scrollWheel {
+            } else if !isGestureTap && type == .scrollWheel && axes.hasEnabledAxis {
                 let now = MetricsTime.now()
                 let source = classifier.classify(event,
                     identified: sourceResolver.resolve(ScrollOrigin(event: event), at: now), at: now)

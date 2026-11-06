@@ -38,6 +38,8 @@ final class SystemTests: AppUITestSupport {
         XCTAssertEqual(switchValue(toggle), 0)
     }
 
+    /// Verifies that both axes can stay off across a relaunch while the main toggle stays on.
+    /// Also checks that one enabled axis restores active status and the labels localize.
     @MainActor
     func testIndependentScrollAxesPersistAndLocalize() throws {
         var app = launch(reset: true, scrollPermission: true)
@@ -55,11 +57,17 @@ final class SystemTests: AppUITestSupport {
         XCTAssertEqual(switchValue(vertical), 1)
         XCTAssertEqual(app.staticTexts["scroll.status"].value as? String, "Active")
         capture("Independent scroll axes EN", app: app)
+        vertical.click()
+        XCTAssertEqual(app.staticTexts["scroll.status"].value as? String, "Off")
+        XCTAssertEqual(switchValue(element("scroll.enabled", in: app)), 1)
         app.terminate()
         app = launch(reset: false, scrollPermission: true)
         element("navigation.scroll", in: app).click()
         XCTAssertEqual(switchValue(app.checkBoxes["scroll.axis.horizontal"]), 0)
-        XCTAssertEqual(switchValue(app.checkBoxes["scroll.axis.vertical"]), 1)
+        XCTAssertEqual(switchValue(app.checkBoxes["scroll.axis.vertical"]), 0)
+        XCTAssertEqual(app.staticTexts["scroll.status"].value as? String, "Off")
+        app.checkBoxes["scroll.axis.vertical"].click()
+        XCTAssertEqual(app.staticTexts["scroll.status"].value as? String, "Active")
         element("navigation.settings", in: app).click()
         element("settings.language", in: app).click()
         app.menuItems["Polski"].click()
