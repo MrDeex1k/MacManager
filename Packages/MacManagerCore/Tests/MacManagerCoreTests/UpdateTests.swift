@@ -89,6 +89,7 @@ import Testing
     }
 }
 
+/// Checks that malformed validators cannot be reused and that valid weak tags survive parsing.
 @Test func releaseParserDropsInvalidETagValidators() throws {
     for invalid in ["*", "bare", "\"first\", \"second\"", "\"white space\"", "\"a\nb\""] {
         #expect(try GitHubReleaseClient.parse(Data(), status: 304, etag: invalid) == .notModified(etag: nil))
@@ -278,6 +279,7 @@ private actor UpdateFetchCounter {
     #expect(noRelease.status == .noPublicRelease)
 }
 
+/// Exercises cache recovery for orphaned validators, contradictory outcomes, and invalid releases.
 @MainActor
 @Test func updateServiceDiscardsInconsistentCacheState() throws {
     let release = compatibleRelease("0.2.0")
@@ -337,6 +339,25 @@ private actor UpdateFetchCounter {
     #expect(report.contains("last_error.updates: none"))
 }
 
+/// Simulates an error recorded before the system clock was corrected.
+@MainActor @Test func diagnosticsAcceptCurrentErrorAfterClockCorrection() {
+    let diagnostics = DiagnosticsStore()
+    let corrected = Date().addingTimeInterval(-60)
+    let wrongClock = corrected.addingTimeInterval(86_400)
+    let earlierFuture = wrongClock.addingTimeInterval(-60)
+    diagnostics.record(.network, kind: "timeout", at: wrongClock)
+    diagnostics.record(.network, kind: "transport", at: earlierFuture)
+    #expect(diagnostics.lastErrors[.network] == .init(kind: "timeout", date: wrongClock))
+
+    diagnostics.record(.network, kind: "offline", at: corrected)
+    #expect(diagnostics.lastErrors[.network] == .init(kind: "offline", date: corrected))
+
+    diagnostics.record(.network, kind: "transport", at: corrected.addingTimeInterval(-1))
+    diagnostics.record(.network, kind: "timeout", at: Date(timeIntervalSinceReferenceDate: .infinity))
+    #expect(diagnostics.lastErrors[.network] == .init(kind: "offline", date: corrected))
+}
+
+/// Checks that export rejects injected fields and that ordinary older errors cannot replace newer ones.
 @MainActor @Test func diagnosticsRejectRawErrorsAndInjectedLinesAtExport() {
     let date = Date(timeIntervalSince1970: 0)
     let report = DiagnosticReportSnapshot(
@@ -386,6 +407,7 @@ private actor PendingUpdateFetch {
     func finish() { continuation?.resume(returning: .noPublicRelease(etag: nil)); continuation = nil }
 }
 
+/// Holds an automatic fetch open to verify that scheduling and cache writes respect cancellation.
 @MainActor @Test func updatesDoNotScheduleAgainWhileFetchIsPendingAndDiscardCancelledResponse() async throws {
     let suite = "MacManagerUpdateScheduling.\(UUID())"
     let defaults = try #require(UserDefaults(suiteName: suite))
@@ -409,6 +431,7 @@ private actor PendingUpdateFetch {
     #expect(service.nextAutomaticDate(now: Date()) != nil)
 }
 
+/// Disconnects before a held fetch completes and checks that the late response cannot update the cache.
 @MainActor @Test func goingOfflineInvalidatesPendingUpdateResult() async throws {
     let suite = "MacManagerOffline.\(UUID())"
     let defaults = try #require(UserDefaults(suiteName: suite))
@@ -426,6 +449,7 @@ private actor PendingUpdateFetch {
     #expect(service.lastAttempt == nil && service.status == .offline)
 }
 
+/// Compares automatic and manual requests when automatic checking is disabled in flight.
 @MainActor @Test func disablingAutomaticChecksCancelsOnlyAutomaticRequests() async throws {
     for trigger in [UpdateCheckTrigger.automatic, .manual] {
         let suite = "MacManagerUpdateToggle.\(UUID())"
@@ -445,6 +469,7 @@ private actor PendingUpdateFetch {
     }
 }
 
+/// Rejects a not-modified response when the cached validator was invalid.
 @MainActor @Test func unsolicitedNotModifiedDoesNotRefreshUnvalidatedCache() async throws {
     let suite = "MacManagerUpdateValidator.\(UUID())"
     let defaults = try #require(UserDefaults(suiteName: suite))
@@ -459,6 +484,7 @@ private actor PendingUpdateFetch {
     #expect(service.lastFailure?.kind == .invalidResponse)
 }
 
+/// Simulates a persisted future attempt and checks both manual and automatic eligibility.
 @MainActor @Test func futureUpdateAttemptDoesNotBlockChecksAfterClockCorrection() throws {
     let suite = "MacManagerUpdateClock.\(UUID())"
     let defaults = try #require(UserDefaults(suiteName: suite))

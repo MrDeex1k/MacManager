@@ -24,6 +24,7 @@ public final class UpdateService {
     @ObservationIgnored private var requestTrigger: UpdateCheckTrigger?
     @ObservationIgnored private var requestGeneration = 0
 
+    /// Restores update state from a consistent cache and drops invalid release or validator data.
     public init(
         preferences: PreferencesStore,
         installedVersion: String,
@@ -83,6 +84,7 @@ public final class UpdateService {
         return release
     }
 
+    /// Invalidates an active request when the connection goes offline.
     public func setOnline(_ online: Bool) {
         isOnline = online
         if !online { cancelCheck(); return }
@@ -90,11 +92,13 @@ public final class UpdateService {
         status = cachedStatus
     }
 
+    /// Persists the preference and cancels only automatic requests when disabling it.
     public func setAutomaticChecksEnabled(_ enabled: Bool) {
         preferences.automaticUpdateChecksEnabled = enabled
         if !enabled, requestTrigger == .automatic { cancelCheck() }
     }
 
+    /// Returns the next automatic deadline only while automatic checks are enabled and idle.
     public func nextAutomaticDate(now: Date) -> Date? {
         guard automaticChecksEnabled, request == nil else { return nil }
         return checkDeadline(after: Self.automaticInterval, now: now) ?? now
@@ -105,20 +109,25 @@ public final class UpdateService {
         return nextAutomaticDate(now: now).map { $0 <= now } ?? false
     }
 
+    /// Allows a manual request after its cooldown while no request is active.
     public func manualCheckIsAvailable(at now: Date) -> Bool {
         request == nil && (manualCooldownDeadline(now: now).map { $0 <= now } ?? true)
     }
 
+    /// Exposes the last valid attempt's deadline so the UI can reevaluate its manual button.
     public func manualCooldownDeadline(now: Date) -> Date? {
         checkDeadline(after: Self.manualCooldown, now: now)
     }
 
+    /// Computes a deadline from an attempt that is at or before the current clock.
     private func checkDeadline(after interval: TimeInterval, now: Date) -> Date? {
         // A wall-clock correction can move a persisted attempt into the future.
         guard let lastAttempt, lastAttempt <= now else { return nil }
         return lastAttempt.addingTimeInterval(interval)
     }
 
+    /// Runs one eligible check and returns whether it started. Only the active request
+    /// generation can update the cache or publish a failure.
     @discardableResult
     public func check(trigger: UpdateCheckTrigger, now: Date) async -> Bool {
         guard !Task.isCancelled, request == nil else { return false }
@@ -161,6 +170,7 @@ public final class UpdateService {
         return true
     }
 
+    /// Invalidates in-flight results and restores the display from connectivity and cached status.
     public func cancelCheck() {
         requestGeneration += 1
         request?.cancel(); request = nil
@@ -177,8 +187,11 @@ public final class UpdateService {
         Self.status(for: preferences.updateCache, installedVersion: installedVersion)
     }
 
+    /// Restores the visible status without consuming a check attempt.
     private func refreshAfterCancellation() { status = isOnline ? cachedStatus : .offline }
 
+    /// Applies a validated response. A not-modified response must match the validator of
+    /// the cached outcome before it can count as a successful check.
     private func apply(_ payload: UpdateCheckPayload, validator: String?, at date: Date) throws {
         var cache = preferences.updateCache
         switch payload {
@@ -231,6 +244,7 @@ public final class UpdateService {
         }
     }
 
+    /// Requires cached version, tag, artifact name, and repository URL to agree.
     private static func validCachedRelease(_ release: UpdateRelease) -> Bool {
         SemanticVersion.parseTag(release.tag) == release.version
             && release.assetName == "MacManager-\(release.tag)-arm64.dmg"

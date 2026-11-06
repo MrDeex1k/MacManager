@@ -2,6 +2,7 @@ import AppKit
 import XCTest
 
 final class UpdatesTests: AppUITestSupport {
+    /// Exercises update settings across relaunch and verifies the exported report on an isolated pasteboard.
     @MainActor
     func testUpdateSettingsCacheAndLocalDiagnostics() throws {
         let pasteboard = NSPasteboard(name: .init("MacManagerDiagnosticsTests-\(UUID().uuidString)"))

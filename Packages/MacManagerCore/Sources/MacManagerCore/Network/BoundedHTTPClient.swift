@@ -9,6 +9,8 @@ private final class RefuseHTTPRedirects: NSObject, URLSessionTaskDelegate, @unch
 /// Transport only. Endpoint, headers, status semantics and payload validation belong to callers.
 enum BoundedHTTPClient {
     enum Failure: Error { case invalidResponse }
+    /// Reads an HTTP response with bounded time and bytes, using a copy of the supplied configuration.
+    /// When body statuses are specified, returns other accepted responses without consuming their bodies.
     static func read(_ request: URLRequest, maximumBytes: Int, timeout: TimeInterval,
                      acceptedStatuses: Set<Int>? = nil,
                      bodyStatuses: Set<Int>? = nil,

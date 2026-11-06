@@ -19,6 +19,7 @@ final class UpdateController: ApplicationLifecycleParticipant {
         self.energy = energy
     }
 
+    /// Reschedules on connectivity, sleep, clock, and energy changes. Defers automatic checks after wake.
     func start() {
         guard !isRunning else { return }
         isRunning = true
@@ -56,6 +57,7 @@ final class UpdateController: ApplicationLifecycleParticipant {
                                 apply: { [weak self] _ in self?.scheduleNextCheck() })
     }
 
+    /// Cancels the timer and marks the service offline to invalidate any pending request.
     func stop() {
         guard isRunning else { return }
         isRunning = false
@@ -73,12 +75,15 @@ final class UpdateController: ApplicationLifecycleParticipant {
         scheduleNextCheck()
     }
 
+    /// Requests a manual check while awake and reevaluates automatic scheduling afterward.
     func checkNow() async {
         guard !isSuspended, energy?.sleeping != true else { return }
         _ = await service.check(trigger: .manual, now: Date())
         scheduleNextCheck()
     }
 
+    /// Arms a timer for the later of the service deadline and the wake delay.
+    /// Clears the timer handle before fetching so rescheduling does not cancel an active check.
     private func scheduleNextCheck() {
         scheduledCheck?.cancel()
         scheduledCheck = nil

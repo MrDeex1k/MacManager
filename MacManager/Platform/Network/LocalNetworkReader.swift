@@ -6,6 +6,7 @@ import SystemConfiguration
 actor LocalNetworkReader {
     private let store = SCDynamicStoreCreate(nil, "MacManager" as CFString, nil, nil)
     private let preferences = SCPreferencesCreate(nil, "MacManager" as CFString, nil)
+    /// Reads local interfaces and chooses a LAN address from active physical services in system order.
     func read(online: Bool) -> NetworkEnvironment {
         var addresses: [NetworkAddress] = []
         var tunnels = Set<String>()

@@ -141,6 +141,7 @@ class AppUITestSupport: XCTestCase {
         }
     }
 
+    /// Launches the app with isolated adapters and optional named pasteboards for fixture assertions.
     @MainActor
     func launch(
         reset: Bool,

@@ -13,6 +13,7 @@ public final class NetworkService {
     public var nextRefreshDeadline: TimeInterval? {
         enabled && !suspended && receivedEnvironment && environment.online && request == nil ? nextAttempt : nil
     }
+    /// Updates the regular lookup cadence without replacing a route-change or cancellation deadline.
     public func setRefreshInterval(_ seconds: Double) {
         guard seconds.isFinite, seconds >= 30 else { return }
         refreshIntervalSeconds = seconds
@@ -27,6 +28,7 @@ public final class NetworkService {
     @ObservationIgnored private var receivedEnvironment = false
     @ObservationIgnored private var suspended = false
 
+    /// Accepts an injectable public address lookup and optional diagnostic recorder.
     public init(enabled: Bool = true, diagnostics: DiagnosticsStore? = nil,
                 lookup: @escaping @Sendable () async throws -> String = PublicIPClient.lookup) {
         self.enabled = enabled; self.diagnostics = diagnostics; self.lookup = lookup
@@ -43,6 +45,7 @@ public final class NetworkService {
         nextAttempt = max(now + (first ? 0 : 2), (lastAttempt ?? -.infinity) + 30)
     }
 
+    /// Clears route-dependent public data immediately while keeping the last local interface snapshot.
     public func pathChanged(now: TimeInterval, online: Bool? = nil) {
         if let online, online != environment.online {
             environment = NetworkEnvironment(online: online, addresses: environment.addresses,
@@ -70,6 +73,8 @@ public final class NetworkService {
         enabled && !suspended && receivedEnvironment && environment.online && request == nil && now >= nextAttempt
     }
 
+    /// Starts one lookup for the current online environment. Publishes only validated results
+    /// from the current generation and treats cancellation as a deferred retry.
     public func refresh(now: TimeInterval, manual: Bool = false) async {
         guard !Task.isCancelled, enabled, !suspended, receivedEnvironment, environment.online, request == nil,
               manual || now >= nextAttempt else { return }

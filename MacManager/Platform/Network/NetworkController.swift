@@ -21,11 +21,13 @@ final class NetworkController: ApplicationLifecycleParticipant {
     private var lastRead = -Double.infinity
     private let energyObservation = ObservationSubscription()
 
+    /// Uses the supplied energy policy when present and defaults to ordinary polling intervals otherwise.
     init(service: NetworkService, energy: EnergyPolicy? = nil) {
         self.service = service
         self.energy = energy
     }
 
+    /// Observes IPv4 reachability, sleep, and energy settings to invalidate stale work and reschedule reads.
     func start() {
         guard !running else { return }
         running = true
@@ -57,6 +59,8 @@ final class NetworkController: ApplicationLifecycleParticipant {
         }, apply: { [weak self] in self?.schedule() })
     }
 
+    /// Prefers configuration notifications for local changes and polls as a fallback.
+    /// Runs public lookups separately so a route change can invalidate them while they are in flight.
     private func schedule() {
         guard running else { return }
         loop?.cancel(); loop = nil
@@ -108,6 +112,7 @@ final class NetworkController: ApplicationLifecycleParticipant {
         }
     }
 
+    /// Invalidates route-dependent data immediately and coalesces bursts of local interface notifications.
     private func configurationChanged(routeChanged: Bool) {
         guard running, !suspended else { return }
         revision += 1
@@ -123,6 +128,7 @@ final class NetworkController: ApplicationLifecycleParticipant {
         }
     }
 
+    /// Removes observation and cancels scheduled work before suspending the network service.
     func stop() {
         running = false
         energyObservation.stop()

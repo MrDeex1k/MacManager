@@ -12,6 +12,7 @@ enum DiagnosticReportBuilder {
         ("mac_model", hardwareModel())
     ]
 
+    /// Builds the export from selected runtime fields and fills in a missing update error from the cache.
     static func make(state: AppState, now: Date = Date()) -> String {
         var errors = state.diagnostics.lastErrors
         if errors[.updates] == nil, let failure = state.updates.lastFailure {
@@ -77,6 +78,7 @@ enum DiagnosticReportBuilder {
         return "unavailable"
     }
 
+    /// Treats permission as unrequested when reversal is off and otherwise reports the first missing grant.
     private static func scrollPermission(_ service: ScrollService) -> String {
         if service.status == .off { return "notRequested" }
         if !service.accessibilityGranted { return "accessibilityRequired" }
@@ -102,6 +104,7 @@ enum DiagnosticReportBuilder {
         }
     }
 
+    /// Uses a locale-independent date or the report's marker for an attempt that has never run.
     private static func formatted(_ date: Date?) -> String {
         guard let date else { return "never" }
         return date.ISO8601Format()

@@ -5,6 +5,7 @@ import Testing
 private final class SyntheticHTTPProtocol: URLProtocol, @unchecked Sendable {
     override class func canInit(with request: URLRequest) -> Bool { true }
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+    /// Sends synthetic status and body combinations without accessing the network.
     override func startLoading() {
         let path = request.url?.path
         let status = path == "/redirect" ? 302 : path == "/error" ? 503 : 200
@@ -17,6 +18,7 @@ private final class SyntheticHTTPProtocol: URLProtocol, @unchecked Sendable {
     override func stopLoading() {}
 }
 
+/// Checks status-only handling at a zero-byte budget and rejects a declared oversized success body.
 @Test func boundedHTTPDoesNotConsumeErrorBodiesOrMutateSuppliedConfiguration() async throws {
     let configuration = URLSessionConfiguration.ephemeral
     configuration.protocolClasses = [SyntheticHTTPProtocol.self]

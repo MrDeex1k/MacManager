@@ -2,6 +2,7 @@ import Foundation
 import Testing
 @testable import MacManagerCore
 
+/// Covers canonical IPv4 parsing and excludes local, documentation, and reserved address ranges.
 @Test func publicIPv4RejectsMalformedAndNonPublicPayloads() throws {
     for value in ["8.8.4.4", "192.0.1.1", "192.0.0.9", "192.0.0.10"] {
         let data = try JSONEncoder().encode(["ip": value])
@@ -70,6 +71,7 @@ private actor DeferredLookup {
     #expect(service.state == .disabled && service.publicAddress == nil)
 }
 
+/// Holds the lookup open during cancellation to verify request exclusivity and late-result handling.
 @MainActor @Test func cancelledPublicIPRefreshDoesNotPublishOrStartAnotherLookup() async {
     let lookup = DeferredLookup()
     let service = NetworkService { await lookup.lookup() }
@@ -90,6 +92,7 @@ private actor DeferredLookup {
     #expect(await counter.count == 0)
 }
 
+/// Checks that a timed-out lookup and subsequent sleep leave the public address unavailable.
 @MainActor @Test func networkFailureAndSleepDoNotInventAnAddress() async {
     let diagnostics = DiagnosticsStore()
     let service = NetworkService(diagnostics: diagnostics) { throw URLError(.timedOut) }
@@ -104,6 +107,7 @@ private actor DeferredLookup {
     #expect(service.state == .waiting)
 }
 
+/// Drops a public address immediately on disconnect while preserving the previous local snapshot.
 @MainActor @Test func offlinePathClearsPublicIPBeforeLocalInterfacesAreRead() async {
     let counter = LookupCounter()
     let service = NetworkService { await counter.lookup() }

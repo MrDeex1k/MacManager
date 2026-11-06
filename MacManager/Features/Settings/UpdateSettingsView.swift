@@ -7,6 +7,7 @@ struct UpdateSettingsView: View {
     @State private var availabilityDate = Date()
     @State private var clockRevision = 0
 
+    /// Presents cached update status and reevaluates manual-check availability after a clock change.
     var body: some View {
         let strings = state.strings
         VStack(alignment: .leading, spacing: 16) {

@@ -44,6 +44,7 @@ struct DiagnosticsView: View {
         .accessibilityIdentifier("diagnostics.content")
     }
 
+    /// Marks the report for exclusion from history and shows confirmation only after a successful write.
     private func copyReport(_ report: String) {
         let pasteboard = reportPasteboard
         copied = false
@@ -53,6 +54,7 @@ struct DiagnosticsView: View {
         } catch { /* Do not report success when the pasteboard rejects the write. */ }
     }
 
+    /// Uses a dedicated pasteboard when the Debug UI fixture supplies its expected name.
     private var reportPasteboard: NSPasteboard {
         #if DEBUG
         if UITestConfiguration.current.enabled,

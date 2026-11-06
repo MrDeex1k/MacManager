@@ -21,6 +21,7 @@ import MacManagerCore
 }
 
 extension AppDependencies {
+    /// Assembles the runtime services and substitutes isolated adapters for UI fixtures.
     init(energy: EnergyPolicy, diagnostics: DiagnosticsStore, artworkAccess: PodcastArtworkAccess,
          showsMainWindow: Bool, appVersion: String) {
         let arguments = UITestConfiguration.current.arguments

@@ -10,6 +10,7 @@ public struct GitHubReleaseClient: Sendable {
         self.appVersion = appVersion
     }
 
+    /// Checks the release endpoint with a validated conditional header and rejects an unsolicited 304.
     public func check(etag: String?) async throws -> UpdateCheckPayload {
         var request = URLRequest(url: Self.endpoint)
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
@@ -50,6 +51,7 @@ public struct GitHubReleaseClient: Sendable {
         }
     }
 
+    /// Maps HTTP outcomes and accepts a stable release only with its matching uploaded arm64 artifact.
     public static func parse(
         _ data: Data,
         status: Int,
@@ -123,6 +125,7 @@ public struct GitHubReleaseClient: Sendable {
         )
     }
 
+    /// Requires the exact repository release page for the supplied tag.
     static func validReleasePage(_ url: URL, tag: String) -> Bool {
         guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return false }
         return components.scheme == "https"
@@ -135,6 +138,7 @@ public struct GitHubReleaseClient: Sendable {
             && components.percentEncodedPath == "/MrDeex1k/MacManager/releases/tag/\(tag)"
     }
 
+    /// Accepts a single bounded, quoted ASCII validator, including the weak form.
     static func validETag(_ value: String?) -> String? {
         guard let value, value.utf8.count <= 256 else { return nil }
         let tag = value.hasPrefix("W/") ? value.dropFirst(2) : value[...]

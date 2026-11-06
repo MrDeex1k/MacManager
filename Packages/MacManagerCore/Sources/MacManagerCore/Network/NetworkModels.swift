@@ -9,6 +9,7 @@ public enum IPv4 {
         }
     }
 
+    /// Accepts canonical IPv4 text outside the private and special-use ranges excluded by this lookup.
     public static func isPublic(_ value: String) -> Bool {
         guard isValid(value) else { return false }
         let p = value.split(separator: ".").compactMap { Int($0) }

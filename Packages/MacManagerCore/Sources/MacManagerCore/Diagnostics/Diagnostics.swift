@@ -29,9 +29,14 @@ public final class DiagnosticsStore {
 
     public init() {}
 
+    /// Records the latest error per category. A current error can replace a timestamp
+    /// left in the future by a system clock correction.
     public func record(_ category: DiagnosticCategory, kind: String, at date: Date = Date()) {
-        guard date.timeIntervalSinceReferenceDate.isFinite,
-              lastErrors[category].map({ $0.date <= date }) ?? true else { return }
+        guard date.timeIntervalSinceReferenceDate.isFinite else { return }
+        if let previous = lastErrors[category]?.date, previous > date {
+            let now = Date()
+            guard previous > now, date <= now else { return }
+        }
         lastErrors[category] = DiagnosticErrorRecord(kind: DiagnosticKind.sanitized(kind), date: date)
     }
 }
@@ -45,6 +50,7 @@ private enum DiagnosticKind {
         "loginRegisterFailed", "loginUnregisterFailed"
     ] + ClipboardKeyDiagnostic.allCases.map(\.rawValue))
 
+    /// Keeps known diagnostic codes and redacts arbitrary error text.
     static func sanitized(_ kind: String) -> String { allowed.contains(kind) ? kind : "redacted" }
 }
 
@@ -78,6 +84,7 @@ public struct DiagnosticReportSnapshot: Equatable, Sendable {
             && lhs.errors == rhs.errors
     }
 
+    /// Emits the versioned text report with unique field names and single-line values.
     public func render() -> String {
         let formatter = Date.ISO8601FormatStyle()
         var lines = [
