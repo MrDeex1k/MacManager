@@ -50,6 +50,7 @@ final class ClipboardSQLStore {
         }
     }
 
+    /// Reads newest-first metadata and rejects invalid SQLite types or values before they reach retention.
     func records(id: UUID? = nil, limit: Int? = nil) throws -> [ClipboardRecord] {
         let selection = id == nil ? "" : " WHERE id = ?"
         let bound = limit.map { " LIMIT \($0)" } ?? ""
@@ -60,7 +61,13 @@ final class ClipboardSQLStore {
         while true {
             let status = sqlite3_step(query)
             if status == SQLITE_DONE { return result }
+            // SQLite coerces malformed text to numeric zero. Validate storage types first
+            // so a corrupt timestamp cannot make retention delete an otherwise valid payload.
             guard status == SQLITE_ROW,
+                  sqlite3_column_type(query, 0) == SQLITE_TEXT,
+                  sqlite3_column_type(query, 1) == SQLITE_TEXT,
+                  [SQLITE_INTEGER, SQLITE_FLOAT].contains(sqlite3_column_type(query, 2)),
+                  sqlite3_column_type(query, 3) == SQLITE_INTEGER,
                   let idText = sqlite3_column_text(query, 0), let id = UUID(uuidString: String(cString: idText)),
                   let kindText = sqlite3_column_text(query, 1), let kind = ClipboardKind(rawValue: String(cString: kindText)) else {
                 throw ClipboardFailure.storage

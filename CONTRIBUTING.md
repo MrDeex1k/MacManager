@@ -84,6 +84,8 @@ Lifecycle regression tests cover same-turn lock/unlock and sleep/wake, rejected 
 
 Metrics regression coverage includes late-result freshness, passive-fan inventory expiry, bounded RAM percentages, and menu-bar visibility notifications arriving after detachment or closure. SMC tests use an injected synchronous reader to verify connection reuse, metadata caching, cleanup, failures, and zero connection attempts for unsupported temperature-only requests. These call counts are deterministic checks, not energy measurements. Live metrics/sensor UI tests still depend on actual hardware and explicitly skip unsupported reference models.
 
+Clipboard audit regressions cover malformed SQLite column types without ciphertext deletion, blocked inserts, cancellation of history loads at session boundaries, search request invalidation on permission changes, and expired entries/thumbnails while capture is paused. A counting key provider verifies that listing already loaded previews performs no additional key derivation; it is not an energy benchmark. Run the Clipboard UI tests plus the shared-history scenarios in IslandTests and LauncherTests when changing this service.
+
 UI tests are grouped by feature and share AppUITestSupport. Run the MacManager scheme on macOS. Quit other MacManager copies with the same bundle identifier first, so XCTest targets only its isolated fixture process. The Debug-only `--ui-testing` fixture mode uses isolated preferences and clipboard data. An ordinary Debug launch uses the development app’s preferences. Performance reports must distinguish engine timings from end-to-end UI latency and record skipped or unavailable checks explicitly.
 
 For clipboard permission compatibility checks after a macOS update:

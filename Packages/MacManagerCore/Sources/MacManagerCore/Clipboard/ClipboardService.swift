@@ -46,6 +46,7 @@ public final class ClipboardService {
     @ObservationIgnored private var lastChangeCount: Int
     @ObservationIgnored private var captureTask: Task<Void, Never>?
     @ObservationIgnored private var refreshID = UUID()
+    @ObservationIgnored private var refreshTask: (id: UUID, operation: Task<ClipboardLibrary, Error>)?
     @ObservationIgnored private var storageStarted: Bool
     @ObservationIgnored private var running = false
     @ObservationIgnored private var searches: [UUID: Task<[ClipboardEntry], Error>] = [:]
@@ -126,6 +127,8 @@ public final class ClipboardService {
         invalidateCapture()
     }
 
+    /// Reconciles permission and expiry even while capture is paused. Starts a capture only for
+    /// an eligible pasteboard change when no capture is already running.
     public func poll() {
         guard running, !suspended else { return }
         let currentAccess = pasteboard.access
@@ -133,10 +136,7 @@ public final class ClipboardService {
             access = currentAccess
             invalidateCapture()
         }
-        let cutoff = now().addingTimeInterval(-Double(preferences.maximumDays) * 86_400)
-        if let oldestEntryDate, oldestEntryDate <= cutoff {
-            entries.removeAll { $0.record.capturedAt <= cutoff }
-        }
+        expireEntries()
         guard preferences.enabled, !preferences.paused, access == .allowed,
               captureTask == nil, failure != .keyUnavailable, failure != .storage else { return }
         let count = pasteboard.changeCount
@@ -171,6 +171,7 @@ public final class ClipboardService {
                         }
                     }
                     if change.inserted != nil || !change.removed.isEmpty { self.entries = entries }
+                    self.expireEntries()
                     self.databaseBytes = change.databaseBytes
                     self.failure = nil
                 } catch {
@@ -191,53 +192,77 @@ public final class ClipboardService {
         return try await repository.nextExpiration(preferences: preferences)
     }
 
+    /// Expires visible history and uses metadata to prune stored history without decrypting content.
+    /// Reconciles the visible list even when an earlier read already pruned the database.
     public func maintain() async {
         guard running, storageStarted else { return }
+        // A read may already have pruned these records from SQLite, leaving no removal delta.
+        expireEntries()
         let token = generation
         do {
             let removed = try await repository.maintain(preferences: preferences, now: now())
             guard running, !suspended, token == generation, !removed.isEmpty else { return }
             refreshID = UUID()
             entries.removeAll { removed.contains($0.id) }
+            if let restoredID, removed.contains(restoredID) { self.restoredID = nil }
         } catch {
             if running && !suspended && token == generation { failure = error as? ClipboardFailure ?? .storage }
         }
     }
 
+    /// Replaces any pending history load. Only the current request in the current session may
+    /// publish its entries or storage error.
     public func refresh() async {
-        guard running, !suspended else { return }
+        guard running, !suspended, !Task.isCancelled else { return }
         let token = generation
         let request = UUID(); refreshID = request
         storageStarted = true
+        refreshTask?.operation.cancel()
+        let repository = repository, preferences = preferences, date = now(), existing = entries
+        let operation = Task { try await repository.load(preferences: preferences, now: date, reusing: existing) }
+        refreshTask = (request, operation)
+        defer { if refreshTask?.id == request { refreshTask = nil } }
         do {
-            let library = try await repository.load(preferences: preferences, now: now(), reusing: entries)
-            guard running, !suspended, token == generation, request == refreshID else { return }
+            let library = try await withTaskCancellationHandler { try await operation.value } onCancel: { operation.cancel() }
+            guard running, !suspended, token == generation, request == refreshID, !Task.isCancelled else { return }
             entries = library.entries; databaseBytes = library.databaseBytes
+            expireEntries()
             if failure == .keyUnavailable || failure == .storage { failure = nil }
         } catch {
-            guard running, !suspended, token == generation, request == refreshID else { return }
+            guard running, !suspended, token == generation, request == refreshID,
+                  !Task.isCancelled, !(error is CancellationError) else { return }
             entries = []
             failure = error as? ClipboardFailure ?? .storage
         }
     }
 
+    /// Searches the current history and filters out entries that expire or disappear during the
+    /// read. Session invalidation cancels the search.
     public func search(_ query: String, limit: Int = 1_000) async throws -> [ClipboardEntry] {
         guard running, !suspended else { throw CancellationError() }
+        expireEntries()
         let token = generation, id = UUID()
         let repository = repository, entries = entries, preferences = preferences, date = now()
         let task = Task { try await repository.search(query, entries: entries, preferences: preferences, now: date, limit: limit) }
         searches[id] = task
         defer { searches.removeValue(forKey: id) }
         let result = try await withTaskCancellationHandler { try await task.value } onCancel: { task.cancel() }
+        try Task.checkCancellation()
         guard running, !suspended, token == generation else { throw CancellationError() }
-        return result
+        expireEntries()
+        let live = Set(self.entries.map(\.id))
+        return result.filter { live.contains($0.id) }
     }
 
+    /// Reads an entry without changing the pasteboard. Returns nil if the entry is no longer
+    /// retained or the session changes while the read is in flight.
     public func content(_ id: UUID) async -> ClipboardRestoredContent? {
+        expireEntries()
         guard running, !suspended, entries.contains(where: { $0.id == id }) else { return nil }
         let token = generation
         do {
             let content = try await repository.restore(id, preferences: preferences, now: now())
+            expireEntries()
             guard running, !suspended, token == generation, !Task.isCancelled,
                   entries.contains(where: { $0.id == id }) else { return nil }
             return content
@@ -247,20 +272,27 @@ public final class ClipboardService {
         }
     }
 
+    /// Returns an image preview only while its entry remains available in the current session.
     public func thumbnail(_ id: UUID) async -> Data? {
+        expireEntries()
         guard running, !suspended, entries.contains(where: { $0.id == id }) else { return nil }
         let token = generation
         let data = try? await repository.thumbnail(id)
+        expireEntries()
         guard running, !suspended, token == generation, !Task.isCancelled,
               entries.contains(where: { $0.id == id }) else { return nil }
         return data
     }
 
+    /// Writes a retained entry to the pasteboard only if the same session still owns the read.
+    /// Records the pasteboard change count so capture does not reimport the restored copy.
     @discardableResult public func restore(_ id: UUID) async -> Bool {
-        guard running, !suspended, !Task.isCancelled else { return false }
+        expireEntries()
+        guard running, !suspended, !Task.isCancelled, entries.contains(where: { $0.id == id }) else { return false }
         let token = generation
         do {
             let content = try await repository.restore(id, preferences: preferences, now: now())
+            expireEntries()
             guard running, !suspended, token == generation, !Task.isCancelled,
                   entries.contains(where: { $0.id == id }) else { return false }
             try pasteboard.restore(content)
@@ -305,8 +337,24 @@ public final class ClipboardService {
         return try await repository.removalCount(preferences: preferences, now: now())
     }
 
+    /// Removes expired entries from the in-memory history, invalidates older loads, and clears
+    /// the restore marker if its entry expired.
+    private func expireEntries() {
+        let cutoff = now().addingTimeInterval(-Double(preferences.maximumDays) * 86_400)
+        guard let oldestEntryDate, oldestEntryDate <= cutoff else { return }
+        refreshID = UUID()
+        entries.removeAll { $0.record.capturedAt <= cutoff }
+        if let restoredID, !entries.contains(where: { $0.id == restoredID }) { self.restoredID = nil }
+    }
+
+    /// Cancels private work and advances both the session generation and UI search revision,
+    /// even when the list of entries has not changed.
     private func invalidateCapture() {
         generation += 1
+        // Surface tasks use revision as their request identity. A cancelled history search
+        // must get a new identity even when permission changes leave the entries unchanged.
+        revision += 1
+        refreshTask?.operation.cancel(); refreshTask = nil
         searches.values.forEach { $0.cancel() }; searches.removeAll()
         captureTask?.cancel(); captureTask = nil
         lastChangeCount = pasteboard.changeCount
