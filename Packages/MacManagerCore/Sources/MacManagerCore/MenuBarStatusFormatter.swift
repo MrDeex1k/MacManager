@@ -30,11 +30,7 @@ public enum MenuBarStatusFormatter {
             result.append(.init(kind: .gpu, text: percentage(snapshot[.gpu].value, locale: locale)))
         }
         if preferences.showsRAM {
-            let percent = snapshot[.memory].value.flatMap { used -> Double? in
-                guard snapshot.physicalMemory > 0 else { return nil }
-                return used / Double(snapshot.physicalMemory) * 100
-            }
-            result.append(.init(kind: .memory, text: percentage(percent, locale: locale)))
+            result.append(.init(kind: .memory, text: percentage(snapshot.memoryPercentage, locale: locale)))
         }
         if preferences.showsPower {
             let value = snapshot[.power].value.map {
@@ -69,7 +65,7 @@ public enum MenuBarStatusFormatter {
     }
 
     private static func percentage(_ value: Double?, locale: Locale) -> String {
-        guard let value else { return "-" }
+        guard let value, value.isFinite, (0...100).contains(value) else { return "-" }
         return Int(value.rounded()).formatted(.number.locale(locale)) + "%"
     }
 }

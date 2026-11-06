@@ -10,6 +10,7 @@
 #include <pthread.h>
 
 int32_t mm_cpu_read(MMCPUTicks *ticks) {
+    if (!ticks) return kIOReturnBadArgument;
     host_cpu_load_info_data_t value = {0};
     mach_msg_type_number_t count = HOST_CPU_LOAD_INFO_COUNT;
     mach_port_t host = mach_host_self();
@@ -34,6 +35,7 @@ static void read_memory_constants(void) {
 }
 
 int32_t mm_memory_read(MMMemory *memory) {
+    if (!memory) return kIOReturnBadArgument;
     vm_statistics64_data_t value = {0};
     mach_msg_type_number_t count = HOST_VM_INFO64_COUNT;
     mach_port_t host = mach_host_self();

@@ -38,6 +38,35 @@ private actor ImmediateSampler: MetricsSampling {
     }
 }
 
+@MainActor @Test func lateSampleIsAlreadyStaleWhenPublished() async {
+    let service = MetricsService(sampler: ImmediateSampler(), now: { 20 })
+    await service.collect() // The sampler started at 10; the freshness limit is 6 seconds.
+    #expect(service.snapshot[.cpu].status == .stale)
+    #expect(service.snapshot[.cpu].value == nil)
+    #expect(service.history.points(for: .cpu).first?.time == 10)
+}
+
+@MainActor @Test func passiveFanInventoryExpiresEvenWithoutNumericReadings() async {
+    struct Sampler: MetricsSampling {
+        func reset() async {}
+        func sample() async -> MetricsSnapshot {
+            .init(uptime: 10, readings: [:], sensors: .init(uptime: 10, fans: .passive, readings: []))
+        }
+    }
+    let service = MetricsService(sampler: Sampler(), now: { 10 })
+    await service.collect()
+    service.checkFreshness(now: 16)
+    #expect(service.snapshot.sensors.isStale)
+}
+
+@MainActor @Test func metricsConfigurationRejectsInvalidIntervals() {
+    let service = MetricsService(sampler: ImmediateSampler())
+    for interval in [0, -1, Double.nan, .infinity] {
+        service.configure(intervalSeconds: interval, request: .none)
+        #expect(service.effectiveIntervalSeconds == 2 && service.samplingRequest == .full)
+    }
+}
+
 @MainActor @Test func freshnessDependsOnSamplingInterval() async {
     let service = MetricsService(sampler: ImmediateSampler(), now: { 10 })
     await service.collect()

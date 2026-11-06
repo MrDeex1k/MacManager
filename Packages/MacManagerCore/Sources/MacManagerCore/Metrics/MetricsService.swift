@@ -33,6 +33,7 @@ public final class MetricsService {
     }
 
     public func configure(intervalSeconds: Double, request: MetricSamplingRequest) {
+        guard intervalSeconds.isFinite, intervalSeconds > 0 else { return }
         guard effectiveIntervalSeconds != intervalSeconds || samplingRequest != request else { return }
         effectiveIntervalSeconds = intervalSeconds; samplingRequest = request
         generation += 1; pending?.cancel(); needsReset = true
@@ -59,12 +60,20 @@ public final class MetricsService {
         pending = nil
         guard token == generation else { return }
         snapshot = result
-        history.append(result, intervalSeconds: effectiveIntervalSeconds, now: now())
+        let completedAt = now()
+        history.append(result, intervalSeconds: effectiveIntervalSeconds, now: completedAt)
+        // Driver calls can take longer than the freshness budget. Keep their historical
+        // timestamp, but never briefly republish an old reading as current.
+        checkFreshness(now: completedAt)
     }
 
     public func checkFreshness(now: TimeInterval) {
         history.advance(to: now)
-        if snapshot.readings.values.contains(where: { $0.status == .available }) || snapshot.sensors.hasValues, now - snapshot.uptime >= effectiveIntervalSeconds * 3 { snapshot = snapshot.stale() }
+        let hasCurrentData = snapshot.readings.values.contains { $0.status == .available }
+            || (snapshot.sensors.isSampled && !snapshot.sensors.isStale)
+        if hasCurrentData, now.isFinite, now - snapshot.uptime >= effectiveIntervalSeconds * 3 {
+            snapshot = snapshot.stale()
+        }
     }
 
     public func setSuspended(_ suspended: Bool) {

@@ -82,6 +82,8 @@ xcodebuild -project MacManager.xcodeproj -scheme MacManager \
 
 Lifecycle regression tests cover same-turn lock/unlock and sleep/wake, rejected Dock and login-item changes, explicit AppState startup and visible metric consumers. Core tests also cover observation cancellation, settings application without mounted views and partial preference recovery. `SystemTests/testRecoveredPreferencesAndLoginFailureRetryInBothLanguages` checks the recovery notice and login error/retry flow in PL and EN using isolated fixtures. Real sleep/wake and ServiceManagement failure behavior still require device checks.
 
+Metrics regression coverage includes late-result freshness, passive-fan inventory expiry, bounded RAM percentages, and menu-bar visibility notifications arriving after detachment or closure. SMC tests use an injected synchronous reader to verify connection reuse, metadata caching, cleanup, failures, and zero connection attempts for unsupported temperature-only requests. These call counts are deterministic checks, not energy measurements. Live metrics/sensor UI tests still depend on actual hardware and explicitly skip unsupported reference models.
+
 UI tests are grouped by feature and share AppUITestSupport. Run the MacManager scheme on macOS. Quit other MacManager copies with the same bundle identifier first, so XCTest targets only its isolated fixture process. The Debug-only `--ui-testing` fixture mode uses isolated preferences and clipboard data. An ordinary Debug launch uses the development app’s preferences. Performance reports must distinguish engine timings from end-to-end UI latency and record skipped or unavailable checks explicitly.
 
 For clipboard permission compatibility checks after a macOS update:

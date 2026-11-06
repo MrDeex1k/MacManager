@@ -61,6 +61,7 @@ public struct MetricsHistory: Sendable {
     }
 
     public mutating func append(_ snapshot: MetricsSnapshot, intervalSeconds: Double, now: TimeInterval) {
+        guard intervalSeconds.isFinite, intervalSeconds > 0 else { return }
         advance(to: now)
         let time = snapshot.uptime
         guard time.isFinite, time > referenceTime - Self.duration, time <= referenceTime,

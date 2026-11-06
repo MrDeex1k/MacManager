@@ -6,16 +6,22 @@ public struct HardwareSensorSnapshot: Sendable {
     public let readings: [HardwareSensorReading]
     public let catalog: SensorCatalog
     public let isStale: Bool
+    public let isSampled: Bool
+    /// The sample attempted CPU and GPU temperatures and fan inventory.
+    public let isTemperatureAndFanSample: Bool
     public let powerWatts: Double?
 
     public init(uptime: Double, fans: FanInventory, readings: [HardwareSensorReading],
-                catalog: SensorCatalog = SensorCatalog(processor: ""), isStale: Bool = false, powerWatts: Double? = nil) {
+                catalog: SensorCatalog = SensorCatalog(processor: ""), isStale: Bool = false,
+                powerWatts: Double? = nil, isSampled: Bool = true, isTemperatureAndFanSample: Bool = false) {
         self.uptime = uptime; self.fans = fans; self.readings = readings
         self.catalog = catalog; self.isStale = isStale
+        self.isSampled = isSampled
+        self.isTemperatureAndFanSample = isTemperatureAndFanSample
         self.powerWatts = powerWatts
     }
 
-    public static let empty = Self(uptime: 0, fans: .unavailable, readings: [])
+    public static let empty = Self(uptime: 0, fans: .unavailable, readings: [], isSampled: false)
     public var hasValues: Bool { readings.contains { $0.value != nil } }
     public var cpuTemperature: Double? { average(keys: catalog.cpuKeys) }
     public var gpuTemperature: Double? { average(keys: catalog.gpuKeys) }
@@ -31,29 +37,30 @@ public struct HardwareSensorSnapshot: Sendable {
     public func stale() -> Self {
         Self(uptime: uptime, fans: fans, readings: readings.map {
             HardwareSensorReading(sensor: $0.sensor, rawValue: nil)
-        }, catalog: catalog, isStale: true)
+        }, catalog: catalog, isStale: true, isSampled: isSampled, isTemperatureAndFanSample: isTemperatureAndFanSample)
     }
 }
 
 // Explicit temperature keys are supplied by a model-specific catalog. Never infer
 // CPU/GPU meaning from an arbitrary SMC prefix. No background timer is created here.
 public actor HardwareSensorSampler {
+    private let reader: any SMCReading
     private var connection: UInt32 = 0
     private var metadata: [UInt32: MMSMCKeyInfo] = [:]
     private var codes: [String: UInt32] = [:]
     private var catalogKeys: [String] = []
     private var sortedKeys: [String] = []
-    public init() {}
-    deinit { mm_smc_close(connection) }
+    public init() { reader = SystemSMCReader() }
+    init(reader: any SMCReading) { self.reader = reader }
+    deinit { if connection != 0 { reader.close(connection) } }
 
     public func reset() {
-        mm_smc_close(connection)
+        if connection != 0 { reader.close(connection) }
         connection = 0
         metadata.removeAll()
     }
 
     public func sample(catalog: SensorCatalog, request: MetricSamplingRequest = .full) -> HardwareSensorSnapshot {
-        guard request.cpuTemperature || request.gpuTemperature || request.fans || request.kinds.contains(.power) else { return .empty }
         let uptime = MetricsTime.now()
         if catalogKeys != catalog.temperatureKeys {
             catalogKeys = catalog.temperatureKeys
@@ -62,10 +69,18 @@ public actor HardwareSensorSampler {
             metadata.removeAll()
         }
         let keys = sortedKeys.filter { (request.cpuTemperature && catalog.cpuKeys.contains($0)) || (request.gpuTemperature && catalog.gpuKeys.contains($0)) }
-        guard connection != 0 || mm_smc_open(&connection) == 0 else {
+        let requested = request.cpuTemperature || request.gpuTemperature || request.fans || request.kinds.contains(.power)
+        let isTemperatureAndFanSample = request.cpuTemperature && request.gpuTemperature && request.fans
+        guard !keys.isEmpty || request.fans || request.kinds.contains(.power) else {
+            reset()
+            return HardwareSensorSnapshot(uptime: uptime, fans: .unavailable, readings: [], catalog: catalog,
+                                          isSampled: requested)
+        }
+        guard connection != 0 || reader.open(&connection) == 0 else {
+            connection = 0
             return HardwareSensorSnapshot(uptime: uptime, fans: .unavailable, readings: keys.map {
                 HardwareSensorReading(sensor: .init(key: $0, kind: .temperature), rawValue: nil)
-            }, catalog: catalog)
+            }, catalog: catalog, isTemperatureAndFanSample: isTemperatureAndFanSample)
         }
         var successfulReads = 0
         defer { if successfulReads == 0 { reset() } }
@@ -80,7 +95,7 @@ public actor HardwareSensorSampler {
             }
             var info = metadata[code] ?? MMSMCKeyInfo()
             var value = Double.nan
-            let result = mm_smc_read_number_cached(connection, code, &info, &value)
+            let result = reader.read(connection, key: code, info: &info, value: &value)
             metadata[code] = info.length == 0 ? nil : info
             guard result == 0 else { return nil }
             successfulReads += 1
@@ -97,6 +112,7 @@ public actor HardwareSensorSampler {
                 readings.append(HardwareSensorReading(sensor: .init(key: key, kind: .fan), rawValue: read(key)))
             }
         }
-        return HardwareSensorSnapshot(uptime: uptime, fans: fans, readings: readings, catalog: catalog, powerWatts: power)
+        return HardwareSensorSnapshot(uptime: uptime, fans: fans, readings: readings, catalog: catalog,
+                                      powerWatts: power, isTemperatureAndFanSample: isTemperatureAndFanSample)
     }
 }

@@ -23,6 +23,17 @@ struct SensorsView: View {
                 .frame(width: 120)
                 .accessibilityIdentifier("sensors.unit")
             }
+            if sensors.isTemperatureAndFanSample {
+                currentReadings(sensors, strings: strings)
+            } else {
+                Text(strings("metrics.state.loading")).foregroundStyle(.secondary)
+            }
+            SensorsHistoryView()
+        }
+    }
+
+    private func currentReadings(_ sensors: HardwareSensorSnapshot, strings: AppStrings) -> some View {
+        Group {
             HStack(spacing: 32) {
                 temperature(title: "CPU", value: sensors.cpuTemperature, note: strings("sensors.cpu.mean"))
                 Divider().frame(height: 100)
@@ -57,7 +68,6 @@ struct SensorsView: View {
                     }
                 }
             }
-            SensorsHistoryView()
         }
     }
 

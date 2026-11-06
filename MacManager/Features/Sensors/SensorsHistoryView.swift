@@ -57,13 +57,13 @@ struct SensorsHistoryView: View {
         let lower = max(0, (displayed.min() ?? 30) - 5)
         let upper = max(lower + 10, (displayed.max() ?? 90) + 5)
         return Chart(samples) { point in
-            LineMark(x: .value("Time", point.time - history.referenceTime),
+            LineMark(x: .value(state.strings("history.time"), point.time - history.referenceTime),
                      y: .value(unit.symbol, unit.convert(point.value)),
                      series: .value("Segment", point.segment))
                 .interpolationMethod(.linear)
                 .lineStyle(StrokeStyle(lineWidth: 2))
                 .foregroundStyle(AppTheme.accent)
-            PointMark(x: .value("Time", point.time - history.referenceTime),
+            PointMark(x: .value(state.strings("history.time"), point.time - history.referenceTime),
                       y: .value(unit.symbol, unit.convert(point.value)))
                 .symbolSize(10)
                 .foregroundStyle(AppTheme.accent)
@@ -76,7 +76,7 @@ struct SensorsHistoryView: View {
                 AxisGridLine().foregroundStyle(.primary.opacity(0.08))
                 AxisValueLabel {
                     if let value = mark.as(Double.self) {
-                        Text("\(Int(value.rounded())) \(unit.symbol)")
+                        Text(value.formatted(.number.precision(.fractionLength(0)).locale(state.preferences.locale)) + " " + unit.symbol)
                     }
                 }
             }
@@ -91,16 +91,16 @@ struct SensorsHistoryView: View {
         let samples = fanPoints
         let upper = max(1, (samples.map { $0.point.value }.max() ?? 0) * 1.15)
         return Chart(samples) { sample in
-            LineMark(x: .value("Time", sample.point.time - history.referenceTime),
+            LineMark(x: .value(state.strings("history.time"), sample.point.time - history.referenceTime),
                      y: .value("RPM", sample.point.value),
                      series: .value("Segment", sample.series))
                 .interpolationMethod(.linear)
                 .lineStyle(StrokeStyle(lineWidth: 2))
-                .foregroundStyle(by: .value("Fan", fanName(sample.fan)))
-            PointMark(x: .value("Time", sample.point.time - history.referenceTime),
+                .foregroundStyle(by: .value(state.strings("sensors.fan"), fanName(sample.fan)))
+            PointMark(x: .value(state.strings("history.time"), sample.point.time - history.referenceTime),
                       y: .value("RPM", sample.point.value))
                 .symbolSize(10)
-                .foregroundStyle(by: .value("Fan", fanName(sample.fan)))
+                .foregroundStyle(by: .value(state.strings("sensors.fan"), fanName(sample.fan)))
         }
         .chartXScale(domain: -MetricsHistory.duration...0)
         .chartYScale(domain: 0...upper)
@@ -110,7 +110,7 @@ struct SensorsHistoryView: View {
                 AxisGridLine().foregroundStyle(.primary.opacity(0.08))
                 AxisValueLabel {
                     if let value = mark.as(Double.self) {
-                        Text("\(Int(value.rounded())) RPM")
+                        Text(value.formatted(.number.precision(.fractionLength(0)).locale(state.preferences.locale)) + " RPM")
                     }
                 }
             }

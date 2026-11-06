@@ -66,6 +66,14 @@ private func sample(_ time: Double, cpu: Double? = 25, source: String = "test", 
     #expect(history.count == 1 && history.referenceTime == 11)
 }
 
+@Test func historyRejectsInvalidSamplingIntervals() {
+    var history = MetricsHistory()
+    for interval in [0, -1, Double.nan, .infinity] {
+        history.append(sample(1), intervalSeconds: interval, now: 1)
+    }
+    #expect(history.count == 0)
+}
+
 private actor HistorySampler: MetricsSampling {
     var time = 0.0
     var calls = 0

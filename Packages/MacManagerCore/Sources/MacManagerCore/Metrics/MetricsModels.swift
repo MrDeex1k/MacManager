@@ -53,6 +53,12 @@ public struct MetricsSnapshot: Sendable {
         readings[kind] ?? MetricReading(kind: kind, status: .loading, source: "")
     }
 
+    public var memoryPercentage: Double? {
+        guard physicalMemory > 0, let used = self[.memory].value,
+              used <= Double(physicalMemory) else { return nil }
+        return used / Double(physicalMemory) * 100
+    }
+
     public func stale() -> Self {
         Self(timestamp: timestamp, uptime: uptime, readings: readings.mapValues { $0.stale() },
              physicalMemory: physicalMemory, collectionMilliseconds: collectionMilliseconds, sensors: sensors.stale())
