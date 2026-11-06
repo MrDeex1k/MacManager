@@ -3,11 +3,12 @@ import Testing
 @testable import MacManagerCore
 
 struct PodcastTests {
+    /// Covers direction marks and remaining-time signs as well as malformed internal characters.
     @Test func parsesOnlyRealPlayerTimestamps() {
         #expect(PodcastPlayerReading.seconds("\u{200e}−55:57") == 3357)
         #expect(PodcastPlayerReading.seconds("1:02:03") == 3723)
         #expect(PodcastPlayerReading.seconds("0:00") == 0)
-        for invalid in ["", "Not playing", "12:90", "1:60:00", "3", "NaN", "0::1"] {
+        for invalid in ["", "Not playing", "12:90", "1:60:00", "3", "NaN", "0::1", "1-2:30", "1:2 0", "−-1:20", "1:\n20"] {
             #expect(PodcastPlayerReading.seconds(invalid) == nil)
         }
     }

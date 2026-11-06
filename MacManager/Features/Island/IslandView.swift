@@ -6,6 +6,7 @@ struct IslandView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Namespace private var sectionHighlight
     let coordinator: IslandCoordinator
+    /// Applies the current language to the hosted panel content, including an already open panel.
     var body: some View {
         VStack(alignment: .leading, spacing: coordinator.displayedSection == .clipboard ? 8 : 12) {
             HStack(spacing: 12) {
@@ -75,6 +76,7 @@ struct IslandView: View {
         .frame(height: coordinator.displayedSectionHeight, alignment: .topLeading)
         .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity, alignment: .topLeading)
         .background { IslandBackgroundView() }
+        .environment(\.locale, coordinator.preferences.locale)
         #if DEBUG && MM_RESERVED_REGION_PROBE
         .background {
             if UITestConfiguration.current.contains("--island-reserved-region-probe"),
