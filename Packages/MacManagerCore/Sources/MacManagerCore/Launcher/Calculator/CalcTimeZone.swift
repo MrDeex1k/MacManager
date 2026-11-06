@@ -309,19 +309,20 @@ enum CalcTimeZone {
     }()
 
     /// Curated: `abbreviationDictionary` is unusable, its `BDT` being the Bangladeshi taka.
+    /// Groups place names and abbreviations by time zone so conversions use the offset for the given date.
     private static let aliasGroups: [String: [String]] = [
         "UTC": ["utc", "zulu"],
         "GMT": ["gmt"],
         "America/New_York": [
             "est", "edt", "et", "usa", "nyc", "new york city", "boston", "washington", "dc", "miami",
             "atlanta",
-            "philadelphia", "jfk", "atl", "bos", "mia", "ewr", "iad", "charlotte", "nashville", "orlando",
+            "philadelphia", "jfk", "atl", "bos", "mia", "ewr", "iad", "charlotte", "orlando",
             "tampa", "pittsburgh", "cleveland", "cincinnati", "columbus", "baltimore", "raleigh",
             "indianapolis", "louisville"
         ],
         "America/Chicago": [
             "cst", "cdt", "ct", "austin", "dallas", "houston", "ord", "dfw", "iah", "minneapolis", "st louis",
-            "kansas city", "milwaukee", "new orleans", "memphis", "oklahoma city", "san antonio"
+            "kansas city", "milwaukee", "new orleans", "memphis", "nashville", "oklahoma city", "san antonio"
         ],
         "America/Denver": ["mst", "mdt", "mt", "den", "salt lake city", "albuquerque", "boise"],
         "America/Los_Angeles": [
@@ -406,7 +407,8 @@ enum CalcTimeZone {
         "Asia/Hong_Kong": ["hkg"],
         "Asia/Bangkok": ["bkk", "phuket", "chiang mai"],
         "Asia/Kuala_Lumpur": ["kul", "penang", "johor bahru"],
-        "Asia/Jakarta": ["cgk", "surabaya", "medan", "bandung", "denpasar", "bali"],
+        "Asia/Jakarta": ["cgk", "surabaya", "medan", "bandung"],
+        "Asia/Makassar": ["denpasar", "bali"],
         "Asia/Manila": ["mnl", "cebu", "davao"],
         "Pacific/Auckland": ["akl", "wellington", "christchurch"],
         "America/Toronto": ["yyz", "yul", "ottawa", "quebec", "montreal"],

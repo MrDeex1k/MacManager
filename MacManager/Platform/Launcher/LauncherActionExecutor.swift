@@ -1,8 +1,13 @@
 import AppKit
 import MacManagerCore
 
+@MainActor protocol LauncherActionExecuting {
+    /// Performs the action and returns the outcome for the controller to apply to its presentation.
+    func execute(_ entry: LauncherEntry, options: LauncherPreferences, clipboard: ClipboardService?) async -> LauncherActionExecutor.Outcome
+}
+
 /// Framework effects live here; the controller retains presentation and focus policy.
-@MainActor final class LauncherActionExecutor {
+@MainActor final class LauncherActionExecutor: LauncherActionExecuting {
     enum Outcome { case copied, opened, section(String), failed }
     private let writer: LocalClipboardWriter
     init(testing: Bool) {
@@ -15,7 +20,10 @@ import MacManagerCore
         writer = LocalClipboardWriter(pasteboard: testing
             ? NSPasteboard(name: .init(testName)) : .general)
     }
+    /// Checks cancellation before starting framework effects. An open already handed to AppKit
+    /// can still finish, so the controller decides whether to apply its outcome.
     func execute(_ entry: LauncherEntry, options: LauncherPreferences, clipboard: ClipboardService?) async -> Outcome {
+        guard !Task.isCancelled else { return .failed }
         switch entry.action {
         case .clipboard(let id):
             guard let clipboard, !clipboard.suspended else { return .failed }

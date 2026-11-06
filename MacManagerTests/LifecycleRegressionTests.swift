@@ -3,6 +3,36 @@ import CryptoKit
 import MacManagerCore
 import Testing
 
+@MainActor private final class UnclippedRow: NSView {
+    override var visibleRect: NSRect { bounds.insetBy(dx: -200, dy: -200) }
+}
+
+/// Reproduces a reported visible rectangle that covers a neighboring row.
+@MainActor @Test func launcherContextMenuCannotSelectANeighborOutsideRowBounds() throws {
+    let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 100, height: 200),
+                          styleMask: .borderless, backing: .buffered, defer: false)
+    window.isReleasedWhenClosed = false
+    let monitor = LauncherRowMenuMonitor()
+    defer { monitor.stop(); window.close() }
+    let root = try #require(window.contentView)
+    let upper = UnclippedRow(frame: NSRect(x: 0, y: 100, width: 100, height: 50))
+    let lower = UnclippedRow(frame: NSRect(x: 0, y: 0, width: 100, height: 50))
+    root.addSubview(upper); root.addSubview(lower)
+    var selections: [String] = []
+    let event = try #require(NSEvent.mouseEvent(with: .rightMouseDown, location: NSPoint(x: 25, y: 25),
+        modifierFlags: [], timestamp: 0, windowNumber: window.windowNumber, context: nil,
+        eventNumber: 0, clickCount: 1, pressure: 1))
+    monitor.add(upper) { _ in selections.append("upper"); return true }
+    #expect(!monitor.handle(event))
+    #expect(selections.isEmpty)
+    monitor.add(lower) { _ in selections.append("lower"); return true }
+    #expect(monitor.handle(event))
+    #expect(selections == ["lower"])
+    lower.isHidden = true
+    #expect(!monitor.handle(event))
+    #expect(selections == ["lower"])
+}
+
 @MainActor private final class ActivationStub: ApplicationActivationPolicySetting {
     var isRunning = true
     var policy: NSApplication.ActivationPolicy = .regular
@@ -41,6 +71,107 @@ import Testing
             distributedCenter: distributed, center: NotificationCenter())
         monitor.start()
     }
+}
+
+@MainActor private final class LauncherExecutorStub: LauncherActionExecuting {
+    var entries: [LauncherEntry] = []
+    func execute(_ entry: LauncherEntry, options: LauncherPreferences, clipboard: ClipboardService?) async -> LauncherActionExecutor.Outcome {
+        entries.append(entry)
+        return .copied
+    }
+}
+
+/// Changes the lifecycle before queued actions can enter the executor on the main actor.
+@MainActor @Test func launcherCancelsQueuedActionsAndRejectsSuspendedShortcuts() async throws {
+    let suite = "LauncherLifecycle-\(UUID())"
+    let defaults = try #require(UserDefaults(suiteName: suite))
+    defer { defaults.removePersistentDomain(forName: suite) }
+    let session = SessionFixture(), executor = LauncherExecutorStub()
+    let controller = LauncherController(preferences: PreferencesStore(defaults: defaults), testing: true,
+        actionExecutor: executor, sessionMonitor: session.monitor)
+    defer { controller.stop(); session.monitor.stop() }
+    let entry = LauncherEntry(id: "fixture", title: "Fixture", action: .copy("123"))
+    controller.start()
+    let closedAction = controller.execute(entry)
+    controller.hide(restoreFocus: false)
+    #expect(!controller.executing)
+    await closedAction?.value
+    #expect(executor.entries.isEmpty)
+    let stoppedAction = controller.execute(entry)
+    controller.stop()
+    controller.start()
+    await stoppedAction?.value
+    #expect(executor.entries.isEmpty)
+    let lockedAction = controller.execute(entry)
+    session.distributed.post(name: .init("com.apple.screenIsLocked"), object: nil)
+    session.distributed.post(name: .init("com.apple.screenIsUnlocked"), object: nil)
+    await lockedAction?.value
+    #expect(executor.entries.isEmpty)
+    session.workspace.post(name: NSWorkspace.willSleepNotification, object: nil)
+    let suspendedAction = controller.execute(entry)
+    #expect(suspendedAction == nil)
+    await suspendedAction?.value
+    #expect(executor.entries.isEmpty)
+    session.workspace.post(name: NSWorkspace.didWakeNotification, object: nil)
+    await controller.execute(entry)?.value
+    #expect(executor.entries == [entry])
+    #expect(!controller.executing)
+}
+
+@MainActor private final class GatedLauncherExecutor: LauncherActionExecuting {
+    let outcome: LauncherActionExecutor.Outcome
+    private var pending: CheckedContinuation<LauncherActionExecutor.Outcome, Never>?
+    var hasStarted: Bool { pending != nil }
+
+    init(outcome: LauncherActionExecutor.Outcome) { self.outcome = outcome }
+
+    func execute(_ entry: LauncherEntry, options: LauncherPreferences,
+                 clipboard: ClipboardService?) async -> LauncherActionExecutor.Outcome {
+        await withCheckedContinuation { pending = $0 }
+    }
+
+    /// Delivers the outcome even when the caller has been cancelled.
+    func finish() {
+        let continuation = pending
+        pending = nil
+        continuation?.resume(returning: outcome)
+    }
+}
+
+/// Simulates an executor that returns after cancellation and after a new presentation has begun.
+@MainActor @Test(.serialized, arguments: [LauncherActionExecutor.Outcome.failed, .copied])
+func launcherIgnoresAnInFlightOutcomeAfterReopening(_ outcome: LauncherActionExecutor.Outcome) async throws {
+    let suite = "LauncherLifecycle-\(UUID())"
+    let defaults = try #require(UserDefaults(suiteName: suite))
+    defer { defaults.removePersistentDomain(forName: suite) }
+    let session = SessionFixture(), executor = GatedLauncherExecutor(outcome: outcome)
+    let controller = LauncherController(preferences: PreferencesStore(defaults: defaults), testing: true,
+        actionExecutor: executor, sessionMonitor: session.monitor)
+    defer { controller.stop(); executor.finish(); session.monitor.stop() }
+
+    controller.start()
+    controller.show()
+    try #require(controller.visible)
+    let entry = LauncherEntry(id: "fixture", title: "Fixture", action: .copy("123"))
+    let action = try #require(controller.execute(entry))
+    let deadline = ContinuousClock.now + .seconds(2)
+    while !executor.hasStarted && ContinuousClock.now < deadline {
+        try await Task.sleep(for: .milliseconds(1))
+    }
+    try #require(executor.hasStarted)
+
+    controller.hide(restoreFocus: false)
+    #expect(!controller.visible)
+    #expect(action.isCancelled)
+    controller.show()
+    try #require(controller.visible)
+    #expect(!controller.actionFailed)
+
+    executor.finish()
+    await action.value
+    #expect(controller.visible)
+    #expect(!controller.actionFailed)
+    #expect(!controller.executing)
 }
 
 @MainActor @Test func failedDockChangeIsNotReplayedWhenWindowReopens() {

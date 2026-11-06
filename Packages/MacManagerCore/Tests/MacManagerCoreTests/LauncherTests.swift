@@ -139,6 +139,7 @@ private func launcherEntry(_ id: String, _ title: String, alternate: [String] = 
     #expect(answer("2026-09-23 + 2 days")?.contains("25") == true)
 }
 
+/// Checks query escaping and rejects traversal, sibling prefixes, and non-file URLs in scope checks.
 @Test func launcherFilesEscapeQueryAndRespectRootBoundaries() throws {
     let expression = try #require(LauncherFileSearch.expression("a\"*?\\ b", filter: .images))
     #expect(expression.contains("a\\\"\\*\\?\\\\"))
@@ -148,6 +149,9 @@ private func launcherEntry(_ id: String, _ title: String, alternate: [String] = 
     #expect(LauncherFileSearch.isWithinRoots(URL(fileURLWithPath: "/tmp/allowed/file.txt"), roots: roots))
     #expect(!LauncherFileSearch.isWithinRoots(URL(fileURLWithPath: "/tmp/allowed-other/file.txt"), roots: roots))
     #expect(!LauncherFileSearch.isWithinRoots(URL(fileURLWithPath: "/tmp/allowed/../secret"), roots: roots))
+    #expect(!LauncherFileSearch.isWithinRoots(try #require(URL(string: "https://example.com/tmp/allowed/file.txt")), roots: roots))
+    #expect(!LauncherFileSearch.isWithinRoots(URL(fileURLWithPath: "/tmp/allowed/file.txt"),
+        roots: [try #require(URL(string: "https://example.com/tmp/allowed"))]))
 }
 
 @MainActor @Test func launcherPrivateModeExcludesCatalogAndDiscardsLateResults() async throws {

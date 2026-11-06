@@ -52,9 +52,11 @@ public enum LocalCalculator {
     public static func result(_ query: String, language: String, now: Date = Date(), locale: Locale = .current) -> LauncherEntry? {
         result(query, context: Context(language: language, now: now, locale: locale))
     }
+    /// Uses the selected language's calculator syntax even when the expression has no decimal fraction.
+    /// The copy action uses the engine's canonical text.
     public static func result(_ query: String, context: Context) -> LauncherEntry? {
         let language = context.language, now = context.now, calendar = context.calendar
-        let format = language == "pl" && query.contains(",")
+        let format = language == "pl"
             ? CalcNumberFormat(decimalSeparator: ",", groupingSeparator: " ") ?? .english : .english
         guard let result = CalcEngine.evaluate(query, now: now, calendar: calendar, format: format),
               case .value(let display, let copy) = result.payload else { return nil }

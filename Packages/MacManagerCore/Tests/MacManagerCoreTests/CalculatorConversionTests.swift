@@ -2,6 +2,61 @@ import Foundation
 import Testing
 @testable import MacManagerCore
 
+/// Exercises both seasons to distinguish Nashville's changing UTC offset from Bali's fixed offset.
+@Test func calculatorCityAliasesUseLocalZoneInWinterAndSummer() throws {
+    var calendar = Calendar(identifier: .gregorian)
+    calendar.locale = Locale(identifier: "en_GB")
+    calendar.timeZone = try #require(TimeZone(secondsFromGMT: 0))
+    for month in [1, 7] {
+        let now = try #require(calendar.date(from: DateComponents(year: 2026, month: month, day: 15)))
+        for (city, zone, expected) in [
+            ("nashville", "Chicago", month == 1 ? "18:00" : "17:00"),
+            ("bali", "Makassar", "04:00"), ("denpasar", "Makassar", "04:00")
+        ] {
+            let result = try #require(CalcTimeZone.evaluate("12:00 \(city) to utc", now: now, calendar: calendar))
+            #expect(result.sourceBadge == zone)
+            #expect(result.payload == .value(display: expected, copyText: expected))
+        }
+    }
+}
+
+/// Checks that unary signs preserve relative percentages without changing multiplication or exponent precedence.
+@Test func calculatorPreservesSignedRelativePercentages() {
+    for (query, expected) in [
+        ("200 + -10%", "180"), ("200 - -10%", "220"),
+        ("200 + (-10%)", "180"), ("200 + --10%", "220"),
+        ("200 + +10%", "220"), ("-10%", "-0.1"),
+        ("200 * -10%", "-20"), ("-2^2", "-4")
+    ] {
+        #expect(LocalCalculator.result(query, language: "en")?.action == .copy(expected), "Query: \(query)")
+    }
+}
+
+/// Checks Polish function arguments with and without fractions alongside English comma-separated arguments.
+@Test func calculatorAcceptsPolishArgumentSeparatorsWithoutDecimalFractions() {
+    for (query, expected) in [
+        ("max(1;2)", "2"), ("pow(2;3)", "8"),
+        ("round(1,25;1)", "1.3"), ("max(1.5;2)", "2"),
+        ("1.5+2", "3.5"), ("1,5+2", "3.5")
+    ] {
+        #expect(LocalCalculator.result(query, language: "pl")?.action == .copy(expected), "Query: \(query)")
+    }
+    #expect(LocalCalculator.result("max(1,2)", language: "en")?.action == .copy("2"))
+}
+
+/// Covers direct date parsing and date arithmetic at the supported calendar boundaries.
+@Test func calculatorRejectsDatesOutsideSupportedYears() {
+    var calendar = Calendar(identifier: .gregorian)
+    calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+    let context = LocalCalculator.Context(language: "en", now: Date(timeIntervalSince1970: 0), calendar: calendar)
+    for query in ["january 1 10000 at 12:00", "january 1 999999 at 12:00", "february 30 2026 at 12:00",
+                  "january 1 -1 at 12:00", "today - 2000 years", "monday in 10000 years"] {
+        #expect(LocalCalculator.result(query, context: context) == nil, "Query: \(query)")
+    }
+    #expect(LocalCalculator.result("january 1 9999 at 12:00", context: context) != nil)
+    #expect(LocalCalculator.result("february 29 2024 at 12:00", context: context) != nil)
+}
+
 @Test func calculatorAcceptsBareDenominatorsWithoutChangingUnitJuxtaposition() {
     let cases = [
         ("100 / s", "100 Hz"), ("100 / (s)", "100 Hz"),
