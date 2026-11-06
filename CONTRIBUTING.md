@@ -67,13 +67,13 @@ Use the repository issue forms. Include macOS version, Mac model class, reproduc
 
 ## Test sets and optimization measurements
 
-Run the same checks as the GitHub Actions verification job from a fresh clone on Apple Silicon:
+Run local verification from a fresh clone on Apple Silicon:
 
 ```sh
 ./tools/verify.sh
 ```
 
-The script exercises both Git hooks, runs the Core and unhosted app tests, and checks the unsigned Release bundle for arm64, Polish and English resources, and the absence of UI fixtures. GitHub Actions uses the hosted Xcode 27 runner. Run interactive UI tests separately in a logged-in macOS session.
+The script exercises both Git hooks, runs the Core and unhosted app tests, and checks the unsigned Release bundle for arm64, Polish and English resources, and the absence of UI fixtures. Run interactive UI tests separately in a logged-in macOS session.
 
 `swift test --package-path Packages/MacManagerCore --no-parallel` runs local logic and storage checks. Tests requiring macOS services explicitly report a skip unless enabled:
 
