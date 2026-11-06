@@ -126,6 +126,7 @@ private actor ControlledMusicAdapter: MusicPlayerAdapter {
     }
 }
 
+/// Holds an obsolete poll open to verify command ordering and the post-command snapshot.
 @Test @MainActor func musicCommandDiscardsAndDrainsPendingPollBeforeActing() async throws {
     let adapter = ControlledMusicAdapter()
     let service = MusicService(adapter: adapter)
@@ -151,6 +152,7 @@ private actor ControlledMusicAdapter: MusicPlayerAdapter {
     #expect(await waitUntil { service.snapshot.title == "Next track" && !service.busy })
 }
 
+/// Hides the player before a queued permission request can reach the adapter.
 @Test @MainActor func musicHideCancelsQueuedPermissionRequest() async {
     let adapter = TestMusicAdapter()
     let service = MusicService(adapter: adapter)

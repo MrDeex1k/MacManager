@@ -40,6 +40,8 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
     var availableSections: [IslandSection] {
         IslandSection.allCases.filter { preferences.island.sections.contains($0) }
     }
+    /// Switches to an enabled section. Reselecting the displayed section during a transition
+    /// reveals its current content without resetting it.
     func selectSection(_ value: IslandSection) {
         guard preferences.island.enabled, preferences.island.sections.contains(value), value != section else { return }
         section = value
@@ -79,12 +81,14 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
         if reduceMotion { sectionOpacity = 1 }
         else { withAnimation(.easeOut(duration: 0.14)) { sectionOpacity = 1 } }
     }
+    /// Ends a section transition immediately and preserves the mounted content when possible.
     private func settleSectionChange() {
         cancelSectionChange(); sectionOpacity = 1
         guard visible else { return }
         if displayedSection == section { resizeForSection() }
         else { renderSelectedSection() }
     }
+    /// Requires the selected section to be the one currently shown and sufficiently visible.
     private var acceptsContentShortcuts: Bool {
         visible && displayedSection == section && sectionOpacity > 0.5
     }
@@ -191,6 +195,7 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
         reposition()
     }
 
+    /// Closes the panel and removes session, display, preference, and shortcut observers.
     func stop() {
         running = false
         dismiss(restoreFocus: false, animated: false)
@@ -208,6 +213,7 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
         observers.append((center, token))
     }
 
+    /// Observes Island settings and language for the lifetime of the coordinator's active session.
     private func watchPreferences() {
         preferenceObservation.start(read: { [weak self] in
             (self?.preferences.island, self?.preferences.language)
@@ -240,6 +246,7 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
         suspensionReasons.insert(reason); dismiss(restoreFocus: false, animated: false); interaction.reset()
     }
     private func resume(_ reason: SuspensionReason) { suspensionReasons.remove(reason); reposition() }
+    /// Rechecks whether a visible panel may stay open after the active application or Space changes.
     private func environmentChanged() {
         guard visible else { return }
         guard available else { dismiss(restoreFocus: false, animated: false); return }
@@ -346,6 +353,8 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
     }
     private func toggleFromKeyboard() { visible ? dismiss(restoreFocus: true) : showFromKeyboard() }
 
+    /// Mounts and sizes the panel if needed. Keyboard presentation takes focus, and content
+    /// shortcuts apply only after the selected section is displayed.
     private func present(keyboard: Bool) {
         if !visible {
             #if DEBUG && MM_RESERVED_REGION_PROBE
@@ -406,6 +415,8 @@ final class IslandCoordinator: ApplicationLifecycleParticipant {
         if keyboard { panel?.makeKeyAndOrderFront(nil); if section == .clipboard { panel?.focusSearch() } }
     }
 
+    /// Holds the panel while its menu is open. Restores focus after tracking only if the
+    /// presentation and foreground application still match and no other window took focus.
     private func setMenuTracking(_ value: Bool) {
         // Only hold an interaction in our key panel; unrelated app menus must not pin the island.
         guard visible, menuTracking || panel?.isKeyWindow == true else { return }

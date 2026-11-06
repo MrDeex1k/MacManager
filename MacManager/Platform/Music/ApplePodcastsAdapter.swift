@@ -94,6 +94,8 @@ actor ApplePodcastsAdapter: MusicPlayerAdapter {
         }
         return result
     }
+    /// Reads the active accessibility player and looks up local artwork using the episode and
+    /// show metadata. Clears the cache if the app, permission, or player controls are missing.
     func read() async -> MusicSnapshot {
         let signposter = OSSignposter(subsystem: "dev.macmanager.MacManager", category: "PointsOfInterest")
         let interval = signposter.beginInterval("PodcastsRead", id: signposter.makeSignpostID())
@@ -150,6 +152,7 @@ actor ApplePodcastsAdapter: MusicPlayerAdapter {
         }
         return snapshot
     }
+    /// Resolves the player layout from transport controls that explicitly report themselves enabled.
     private func transportPrefix(_ player: Player) -> String? {
         let enabled = Set(player.elements.compactMap { identifier, element -> String? in
             guard identifier.hasSuffix("playbackTransportControl"),
@@ -158,6 +161,7 @@ actor ApplePodcastsAdapter: MusicPlayerAdapter {
         })
         return PodcastPlayerReading.transportPrefix(playerIdentifier: player.playerID, enabledIdentifiers: enabled)
     }
+    /// Presses the requested transport button only while the player and the button are available.
     func perform(_ command: MusicCommand) async -> MusicAvailability {
         guard !Task.isCancelled, let app = application() else { return .notRunning }
         guard AXIsProcessTrusted() else { return .accessibilityRequired }
@@ -176,6 +180,7 @@ actor ApplePodcastsAdapter: MusicPlayerAdapter {
         default: return .unavailable
         }
     }
+    /// Prompts for accessibility access on the main actor unless the request was cancelled.
     func requestAccess() async -> MusicAvailability {
         await MainActor.run {
             guard !Task.isCancelled else { return .idle }

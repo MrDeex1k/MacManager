@@ -13,6 +13,8 @@ actor PodcastArtworkAccess {
     }
     var configured: Bool { !testing && defaults.data(forKey: bookmarkKey) != nil }
 
+    /// Resolves the stored bookmark only for the expected Podcasts folder and releases any
+    /// security scope it opens after the local lookup.
     func read(title: String, expandedMetadata: String, showTitle: String) -> PodcastLocalArtwork? {
         guard !testing, !Task.isCancelled, let data = defaults.data(forKey: bookmarkKey) else { return nil }
         var stale = false

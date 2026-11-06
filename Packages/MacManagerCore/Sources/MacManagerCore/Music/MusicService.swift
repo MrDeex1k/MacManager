@@ -73,6 +73,8 @@ public protocol MusicPlayerAdapter: Sendable {
             }
         }
     }
+    /// Waits for prior reads and cache cleanup before polling. A command that just refreshed
+    /// the snapshot can defer the first poll to the normal interval.
     private func startLoop(waitingFor previousLoop: Task<Void, Never>? = nil, readImmediately: Bool = true) {
         let token = generation, previousCleanup = cleanup
         loop = Task { [weak self] in
@@ -90,6 +92,7 @@ public protocol MusicPlayerAdapter: Sendable {
             }
         }
     }
+    /// Publishes a player read only if it still belongs to the same visible generation.
     private func refresh(token: Int) async {
         guard !Task.isCancelled, visible, token == generation else { return }
         let value = await adapter.read()
@@ -104,14 +107,18 @@ public protocol MusicPlayerAdapter: Sendable {
         previousLoop?.cancel()
         startLoop(waitingFor: previousLoop)
     }
+    /// Accepts a transport command only for a visible, ready player with no action in flight.
     public func perform(_ command: MusicCommand) {
         guard visible, !busy, snapshot.availability == .ready else { return }
         execute { await $0.perform(command) }
     }
+    /// Requests permission explicitly when the player is visible and no action is running.
     public func requestAccess() {
         guard visible, !busy else { return }
         execute { await $0.requestAccess() }
     }
+    /// Cancels and waits for the previous poll before invoking the adapter. Applies the result
+    /// and resumes polling only if the original visible generation still owns the action.
     private func execute(_ operation: @escaping @Sendable (any MusicPlayerAdapter) async -> MusicAvailability) {
         busy = true; commandFailed = false
         let previousLoop = loop

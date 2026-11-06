@@ -3,6 +3,7 @@ import Testing
 @testable import MacManagerCore
 
 struct PodcastTests {
+    /// Covers direction marks and remaining-time signs as well as malformed internal characters.
     @Test func parsesOnlyRealPlayerTimestamps() {
         #expect(PodcastPlayerReading.seconds("\u{200e}−55:57") == 3357)
         #expect(PodcastPlayerReading.seconds("1:02:03") == 3723)

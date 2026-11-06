@@ -51,6 +51,7 @@ struct PodcastLocalArtworkTests {
             #expect(value.data == Data("sharp".utf8) && value.episodeTitle == "Episode, with comma")
         }
     }
+    /// Exercises duplicate episode titles with both matching and nonmatching show metadata.
     @Test func rejectsAmbiguousTitlesAndDoesNotReuseAnotherEpisodesImage() throws {
         try fixture { folder, db in
             try image(folder, template: "unrelated-template", kind: "Episode", payload: "wrong")
@@ -104,6 +105,7 @@ struct PodcastLocalArtworkTests {
         }
     }
 
+    /// Checks that malformed episode artwork dimensions still allow a valid show fallback.
     @Test func ignoresInvalidArtworkDimensions() throws {
         try fixture { folder, _ in
             try image(folder, template: "episode-template", kind: "Episode", size: "\(Int.min)x300", payload: "invalid")
@@ -115,6 +117,7 @@ struct PodcastLocalArtworkTests {
         }
     }
 
+    /// Verifies that symlinks cannot redirect artwork or database lookups outside the library.
     @Test func ignoresLibraryPathsResolvedOutsideSelectedFolder() throws {
         try fixture { folder, _ in
             let fm = FileManager.default

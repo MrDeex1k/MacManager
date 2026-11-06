@@ -50,6 +50,8 @@ public struct PodcastPlayerReading: Sendable {
         }
     }
 
+    /// Parses a player clock label as a duration in seconds. Allows a single leading minus
+    /// for remaining time and rejects malformed components.
     public static func seconds(_ text: String) -> Double? {
         // AX timestamps can contain directional marks and a Unicode minus sign.
         let cleaned = text.unicodeScalars.filter { $0.properties.generalCategory != .format }

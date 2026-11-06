@@ -353,6 +353,7 @@ private struct MemoryKey: ClipboardKeyProviding {
     func stop() { stops += 1 }
 }
 
+/// Exercises a display accessibility notification while the visible clipboard search is active.
 @MainActor @Test func islandKeepsClipboardQueryWhenDisplayAccessibilityChanges() throws {
     let suite = "IslandDisplay-\(UUID())"
     let defaults = try #require(UserDefaults(suiteName: suite))

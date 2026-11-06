@@ -17,6 +17,8 @@ public struct PodcastLocalArtworkReader: Sendable {
     private let logger = Logger(subsystem: "dev.macmanager.MacManager", category: "podcast-artwork")
     public init(directory: URL) { self.directory = directory }
 
+    /// Queries the library read-only and requires an unambiguous episode match. An explicit
+    /// show title takes precedence over expanded metadata when both are available.
     public func read(title: String, expandedMetadata: String = "", showTitle: String = "") -> PodcastLocalArtwork? {
         guard !Task.isCancelled, !title.isEmpty, title.count <= 4096,
               expandedMetadata.count <= 8192, showTitle.count <= 4096,
@@ -90,6 +92,7 @@ public struct PodcastLocalArtworkReader: Sendable {
         }
     }
 
+    /// Resolves a library-relative path and rejects symlinks that lead outside the selected folder.
     private func libraryURL(_ path: String) -> URL? {
         guard directory.isFileURL else { return nil }
         let root = directory.standardizedFileURL.resolvingSymlinksInPath()
@@ -98,6 +101,8 @@ public struct PodcastLocalArtworkReader: Sendable {
         return url
     }
 
+    /// Scans the artwork directory within time and size limits. Tries episode artwork before
+    /// the show fallback and discards the scan if it cannot finish within its limits.
     private func artwork(episodeTemplate: String, showTemplate: String) -> Data? {
         guard !Task.isCancelled, !episodeTemplate.isEmpty || !showTemplate.isEmpty,
               let folder = libraryURL("Library/Cache/Assets/Artwork") else { return nil }
@@ -132,6 +137,8 @@ public struct PodcastLocalArtworkReader: Sendable {
         return nil
     }
 
+    /// Prefers the smallest available image at least 256 pixels wide, or the largest smaller
+    /// image. Reads only bounded regular files that resolve to the artwork folder.
     private func image(candidates: [(URL, Int)], folder: URL) -> Data? {
         let candidates = candidates.sorted { a, b in
             if a.1 == b.1 { return a.0.lastPathComponent < b.0.lastPathComponent }

@@ -101,6 +101,7 @@ private struct MusicArtworkView: View {
     let snapshot: MusicSnapshot
     let symbol: String
     @State private var image: NSImage?
+    /// Rebuilds the image when the artwork bytes change, even for the same track.
     var body: some View {
         Group {
             if let image { Image(nsImage: image).resizable().scaledToFit() }

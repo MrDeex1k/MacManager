@@ -6,6 +6,7 @@ struct IslandView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Namespace private var sectionHighlight
     let coordinator: IslandCoordinator
+    /// Applies the current language to the hosted panel content, including an already open panel.
     var body: some View {
         VStack(alignment: .leading, spacing: coordinator.displayedSection == .clipboard ? 8 : 12) {
             HStack(spacing: 12) {
