@@ -9,6 +9,7 @@ struct AppStrings {
             .map { (code, $0) }
     })
 
+    /// Looks up a key in the cached bundle for the selected language, falling back to the main bundle.
     func callAsFunction(_ key: String) -> String {
         let bundle = Self.bundles[languageCode] ?? .main
         return bundle.localizedString(forKey: key, value: nil, table: "Localizable")

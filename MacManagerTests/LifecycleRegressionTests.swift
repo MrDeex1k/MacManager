@@ -3,6 +3,7 @@ import CryptoKit
 import MacManagerCore
 import Testing
 
+/// Checks that a titled window qualifies only after it receives the main scene identifier.
 @MainActor @Test func onlyTheMainSceneWindowMatchesMainWindowIdentity() {
     let window = NSWindow(contentRect: .zero, styleMask: .titled, backing: .buffered, defer: true)
     window.isReleasedWhenClosed = false
@@ -403,6 +404,7 @@ private actor MusicStub: MusicPlayerAdapter {
     func setAxes(_ axes: ScrollAxes) {}
 }
 
+/// Checks explicit startup and how selection and visibility affect requested sampling.
 @MainActor @Test func injectedAppStateStartsExplicitlyAndTracksVisibleConsumers() async throws {
     func energyReaches(_ condition: () -> Bool) async -> Bool {
         let deadline = ContinuousClock.now + .seconds(1)

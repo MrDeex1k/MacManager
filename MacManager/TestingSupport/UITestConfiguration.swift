@@ -8,6 +8,7 @@ struct UITestConfiguration: Sendable {
     #if DEBUG
     let preferencesSuite: String?
     #endif
+    /// Enables fixtures only on an explicit Debug launch and validates the test domain suffix.
     private init() {
         #if DEBUG
         let values = ProcessInfo.processInfo.arguments

@@ -8,6 +8,7 @@ extension Notification.Name {
 enum MainWindow {
     static let id = "main"
 
+    /// Matches AppKit window notifications to the SwiftUI scene identifier.
     @MainActor static func matches(_ object: Any?) -> Bool {
         (object as? NSWindow)?.identifier?.rawValue == id
     }
@@ -19,6 +20,7 @@ struct MacManagerApp: App {
     @NSApplicationDelegateAdaptor(AppearanceDelegate.self) private var delegate
     @State private var state = AppState()
 
+    /// Defines the main window and menu bar surface. Login launches suppress the main window.
     var body: some Scene {
         Window("Mac Manager", id: MainWindow.id) {
             AppShellView()
@@ -52,6 +54,7 @@ struct MacManagerApp: App {
 final class AppearanceDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
 
+    /// Signals the main scene to display its content and brings its window forward if it exists.
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows _: Bool) -> Bool {
         NotificationCenter.default.post(name: .openMainWindowRequested, object: nil)
         if let mainWindow = sender.windows.first(where: { MainWindow.matches($0) }) {
@@ -106,6 +109,7 @@ struct AppCommands: Commands {
         }
     }
 
+    /// Selects the destination and opens the main scene before activating the app.
     private func navigate(_ section: AppSection) {
         state.section = section
         state.setMainWindowVisible(true)

@@ -4,6 +4,7 @@ import SwiftUI
 struct AppShellView: View {
     @Environment(AppState.self) private var state
 
+    /// Tracks occlusion, minimization, and closing for the main scene window.
     var body: some View {
         @Bindable var state = state
         Group {
@@ -34,6 +35,7 @@ struct AppShellView: View {
         }
     }
 
+    /// Uses the same effective selection for the displayed page and its navigation title.
     private func content(state source: AppState) -> some View {
         @Bindable var state = source
         return NavigationSplitView {

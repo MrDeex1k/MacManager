@@ -78,6 +78,7 @@ class AppUITestSupport: XCTestCase {
         XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: idle, object: state)], timeout: 3), .completed)
     }
 
+    /// Scopes the audit to the requested visible surface and filters known framework findings.
     @MainActor
     func performAccessibilityAudit(
         in app: XCUIApplication,
@@ -92,6 +93,7 @@ class AppUITestSupport: XCTestCase {
             $0.elementType == .staticText && $0.identifier.isEmpty
                 && ($0.value as? String ?? $0.label) == mainWindow.title
         } : []
+        /// Matches by accessibility attributes, using the frame when there is no identifier.
         func contains(_ snapshot: any XCUIElementSnapshot, _ element: XCUIElement) -> Bool {
             if snapshot.elementType == element.elementType,
                snapshot.identifier == element.identifier,

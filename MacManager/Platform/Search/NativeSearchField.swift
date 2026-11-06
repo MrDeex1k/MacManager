@@ -11,6 +11,7 @@ struct NativeSearchField: NSViewRepresentable {
     let onChange: (String) -> Void
 
     func makeCoordinator() -> Coordinator { Coordinator(onChange: onChange) }
+    /// Creates a single accessible text field with a native keyboard focus indicator.
     func makeNSView(context: Context) -> NSTextField {
         let field = NSTextField()
         field.delegate = context.coordinator

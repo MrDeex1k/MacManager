@@ -1,6 +1,23 @@
 #!/bin/bash
 set -euo pipefail
 
+# A clean scan returns 1 from grep. Read or pattern errors must fail verification.
+require_no_fixture_matches() {
+    local status=0
+    grep "$@" || status=$?
+    case "$status" in
+        1) return 0 ;;
+        0)
+            echo 'UI test fixtures found in Release.' >&2
+            return 1
+            ;;
+        *)
+            printf 'Release fixture scan failed (grep exit status %s).\n' "$status" >&2
+            return "$status"
+            ;;
+    esac
+}
+
 cd "$(dirname "$0")/.."
 if [[ $(uname -m) != arm64 ]]; then
     echo 'Run verification on an Apple Silicon Mac with Xcode 27 or newer.' >&2
@@ -33,9 +50,6 @@ done
 
 xcrun nm "$binary" | xcrun swift-demangle > "$build_dir/release-symbols"
 xcrun strings -a "$binary" > "$build_dir/release-strings"
-if grep -E 'Fixture(AppleMusic|Podcasts|Clipboard|Launcher)|Test(LoginItemService|ScrollDriver|UpdateFixture)|setSessionSuspendedForTesting|simulateDisplayChangeForTesting' "$build_dir/release-symbols" \
-    || grep -Ex -- '--ui-testing|--island-reserved-region-probe|MM_UI_TEST_ID' "$build_dir/release-strings"; then
-    echo 'UI test fixtures found in Release.' >&2
-    exit 1
-fi
+require_no_fixture_matches -E 'Fixture(AppleMusic|Podcasts|Clipboard|Launcher)|Test(LoginItemService|ScrollDriver|UpdateFixture)|setSessionSuspendedForTesting|simulateDisplayChangeForTesting' "$build_dir/release-symbols"
+require_no_fixture_matches -Ex -- '--ui-testing|--island-reserved-region-probe|MM_UI_TEST_ID' "$build_dir/release-strings"
 echo 'Release architecture, localizations and fixture checks passed.'
