@@ -11,13 +11,13 @@ struct NativeSearchField: NSViewRepresentable {
     let onChange: (String) -> Void
 
     func makeCoordinator() -> Coordinator { Coordinator(onChange: onChange) }
-    /// Creates a single accessible text field with a native keyboard focus indicator.
+    /// Creates a single accessible text field with focus styling appropriate to its panel.
     func makeNSView(context: Context) -> NSTextField {
         let field = NSTextField()
         field.delegate = context.coordinator
         field.isEditable = true; field.isSelectable = true
         field.usesSingleLineMode = true
-        field.focusRingType = .exterior
+        field.focusRingType = style == .launcher ? .none : .exterior
         field.identifier = .init(identifier)
         field.setAccessibilityIdentifier(identifier)
         // Export the editable control once; the legacy cell otherwise leaves
