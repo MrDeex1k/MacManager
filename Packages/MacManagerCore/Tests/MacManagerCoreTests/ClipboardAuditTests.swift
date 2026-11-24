@@ -65,6 +65,8 @@ private func auditDirectory() -> URL {
         #expect(try await repository.search("", entries: entries, preferences: .init(), now: now, limit: 1) == entries)
     }
     #expect(key.state.withLock { $0.calls } == calls)
+    #expect(try await repository.search("absent", entries: entries, preferences: .init(), now: now, limit: 1).isEmpty)
+    #expect(key.state.withLock { $0.calls } == calls)
     #expect(try await repository.search("synthetic", entries: entries, preferences: .init(), now: now, limit: 1) == entries)
     #expect(key.state.withLock { $0.calls } == calls + 1)
 }

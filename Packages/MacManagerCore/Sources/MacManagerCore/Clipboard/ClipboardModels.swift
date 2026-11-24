@@ -62,10 +62,17 @@ public struct ClipboardEntry: Identifiable, Equatable, Sendable {
     public let text: String?
     public let sourceBundleID: String?
     public let damaged: Bool
+    let hasCompleteText: Bool
 
     public init(record: ClipboardRecord, text: String?, sourceBundleID: String?, damaged: Bool = false) {
+        self.init(record: record, text: text, sourceBundleID: sourceBundleID, damaged: damaged, hasCompleteText: false)
+    }
+
+    init(record: ClipboardRecord, text: String?, sourceBundleID: String?, damaged: Bool = false,
+         hasCompleteText: Bool) {
         self.record = record; self.text = text
         self.sourceBundleID = sourceBundleID; self.damaged = damaged
+        self.hasCompleteText = hasCompleteText
     }
 }
 

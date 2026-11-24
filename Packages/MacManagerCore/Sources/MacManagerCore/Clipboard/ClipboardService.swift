@@ -25,6 +25,7 @@ public final class ClipboardService {
     public private(set) var access: ClipboardAccess = .needsPermission
     public private(set) var suspended = false
     public private(set) var failure: ClipboardFailure?
+    private var captureWriteFailed = false
     public private(set) var databaseBytes = 0
     public private(set) var restoredID: UUID?
     public var status: ClipboardStatus {
@@ -33,7 +34,7 @@ public final class ClipboardService {
         if preferences.paused { return .paused }
         if access == .denied { return .denied }
         if access == .needsPermission { return .needsPermission }
-        if failure == .storage || failure == .keyUnavailable { return .unavailable }
+        if captureWriteFailed || failure == .storage || failure == .keyUnavailable { return .unavailable }
         return .recording
     }
     @ObservationIgnored private var oldestEntryDate: Date?
@@ -138,7 +139,8 @@ public final class ClipboardService {
         }
         expireEntries()
         guard preferences.enabled, !preferences.paused, access == .allowed,
-              captureTask == nil, failure != .keyUnavailable, failure != .storage else { return }
+              captureTask == nil, failure != .keyUnavailable,
+              failure != .storage || captureWriteFailed else { return }
         let count = pasteboard.changeCount
         guard count != lastChangeCount else { return }
         lastChangeCount = count
@@ -173,10 +175,13 @@ public final class ClipboardService {
                     if change.inserted != nil || !change.removed.isEmpty { self.entries = entries }
                     self.expireEntries()
                     self.databaseBytes = change.databaseBytes
-                    self.failure = nil
+                    if change.inserted != nil { self.captureWriteFailed = false }
+                    self.failure = self.captureWriteFailed ? .storage : nil
                 } catch {
                     guard token == self.generation, !(error is CancellationError) else { return }
-                    self.failure = error as? ClipboardFailure ?? .storage
+                    let failure = error as? ClipboardFailure ?? .storage
+                    if failure == .storage { self.captureWriteFailed = true }
+                    self.failure = failure
                 }
             }
         }
@@ -184,7 +189,15 @@ public final class ClipboardService {
 
     /// Permission/storage failures need only a slow retry, not capture-frequency polling.
     public var pollingSeconds: Double {
-        access == .allowed && failure != .keyUnavailable && failure != .storage ? 0.5 : 5
+        access == .allowed && !captureWriteFailed && failure != .keyUnavailable && failure != .storage ? 0.5 : 5
+    }
+
+    /// The controller calls this at the slow polling cadence after a storage failure.
+    public func retryCaptureStorage() async {
+        guard running, !suspended, preferences.enabled, !preferences.paused, access == .allowed,
+              captureTask == nil, refreshTask == nil,
+              failure == .keyUnavailable || (failure == .storage && !captureWriteFailed) else { return }
+        await refresh()
     }
 
     public func nextMaintenanceDate() async throws -> Date? {
@@ -227,7 +240,7 @@ public final class ClipboardService {
             guard running, !suspended, token == generation, request == refreshID, !Task.isCancelled else { return }
             entries = library.entries; databaseBytes = library.databaseBytes
             expireEntries()
-            if failure == .keyUnavailable || failure == .storage { failure = nil }
+            if failure == .keyUnavailable || (failure == .storage && !captureWriteFailed) { failure = nil }
         } catch {
             guard running, !suspended, token == generation, request == refreshID,
                   !Task.isCancelled, !(error is CancellationError) else { return }
@@ -314,7 +327,8 @@ public final class ClipboardService {
         let token = generation
         do {
             try await repository.delete([id])
-            guard running, !suspended, token == generation else { return }
+            // Another mutation can advance the generation while this permanent deletion commits.
+            guard running, !suspended else { return }
             refreshID = UUID()
             entries.removeAll { $0.id == id }
             if restoredID == id { restoredID = nil }
@@ -329,6 +343,7 @@ public final class ClipboardService {
             try await repository.clear()
             guard token == generation else { return }
             entries = []; restoredID = nil; databaseBytes = 0; failure = nil
+            captureWriteFailed = false
         } catch { if token == generation { failure = error as? ClipboardFailure ?? .storage } }
     }
 

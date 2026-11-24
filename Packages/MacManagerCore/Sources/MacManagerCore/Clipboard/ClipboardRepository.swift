@@ -28,6 +28,7 @@ public actor ClipboardRepository {
     private let files = FileManager.default
     private var memory: ClipboardMemoryCache
     private var memoryAccessAllowed = true
+    private var orphanCleanupPending = false
     private let signposter = OSSignposter(subsystem: "dev.macmanager.MacManager", category: "clipboard-search")
     var cachedBytes: Int { memory.bytes }
 
@@ -39,6 +40,7 @@ public actor ClipboardRepository {
     private struct Preview: Codable {
         let version: Int
         let text: String?
+        let hasCompleteText: Bool?
         let thumbnail: Data?
         let sourceBundleID: String?
         let sourceIsEstimated: Bool
@@ -61,20 +63,20 @@ public actor ClipboardRepository {
         try Task.checkCancellation()
         try prune(preferences: preferences, now: now)
         let records = try sql.records()
-        try payloads.removeOrphans(records: records)
+        cleanOrphans(records: records)
         let reusable = Dictionary(existing.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         let entries = try records.map { record -> ClipboardEntry in
             try Task.checkCancellation()
             if let entry = reusable[record.id], entry.record == record, !entry.damaged {
                 return ClipboardEntry(record: record, text: compactText(entry.text),
-                                      sourceBundleID: entry.sourceBundleID)
+                                      sourceBundleID: entry.sourceBundleID, hasCompleteText: entry.hasCompleteText)
             }
             do {
                 let data = try payloads.decrypt(record.id, role: "preview", key: key, maximumBytes: 7_000_000)
                 let preview = try JSONDecoder().decode(Preview.self, from: data)
                 guard preview.version == 1 || preview.version == 2 else { throw ClipboardFailure.damagedEntry }
                 return ClipboardEntry(record: record, text: compactText(preview.text),
-                                      sourceBundleID: preview.sourceBundleID)
+                                      sourceBundleID: preview.sourceBundleID, hasCompleteText: preview.hasCompleteText == true)
             } catch {
                 return ClipboardEntry(record: record, text: nil, sourceBundleID: nil, damaged: true)
             }
@@ -99,7 +101,9 @@ public actor ClipboardRepository {
             return ClipboardMutation(inserted: nil, removed: removed, databaseBytes: databaseBytes)
         }
         let id = UUID()
-        let preview = Preview(version: 2, text: content.kind == .text ? compactText(String(data: content.data, encoding: .utf8)) : nil,
+        let text = content.kind == .text ? String(data: content.data, encoding: .utf8) : nil
+        let hasCompleteText = text.map { $0.utf8.count <= 1_200 && $0.count <= 300 } ?? false
+        let preview = Preview(version: 2, text: compactText(text), hasCompleteText: hasCompleteText,
                               thumbnail: content.thumbnail, sourceBundleID: content.sourceBundleID,
                               sourceIsEstimated: content.sourceIsEstimated)
         let payload = try payloads.encrypt(content.data, id: id, role: "payload", key: key)
@@ -127,7 +131,7 @@ public actor ClipboardRepository {
         removed.formUnion(try prune(preferences: preferences, now: now))
         let record = ClipboardRecord(id: id, kind: content.kind, capturedAt: now, storedBytes: bytes)
         let entry = ClipboardEntry(record: record, text: compactText(preview.text),
-                                   sourceBundleID: preview.sourceBundleID)
+                                   sourceBundleID: preview.sourceBundleID, hasCompleteText: preview.hasCompleteText == true)
         return ClipboardMutation(inserted: removed.contains(id) ? nil : entry, removed: removed, databaseBytes: databaseBytes)
     }
 
@@ -186,11 +190,16 @@ public actor ClipboardRepository {
             try Task.checkCancellation()
             return result
         }
-        let key = try currentKey()
+        var key: SymmetricKey?
         var result: [ClipboardEntry] = []
         for entry in entries where live.contains(entry.id) && !entry.damaged {
             try Task.checkCancellation()
             if entry.record.kind == .text {
+                // Complete previews can rule out matches. Verify positives against the
+                // payload so missing or corrupt payloads still stay out of search results.
+                if entry.hasCompleteText, entry.text?.localizedStandardContains(query) == false { continue }
+                if key == nil { key = try currentKey() }
+                guard let key else { break }
                 // Do not fill the cache with the entire history during a scan.
                 do {
                     let cacheKey = ClipboardMemoryCache.Key(id: entry.id, role: "payload")
@@ -213,19 +222,23 @@ public actor ClipboardRepository {
         memory.clear()
         sql.close()
         if files.fileExists(atPath: directory.path) { try files.removeItem(at: directory) }
+        orphanCleanupPending = false
     }
 
     // Metadata retention can run during pause or session lock without decrypting content.
     @discardableResult
     public func maintain(preferences: ClipboardPreferences, now: Date) throws -> Set<UUID> {
         try open()
-        return try prune(preferences: preferences, now: now)
+        let removed = try prune(preferences: preferences, now: now)
+        if orphanCleanupPending, let records = try? sql.records() { cleanOrphans(records: records) }
+        return removed
     }
 
     /// Returns the age-limit deadline for the oldest record, or nil for empty history.
     /// Rejects invalid timestamps so maintenance never schedules work using a coerced value.
     public func nextExpiration(preferences: ClipboardPreferences) throws -> Date? {
         try open()
+        if orphanCleanupPending { return .distantPast }
         let query = try sql.statement("SELECT captured FROM entries ORDER BY captured ASC LIMIT 1")
         defer { sqlite3_finalize(query) }
         let result = sqlite3_step(query)
@@ -262,6 +275,16 @@ public actor ClipboardRepository {
         return removed
     }
 
+    private func cleanOrphans(records: [ClipboardRecord]) {
+        do {
+            try payloads.removeOrphans(records: records)
+            orphanCleanupPending = false
+        } catch {
+            orphanCleanupPending = true
+            MacManagerLog.clipboard.error("Clipboard orphan cleanup deferred")
+        }
+    }
+
     private func remove(_ ids: Set<UUID>) throws {
         guard !ids.isEmpty else { return }
         memory.remove(ids)
@@ -282,7 +305,14 @@ public actor ClipboardRepository {
         for id in ids {
             for role in ["payload", "preview"] {
                 let url = payloads.fileURL(id, role: role)
-                if files.fileExists(atPath: url.path) { try files.removeItem(at: url) }
+                do {
+                    try files.removeItem(at: url)
+                } catch let error as CocoaError where error.code == .fileNoSuchFile {
+                    continue
+                } catch {
+                    orphanCleanupPending = true
+                    MacManagerLog.clipboard.error("Clipboard file cleanup deferred")
+                }
             }
         }
     }
