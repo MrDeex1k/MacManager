@@ -6,6 +6,7 @@ public actor HardwareMetricsSampler: MetricsSampling {
     private let sensorSampler = HardwareSensorSampler()
     private let sensorCatalog = SensorCatalog.current()
     private var gpuService: UInt32 = 0
+    private var nextGPUDiscovery: TimeInterval = 0
     private var previous: CPUTicks?
     private var previousTime: TimeInterval?
 
@@ -14,6 +15,7 @@ public actor HardwareMetricsSampler: MetricsSampling {
     public func reset() async {
         previous = nil; previousTime = nil
         mm_gpu_close(gpuService); gpuService = 0
+        nextGPUDiscovery = 0
         await sensorSampler.reset()
     }
 
@@ -39,8 +41,13 @@ public actor HardwareMetricsSampler: MetricsSampling {
             readings[.cpu] = MetricReading(kind: .cpu, status: .failed, source: "Mach CPU ticks")
         }
         var gpu = 0.0
-        if !request.kinds.contains(.gpu) { mm_gpu_close(gpuService); gpuService = 0 }
-        let gpuStatus = request.kinds.contains(.gpu) ? mm_gpu_read_cached(&gpuService, &gpu) : -1
+        var gpuStatus: Int32 = -1
+        if !request.kinds.contains(.gpu) {
+            mm_gpu_close(gpuService); gpuService = 0
+        } else if start >= nextGPUDiscovery {
+            gpuStatus = mm_gpu_read_cached(&gpuService, &gpu)
+            if gpuStatus != 0 { nextGPUDiscovery = start + 60 }
+        }
         readings[.gpu] = MetricReading(kind: .gpu, value: gpuStatus == 0 ? gpu : nil,
                                       status: gpuStatus == 0 ? .available : .unavailable,
                                       source: "AGX Device Utilization %")

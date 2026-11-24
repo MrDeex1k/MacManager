@@ -72,9 +72,12 @@ enum DiagnosticReportBuilder {
     private static func metricsStatus(_ service: MetricsService) -> String {
         if service.suspended { return "suspended" }
         let states = service.snapshot.readings.values.map(\.status)
-        if states.contains(.available) { return "available" }
+        let sensors = service.snapshot.sensors
+        if states.contains(.available) || (!sensors.isStale && (sensors.hasValues || sensors.fans == .passive)) {
+            return "available"
+        }
         if states.contains(.failed) { return "failed" }
-        if states.contains(.stale) { return "stale" }
+        if states.contains(.stale) || (sensors.isSampled && sensors.isStale) { return "stale" }
         return "unavailable"
     }
 

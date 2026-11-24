@@ -95,3 +95,20 @@ import Testing
         #expect(LocalCalculator.result(query, language: "en") == nil, "Query: \(query)")
     }
 }
+
+@Test func recurringCalculatorLeapDayUsesTheRequestedDirection() throws {
+    var calendar = Calendar(identifier: .gregorian)
+    calendar.timeZone = .gmt
+    let now = try #require(calendar.date(from: DateComponents(year: 2100, month: 11, day: 24)))
+    for (query, explicit) in [
+        ("days until February 29", "days until 2104-02-29"),
+        ("days since February 29", "days since 2096-02-29")
+    ] {
+        let expected = try #require(CalcEngine.evaluate(explicit, now: now, calendar: calendar))
+        #expect(CalcEngine.evaluate(query, now: now, calendar: calendar)?.payload == expected.payload)
+    }
+    #expect(CalcEngine.evaluate("days until April 31", now: now, calendar: calendar) == nil)
+    let nearPrevious = try #require(calendar.date(from: DateComponents(year: 2025, month: 3, day: 1)))
+    let previous = try #require(CalcEngine.evaluate("February 29 2024", now: nearPrevious, calendar: calendar))
+    #expect(CalcEngine.evaluate("February 29", now: nearPrevious, calendar: calendar)?.payload == previous.payload)
+}

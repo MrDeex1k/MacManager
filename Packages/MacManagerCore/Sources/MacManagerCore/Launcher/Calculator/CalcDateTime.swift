@@ -644,21 +644,30 @@ enum CalcDateTime {
         month: Int, day: Int, now: Date, calendar: Calendar, bias: MomentBias = .future
     ) -> Moment? {
         let year = calendar.component(.year, from: now)
-        guard let thisYear = makeDate(year, month, day, calendar) else { return nil }
-        let sod = calendar.startOfDay(for: now)
-        switch bias {
-        case .future:
-            if thisYear >= sod { return Moment(date: thisYear, hasTime: false) }
-            guard let nextYear = makeDate(year + 1, month, day, calendar) else { return nil }
-            return Moment(date: nextYear, hasTime: false)
-        case .past:
-            if thisYear <= sod { return Moment(date: thisYear, hasTime: false) }
-            guard let lastYear = makeDate(year - 1, month, day, calendar) else { return nil }
-            return Moment(date: lastYear, hasTime: false)
-        // A date days behind is likelier the one meant than the same date a year out.
-        case .nearest:
-            return Moment(date: thisYear, hasTime: false)
+        let today = calendar.startOfDay(for: now)
+        // Gregorian leap-day gaps are at most eight years, including skipped century years.
+        func occurrence(direction: Int) -> Date? {
+            for offset in 0...8 {
+                let candidateYear = year + direction * offset
+                guard let date = makeDate(candidateYear, month, day, calendar) else { continue }
+                if direction < 0 ? date <= today : date >= today { return date }
+            }
+            return nil
         }
+
+        let date: Date?
+        switch bias {
+        case .future: date = occurrence(direction: 1)
+        case .past: date = occurrence(direction: -1)
+        case .nearest:
+            if let thisYear = makeDate(year, month, day, calendar) {
+                date = thisYear
+            } else {
+                let candidates = [occurrence(direction: -1), occurrence(direction: 1)].compactMap { $0 }
+                date = candidates.min { abs($0.timeIntervalSince(today)) < abs($1.timeIntervalSince(today)) }
+            }
+        }
+        return date.map { Moment(date: $0, hasTime: false) }
     }
 
     private static func nextWeekday(
