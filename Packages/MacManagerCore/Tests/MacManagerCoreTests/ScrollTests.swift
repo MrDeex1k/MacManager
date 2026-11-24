@@ -300,6 +300,12 @@ private final class FakeScrollDriver: ScrollDriving {
     driver.onStateChange?()
     #expect(service.status == .interrupted)
     #expect(driver.starts == 1)
+    driver.permission = .inputMonitoring
+    service.refresh()
+    driver.onStateChange?()
+    #expect(service.status == .inputMonitoringRequired)
+    driver.permission = .granted
+    service.refresh()
     service.setEnabled(false)
     driver.state = .failed
     driver.onStateChange?()

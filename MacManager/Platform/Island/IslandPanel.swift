@@ -45,12 +45,19 @@ import AppKit
             case 125: onMove?(1); return
             case 126: onMove?(-1); return
             case 36: onSubmit?(); return
-            case 49: if onSpace?() == true { return }
             default: break
             }
         }
         super.sendEvent(event)
     }
+    override func keyDown(with event: NSEvent) {
+        // The responder chain gives focused controls and editors the first chance to handle Space.
+        if event.keyCode == 49,
+           event.modifierFlags.intersection([.command, .control, .option, .shift]).isEmpty,
+           onSpace?() == true { return }
+        super.keyDown(with: event)
+    }
+
     func focusSearch() {
         func find(_ view: NSView) -> NSTextField? {
             if let field = view as? NSTextField, field.identifier?.rawValue == "island.search" { return field }

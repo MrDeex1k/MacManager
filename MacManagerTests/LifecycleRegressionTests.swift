@@ -459,3 +459,23 @@ private actor MusicStub: MusicPlayerAdapter {
     try await Task.sleep(for: .milliseconds(20))
     #expect(energy.request.kinds.isEmpty)
 }
+
+@MainActor @Test func islandSpaceReachesTheFocusedEditorBeforePlayback() throws {
+    let panel = IslandPanel()
+    defer { panel.close() }
+    let editor = NSTextView(frame: NSRect(x: 0, y: 0, width: 100, height: 22))
+    panel.contentView = editor
+    var playbackCount = 0
+    panel.onSpace = { playbackCount += 1; return true }
+    let space = try #require(NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: [],
+        timestamp: 0, windowNumber: panel.windowNumber, context: nil, characters: " ",
+        charactersIgnoringModifiers: " ", isARepeat: false, keyCode: 49))
+
+    #expect(panel.makeFirstResponder(editor))
+    panel.sendEvent(space)
+    #expect(editor.string == " " && playbackCount == 0)
+
+    #expect(panel.makeFirstResponder(nil))
+    panel.sendEvent(space)
+    #expect(playbackCount == 1)
+}
