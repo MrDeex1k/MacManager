@@ -127,6 +127,7 @@ final class ClipboardController: ApplicationLifecycleParticipant {
         polling = Task { [weak self] in
             while !Task.isCancelled {
                 self?.service.poll()
+                await self?.service.retryCaptureStorage()
                 do { try await Task.sleep(for: .seconds(seconds), tolerance: .milliseconds(50)) }
                 catch { return }
             }

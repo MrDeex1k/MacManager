@@ -67,6 +67,32 @@ actor LocalNetworkReader {
         }
         let primary = primaryAddress ?? NetworkEnvironment.selectPrimary(addresses: activeAddresses,
             physicalOrder: physical, systemPrimary: systemPrimary)
-        return NetworkEnvironment(online: online, addresses: addresses, primary: primary, tunnels: tunnels.sorted())
+        let route = global.map { NetworkRoute(interface: systemPrimary, service: primaryService, router: $0["Router"] as? String) }
+        return NetworkEnvironment(online: online, addresses: addresses, primary: primary, tunnels: tunnels.sorted(),
+                                  route: route, vpnIPv4State: vpnIPv4State(tunnels: tunnels))
+    }
+
+    /// Compare the IPv4 configuration for VPN services even when the physical default route stays put.
+    private func vpnIPv4State(tunnels: Set<String>) -> [String: Data] {
+        let patterns = ["State:/Network/Service/[^/]+/(IPv4|PPP|IPSec)", "State:/Network/Interface/[^/]+/IPv4"]
+        guard let store, let state = SCDynamicStoreCopyMultiple(store, nil, patterns as CFArray) as? [String: [String: Any]]
+        else { return [:] }
+        var result: [String: Data] = [:]
+        for (path, configuration) in state where path.hasSuffix("/IPv4") {
+            let scope = String(path.dropLast("/IPv4".count))
+            let interface = configuration["InterfaceName"] as? String
+            if path.hasPrefix("State:/Network/Interface/") {
+                guard let interfaceName = scope.split(separator: "/").last,
+                      tunnels.contains(String(interfaceName)) else { continue }
+            } else {
+                guard interface.map(tunnels.contains) == true ||
+                      state[scope + "/PPP"] != nil || state[scope + "/IPSec"] != nil else { continue }
+            }
+            // A canonical encoding ignores dictionary order while detecting changes to routing data.
+            if JSONSerialization.isValidJSONObject(configuration) {
+                result[path] = try? JSONSerialization.data(withJSONObject: configuration, options: .sortedKeys)
+            }
+        }
+        return result
     }
 }

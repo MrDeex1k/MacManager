@@ -812,3 +812,99 @@ private final class RecoverableClipboardKey: ClipboardKeyProviding, @unchecked S
     #expect(image.width == 640 && image.height == 480)
     #expect(thumbnail.width <= 320 && thumbnail.height <= 320)
 }
+
+@MainActor @Test func clipboardPollingRecoversFromTransientStorageFailure() async {
+    let directory = clipboardDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let keys = RecoverableClipboardKey()
+    let repository = ClipboardRepository(directory: directory, keys: keys)
+    let mock = ClipboardMock()
+    let service = ClipboardService(preferences: .init(), pasteboard: mock, repository: repository, storageExists: false)
+    defer { service.stop() }
+
+    keys.setUnavailable(true)
+    await service.start()
+    #expect(service.failure == .keyUnavailable)
+    await service.retryCaptureStorage()
+    #expect(service.failure == .keyUnavailable && service.pollingSeconds == 5)
+    keys.setUnavailable(false)
+    await service.retryCaptureStorage()
+    #expect(service.failure == nil && service.pollingSeconds == 0.5)
+    mock.copy("captured after recovery")
+    service.poll()
+    #expect(await waitUntil { service.entries.first?.text == "captured after recovery" })
+}
+
+@Test func boundedPNGDistinguishesAnOutputBudgetFromAnInvalidImage() throws {
+    let bitmap = try #require(NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: 4, pixelsHigh: 4,
+        bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
+        colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0))
+    let image = try #require(bitmap.cgImage)
+    let full = try ImageThumbnail.encodeBoundedPNG(image, maximumBytes: 1_000)
+    #expect(try ImageThumbnail.encodeBoundedPNG(image, maximumBytes: full.count) == full)
+    #expect(throws: ImageThumbnail.EncodingFailure.exceedsBudget) {
+        try ImageThumbnail.encodeBoundedPNG(image, maximumBytes: full.count - 1)
+    }
+}
+
+@MainActor @Test func clipboardDeletePublishesCommitWhenPayloadCleanupNeedsRetry() async throws {
+    let directory = clipboardDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let repository = ClipboardRepository(directory: directory, keys: ClipboardTestKey())
+    let mock = ClipboardMock()
+    let service = ClipboardService(preferences: .init(), pasteboard: mock, repository: repository, storageExists: false)
+    defer { service.stop() }
+    await service.start()
+    mock.copy("delete even when cleanup fails")
+    service.poll()
+    #expect(await waitUntil { service.entries.count == 1 })
+
+    let id = try #require(service.entries.first?.id)
+    let file = directory.appendingPathComponent(id.uuidString + ".payload")
+    try FileManager.default.setAttributes([.immutable: true], ofItemAtPath: file.path)
+    defer { try? FileManager.default.setAttributes([.immutable: false], ofItemAtPath: file.path) }
+    await service.delete(id)
+    #expect(service.entries.isEmpty && service.failure == nil)
+    #expect(FileManager.default.fileExists(atPath: file.path))
+    #expect(try await service.nextMaintenanceDate() == .distantPast)
+    try FileManager.default.setAttributes([.immutable: false], ofItemAtPath: file.path)
+    await service.maintain()
+    #expect(!FileManager.default.fileExists(atPath: file.path))
+    #expect(try await service.nextMaintenanceDate() == nil)
+}
+
+@MainActor @Test func clipboardWriteFailureStaysSlowUntilAWriteSucceeds() async throws {
+    let directory = clipboardDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let repository = ClipboardRepository(directory: directory, keys: ClipboardTestKey())
+    let mock = ClipboardMock()
+    let service = ClipboardService(preferences: .init(), pasteboard: mock, repository: repository, storageExists: false)
+    defer { service.stop() }
+    await service.start()
+    try FileManager.default.setAttributes([.immutable: true], ofItemAtPath: directory.path)
+    defer { try? FileManager.default.setAttributes([.immutable: false], ofItemAtPath: directory.path) }
+
+    mock.copy("cannot write"); service.poll()
+    #expect(await waitUntil { service.failure == .storage })
+    await service.retryCaptureStorage()
+    await service.refresh()
+    #expect(service.status == .unavailable && service.pollingSeconds == 5)
+
+    try FileManager.default.setAttributes([.immutable: false], ofItemAtPath: directory.path)
+    mock.copy("can write again"); service.poll()
+    #expect(await waitUntil { service.entries.first?.text == "can write again" })
+    #expect(service.status == .recording && service.pollingSeconds == 0.5)
+}
+
+@Test func clipboardPreviewSplitMidScalarKeepsFullTextSearch() async throws {
+    let directory = clipboardDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let repository = ClipboardRepository(directory: directory, keys: ClipboardTestKey())
+    let text = "a" + String(repeating: "\u{0301}", count: 599) + "雪"
+    let now = Date()
+    try await repository.insert(.init(kind: .text, data: Data(text.utf8)), preferences: .init(), now: now)
+    let entries = try await repository.load(preferences: .init(), now: now).entries
+    let entry = try #require(entries.first)
+    #expect(!entry.hasCompleteText)
+    #expect(try await repository.search("雪", entries: entries, preferences: .init(), now: now, limit: 1) == entries)
+}

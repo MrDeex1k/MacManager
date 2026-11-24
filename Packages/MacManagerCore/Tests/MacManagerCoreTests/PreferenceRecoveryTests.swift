@@ -26,6 +26,16 @@ import Testing
     defaults.set(try JSONSerialization.data(withJSONObject: fields), forKey: key)
     let unsafeExclusions = PreferencesStore(defaults: defaults).clipboard
     #expect(!unsafeExclusions.enabled && unsafeExclusions.paused)
+
+    fields.removeValue(forKey: "excludedBundleIDs")
+    defaults.set(try JSONSerialization.data(withJSONObject: fields), forKey: key)
+    let missingExclusions = PreferencesStore(defaults: defaults).clipboard
+    #expect(!missingExclusions.enabled && missingExclusions.paused)
+
+    fields["excludedBundleIDs"] = [String]()
+    defaults.set(try JSONSerialization.data(withJSONObject: fields), forKey: key)
+    let emptyExclusions = PreferencesStore(defaults: defaults).clipboard
+    #expect(emptyExclusions.enabled && !emptyExclusions.paused)
 }
 
 @MainActor @Test func unreadableSavedSettingsDifferFromFreshInstallation() throws {

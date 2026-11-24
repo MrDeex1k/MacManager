@@ -36,9 +36,11 @@ final class NetworkController: ApplicationLifecycleParticipant {
             DispatchQueue.main.async { [weak self] in
                 guard let self, self.running else { return }
                 self.revision += 1
-                self.online = online
+                if self.online != online {
+                    self.online = online
+                    self.service.pathChanged(now: ProcessInfo.processInfo.systemUptime, online: online)
+                }
                 self.lastRead = -.infinity
-                self.service.pathChanged(now: ProcessInfo.processInfo.systemUptime, online: online)
                 if !self.suspended { self.schedule() }
             }
         }
@@ -77,7 +79,7 @@ final class NetworkController: ApplicationLifecycleParticipant {
             return
         }
         if !configurationActive {
-            configurationActive = configurationMonitor.start { [weak self] routeChanged in self?.configurationChanged(routeChanged: routeChanged) }
+            configurationActive = configurationMonitor.start { [weak self] in self?.configurationChanged() }
         }
         // Notifications normally drive local updates. Poll more often only if registration failed.
         let fallbackInterval = configurationActive ? (interval >= 30 ? 300.0 : 60.0) : interval
@@ -101,7 +103,7 @@ final class NetworkController: ApplicationLifecycleParticipant {
                         Task { [weak self] in
                             guard let self, self.running, !self.suspended, self.revision == revision else { return }
                             await self.service.refresh(now: ProcessInfo.processInfo.systemUptime)
-                            if self.running, !self.suspended, self.revision == revision { self.schedule() }
+                            if self.running, !self.suspended { self.schedule() }
                         }
                     }
                 }
@@ -112,19 +114,17 @@ final class NetworkController: ApplicationLifecycleParticipant {
         }
     }
 
-    /// Invalidates route-dependent data immediately and coalesces bursts of local interface notifications.
-    private func configurationChanged(routeChanged: Bool) {
-        guard running, !suspended else { return }
-        revision += 1
-        if routeChanged { service.pathChanged(now: ProcessInfo.processInfo.systemUptime) }
-        configurationChange?.cancel()
+    /// Coalesces interface notifications before comparing the actual IPv4 route.
+    private func configurationChanged() {
+        guard running, !suspended, configurationChange == nil else { return }
         configurationChange = Task { [weak self] in
             // Coalesce interface/service notifications from one reconfiguration.
             do { try await Task.sleep(for: .milliseconds(200)) } catch { return }
             guard let self, self.running, !self.suspended else { return }
+            self.revision += 1
             self.lastRead = -.infinity
-            self.schedule()
             self.configurationChange = nil
+            self.schedule()
         }
     }
 

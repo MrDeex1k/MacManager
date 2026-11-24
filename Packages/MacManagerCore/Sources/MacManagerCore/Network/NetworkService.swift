@@ -38,8 +38,10 @@ public final class NetworkService {
     public func update(_ environment: NetworkEnvironment, now: TimeInterval) {
         guard !receivedEnvironment || environment != self.environment else { return }
         let first = !receivedEnvironment
+        let routeChanged = !self.environment.sharesPublicRoute(with: environment)
         receivedEnvironment = true
         self.environment = environment
+        guard first || routeChanged else { return }
         invalidate()
         state = restingState
         nextAttempt = max(now + (first ? 0 : 2), (lastAttempt ?? -.infinity) + 30)
@@ -49,7 +51,8 @@ public final class NetworkService {
     public func pathChanged(now: TimeInterval, online: Bool? = nil) {
         if let online, online != environment.online {
             environment = NetworkEnvironment(online: online, addresses: environment.addresses,
-                                             primary: environment.primary, tunnels: environment.tunnels)
+                                             primary: environment.primary, tunnels: environment.tunnels,
+                                             route: environment.route, vpnIPv4State: environment.vpnIPv4State)
         }
         invalidate(); state = restingState
         nextAttempt = max(now + 2, (lastAttempt ?? -.infinity) + 30)

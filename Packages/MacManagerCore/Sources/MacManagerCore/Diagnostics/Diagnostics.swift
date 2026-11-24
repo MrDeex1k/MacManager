@@ -59,6 +59,7 @@ public enum MacManagerLog {
     public static let lifecycle = Logger(subsystem: subsystem, category: "lifecycle")
     public static let metrics = Logger(subsystem: subsystem, category: "metrics")
     public static let network = Logger(subsystem: subsystem, category: "network")
+    static let clipboard = Logger(subsystem: subsystem, category: "clipboard")
     public static let scroll = Logger(subsystem: subsystem, category: "scroll")
     public static let updates = Logger(subsystem: subsystem, category: "updates")
 }

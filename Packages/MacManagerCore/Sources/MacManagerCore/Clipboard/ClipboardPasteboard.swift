@@ -39,12 +39,13 @@ public struct ClipboardRawContent: Sendable {
         func png(_ image: CGImage, maximumBytes: Int) throws -> Data {
             let encoding = signposter.beginInterval("ClipboardEncodePNG", id: signposter.makeSignpostID())
             defer { signposter.endInterval("ClipboardEncodePNG", encoding) }
-            guard let data = ImageThumbnail.encodePNG(image, maximumBytes: Int.max) else {
+            do {
+                return try ImageThumbnail.encodeBoundedPNG(image, maximumBytes: maximumBytes)
+            } catch ImageThumbnail.EncodingFailure.exceedsBudget {
+                throw ClipboardFailure.tooLarge
+            } catch ImageThumbnail.EncodingFailure.invalidImage {
                 throw ClipboardFailure.unsupportedImage
             }
-            try Task.checkCancellation()
-            guard data.count <= maximumBytes else { throw ClipboardFailure.tooLarge }
-            return data
         }
         // Keep one full-resolution decode alive at a time. The returned PNG owns
         // its bytes; ImageIO temporaries are released before decoding the preview.

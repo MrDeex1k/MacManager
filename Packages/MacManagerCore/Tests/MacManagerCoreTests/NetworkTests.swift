@@ -130,3 +130,45 @@ private actor DeferredLookup {
     #expect(NetworkEnvironment.selectPrimary(addresses: addresses, physicalOrder: ["en0", "en5"], systemPrimary: "en5") == ethernet)
     #expect(NetworkEnvironment.selectPrimary(addresses: [tunnel], physicalOrder: ["en0"], systemPrimary: "utun4") == nil)
 }
+
+@MainActor @Test func localNetworkChangesPreserveIPv4LookupUntilRouteChanges() async {
+    let lookup = DeferredLookup()
+    let service = NetworkService { await lookup.lookup() }
+    let route = NetworkRoute(interface: "en0", service: "wifi", router: "192.168.0.1")
+    let local = NetworkAddress(interface: "en0", address: "192.168.0.2")
+    let secondary = NetworkAddress(interface: "en5", address: "10.0.0.4")
+    service.update(.init(online: true, addresses: [local], primary: local, route: route), now: 0)
+    let request = Task { await service.refresh(now: 0) }
+    #expect(await waitUntil { await lookup.ready() })
+    service.update(.init(online: true, addresses: [local, secondary], primary: local, route: route), now: 1)
+    #expect(service.state == .loading && service.environment.addresses == [local, secondary])
+    await lookup.complete()
+    await request.value
+    #expect(service.publicAddress == "8.8.4.4")
+    service.update(.init(online: true, addresses: [local], primary: local, route: route), now: 2)
+    #expect(service.publicAddress == "8.8.4.4")
+    service.update(.init(online: true, addresses: [local], primary: local, tunnels: ["utun4"], route: route), now: 3)
+    #expect(service.state == .waiting && service.publicAddress == nil)
+}
+
+@MainActor @Test func vpnRoutingChangesClearPublicAddressEvenWhenTheTunnelRemains() async {
+    let service = NetworkService { "8.8.8.8" }
+    let route = NetworkRoute(interface: "en0", service: "wifi", router: "192.168.0.1")
+    let split = ["vpn": Data("split".utf8)]
+    let full = ["vpn": Data("full".utf8)]
+    service.update(.init(online: true, tunnels: ["utun4"], route: route, vpnIPv4State: split), now: 0)
+    await service.refresh(now: 0)
+    #expect(service.publicAddress == "8.8.8.8")
+    service.update(.init(online: true, tunnels: ["utun4"], route: route, vpnIPv4State: full), now: 1)
+    #expect(service.publicAddress == nil && service.state == .waiting)
+}
+
+@MainActor @Test func fallbackPrimaryChangeClearsPublicAddressWithoutAnExplicitRoute() async {
+    let service = NetworkService { "8.8.8.8" }
+    let wifi = NetworkAddress(interface: "en0", address: "192.168.0.2")
+    let ethernet = NetworkAddress(interface: "en5", address: "10.0.0.4")
+    service.update(.init(online: true, addresses: [wifi, ethernet], primary: wifi), now: 0)
+    await service.refresh(now: 0)
+    service.update(.init(online: true, addresses: [wifi, ethernet], primary: ethernet), now: 1)
+    #expect(service.publicAddress == nil && service.state == .waiting)
+}

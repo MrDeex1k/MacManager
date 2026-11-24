@@ -2,9 +2,9 @@ import Foundation
 import SystemConfiguration
 
 private final class NetworkConfigurationCallback: Sendable {
-    let changed: @MainActor @Sendable (Bool) -> Void
+    let changed: @MainActor @Sendable () -> Void
     @MainActor var active = true
-    init(changed: @escaping @MainActor @Sendable (Bool) -> Void) { self.changed = changed }
+    init(changed: @escaping @MainActor @Sendable () -> Void) { self.changed = changed }
 }
 
 // CoreFoundation may retain/release its context on an internal worker queue.
@@ -24,19 +24,18 @@ final class NetworkConfigurationMonitor {
         "State:/Network/Interface/.*/(IPv4|IPv6|Link)",
         "State:/Network/Service/.*/(IPv4|IPv6|PPP|IPSec)", "Setup:/Network/.*"]
 
-    func start(patterns: [String] = networkPatterns, changed: @escaping @MainActor @Sendable (Bool) -> Void) -> Bool {
+    func start(patterns: [String] = networkPatterns, changed: @escaping @MainActor @Sendable () -> Void) -> Bool {
         stop()
         let callback = NetworkConfigurationCallback(changed: changed)
         var context = SCDynamicStoreContext(version: 0,
             info: Unmanaged.passUnretained(callback).toOpaque(),
             retain: retainNetworkCallback, release: releaseNetworkCallback, copyDescription: nil)
-        guard let store = SCDynamicStoreCreate(nil, "MacManager.NetworkChanges" as CFString, { _, keys, info in
+        guard let store = SCDynamicStoreCreate(nil, "MacManager.NetworkChanges" as CFString, { _, _, info in
             guard let info else { return }
             // The store dispatches exclusively on the main queue.
-            let routeChanged = (keys as? [String])?.contains { $0.hasPrefix("State:/Network/") } == true
             MainActor.assumeIsolated {
                 let callback = Unmanaged<NetworkConfigurationCallback>.fromOpaque(info).takeUnretainedValue()
-                if callback.active { callback.changed(routeChanged) }
+                if callback.active { callback.changed() }
             }
         }, &context) else { return false }
         guard SCDynamicStoreSetNotificationKeys(store, nil, patterns as CFArray),

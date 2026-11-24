@@ -84,7 +84,7 @@ public final class ScrollService {
 
     /// Publishes driver status only while this service still wants reversal.
     private func refreshDriverState() {
-        guard !terminated, wantsReversal, !suspended else { return }
+        guard !terminated, wantsReversal, !suspended, accessibilityGranted, inputMonitoringGranted else { return }
         switch driver.state {
         case .stopped, .starting: status = .starting
         case .active: status = .active
