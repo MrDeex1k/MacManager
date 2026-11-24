@@ -32,11 +32,34 @@ public struct NetworkAddress: Equatable, Identifiable, Sendable {
     public init(interface: String, address: String) { self.interface = interface; self.address = address }
 }
 
+public struct NetworkRoute: Equatable, Sendable {
+    public let interface: String?
+    public let service: String?
+    public let router: String?
+
+    public init(interface: String?, service: String?, router: String?) {
+        self.interface = interface
+        self.service = service
+        self.router = router
+    }
+}
+
 public struct NetworkEnvironment: Equatable, Sendable {
     public let online: Bool
     public let addresses: [NetworkAddress]
     public let primary: NetworkAddress?
     public let tunnels: [String]
+    public let route: NetworkRoute?
+    let vpnIPv4State: [String: Data]
+
+    func sharesPublicRoute(with other: Self) -> Bool {
+        online == other.online && route == other.route && Set(tunnels) == Set(other.tunnels) && vpnIPv4State == other.vpnIPv4State &&
+            (route?.interface != nil || primary == other.primary) && routeAddresses == other.routeAddresses
+    }
+
+    private var routeAddresses: Set<String> {
+        Set(addresses.lazy.filter { $0.interface == route?.interface || tunnels.contains($0.interface) }.map(\.id))
+    }
     public static func selectPrimary(addresses: [NetworkAddress], physicalOrder: [String],
                                      systemPrimary: String?) -> NetworkAddress? {
         let eligible = addresses.filter { physicalOrder.contains($0.interface) }
@@ -45,8 +68,10 @@ public struct NetworkEnvironment: Equatable, Sendable {
     }
 
     public init(online: Bool, addresses: [NetworkAddress] = [], primary: NetworkAddress? = nil,
-                tunnels: [String] = []) {
+                tunnels: [String] = [], route: NetworkRoute? = nil, vpnIPv4State: [String: Data] = [:]) {
         self.online = online; self.addresses = addresses; self.primary = primary; self.tunnels = tunnels
+        self.route = route
+        self.vpnIPv4State = vpnIPv4State
     }
 }
 
