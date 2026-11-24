@@ -27,16 +27,18 @@ enum PreferenceRecovery {
             else if key == "items", let items = saved[key] as? [String: Any] {
                 // A damaged launcher entry must not discard unrelated aliases and favorites.
                 var validItems: [String: Any] = [:]
-                for id in items.keys.sorted() {
-                    var trial = validItems; trial[id] = items[id]
-                    candidate = fields; candidate[key] = trial
-                    if decode(candidate) != nil { validItems = trial; fields = candidate }
+                for (id, item) in items {
+                    guard let bytes = try? JSONSerialization.data(withJSONObject: item, options: .fragmentsAllowed),
+                          (try? decoder.decode(LauncherCustomization.self, from: bytes)) != nil else { continue }
+                    validItems[id] = item
                 }
+                candidate[key] = validItems
+                if decode(candidate) != nil { fields = candidate }
             }
         }
         // Unknown exclusions must never silently become an empty allow-all policy.
         if fields["excludedBundleIDs"] != nil,
-           saved["excludedBundleIDs"] != nil, !(saved["excludedBundleIDs"] is [String]) {
+           !(saved["excludedBundleIDs"] is [String]) {
             fields["enabled"] = false; fields["paused"] = true
         }
         return (decode(fields) ?? safe, true)
