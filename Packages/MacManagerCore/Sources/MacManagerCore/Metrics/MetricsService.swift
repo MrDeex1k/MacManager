@@ -34,8 +34,11 @@ public final class MetricsService {
 
     public func configure(intervalSeconds: Double, request: MetricSamplingRequest) {
         guard intervalSeconds.isFinite, intervalSeconds > 0 else { return }
-        guard effectiveIntervalSeconds != intervalSeconds || samplingRequest != request else { return }
-        effectiveIntervalSeconds = intervalSeconds; samplingRequest = request
+        let resetsSampler = effectiveIntervalSeconds != intervalSeconds || samplingRequest.kinds != request.kinds
+        if samplingRequest != request { samplingRequest = request }
+        // Optional sensor changes take effect on the next sample without splitting other series.
+        guard resetsSampler else { return }
+        effectiveIntervalSeconds = intervalSeconds
         generation += 1; pending?.cancel(); needsReset = true
         history.interrupt(at: now())
     }

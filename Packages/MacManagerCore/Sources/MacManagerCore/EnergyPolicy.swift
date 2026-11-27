@@ -27,19 +27,15 @@ public final class EnergyPolicy {
     public var systemLowPower = false
     public var sleeping = false
     public var adaptsToLowPower = true
-    public var metricsVisible = true
     public var visibleRequest = MetricSamplingRequest.full
     public var networkVisible = false
-    public var backgroundRequest = MetricSamplingRequest(kinds: [], cpuTemperature: false, gpuTemperature: false, fans: false)
+    public var backgroundRequest = MetricSamplingRequest.none
     public init() {}
     public var lowPower: Bool { systemLowPower && adaptsToLowPower }
     public var request: MetricSamplingRequest {
-        (metricsVisible ? visibleRequest : .none).union(backgroundRequest)
+        visibleRequest.union(backgroundRequest)
     }
     public var pausesMetrics: Bool { sleeping || request.isEmpty }
-    public func metricsInterval(saved: SamplingInterval) -> Double {
-        lowPower ? (metricsVisible ? 5 : 10) : Double(saved.rawValue)
-    }
     public var localNetworkInterval: Double { lowPower && !networkVisible ? 30 : 5 }
     public var publicNetworkInterval: Double { lowPower ? 3600 : 900 }
     public var launcherCatalogInterval: Double { lowPower ? 300 : 60 }

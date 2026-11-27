@@ -77,7 +77,8 @@ private func sample(_ time: Double, cpu: Double? = 25, source: String = "test", 
 private actor HistorySampler: MetricsSampling {
     var time = 0.0
     var calls = 0
-    func reset() {}
+    var resets = 0
+    func reset() { resets += 1 }
     func sample() -> MetricsSnapshot {
         calls += 1
         time += 2
@@ -104,6 +105,26 @@ private actor HistorySampler: MetricsSampling {
     service.setSuspended(false)
     #expect(service.history.count == 0)
     #expect(await sampler.calls == 1)
+}
+
+@MainActor @Test func changingTemperaturesKeepsOverviewHistoryContinuous() async {
+    let clock = HistoryTestClock()
+    let sampler = HistorySampler()
+    let service = MetricsService(sampler: sampler, now: { clock.now })
+    let background = MetricSamplingRequest(cpuTemperature: false, gpuTemperature: false, fans: true)
+    service.configure(intervalSeconds: 2, request: background)
+    await service.collect()
+    clock.now = 4
+    service.configure(intervalSeconds: 2, request: .full)
+    await service.collect()
+    clock.now = 6
+    service.configure(intervalSeconds: 2, request: background)
+    await service.collect()
+
+    let cpu = service.history.points(for: .cpu)
+    #expect(cpu.map(\.time) == [2, 4, 6])
+    #expect(Set(cpu.map(\.segment)).count == 1)
+    #expect(await sampler.resets == 1)
 }
 
 private func sensorSample(_ time: Double, cpu: Double? = 50, gpu: Double? = 40,

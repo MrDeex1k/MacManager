@@ -8,6 +8,7 @@ final class MetricsController: ApplicationLifecycleParticipant {
     private let energy: EnergyPolicy?
     private let diagnostics: DiagnosticsStore
     private var loop: Task<Void, Never>?
+    private var scheduledInterval: SamplingInterval?
     private let observers = NotificationTokens()
     private var running = false
     private var reportedFailure = false
@@ -35,7 +36,6 @@ final class MetricsController: ApplicationLifecycleParticipant {
         }
         energyObservation.start(read: { [weak self] in
             guard let self else { return }
-            _ = self.energy?.metricsInterval(saved: self.service.interval)
             _ = self.service.interval
             _ = self.energy?.pausesMetrics
             _ = self.energy?.request
@@ -44,13 +44,16 @@ final class MetricsController: ApplicationLifecycleParticipant {
 
     private func scheduleSampling() {
         guard running else { return }
-        loop?.cancel()
-        loop = nil
-        let interval = energy?.metricsInterval(saved: service.interval) ?? Double(service.interval.rawValue)
+        let interval = service.interval
         let suspended = sleeping || (energy?.pausesMetrics ?? false)
         let request = energy?.request ?? .full
         service.setSuspended(suspended)
-        service.configure(intervalSeconds: interval, request: request)
+        service.configure(intervalSeconds: Double(interval.rawValue), request: request)
+        let nextInterval = suspended ? nil : interval
+        guard scheduledInterval != nextInterval else { return }
+        loop?.cancel()
+        loop = nil
+        scheduledInterval = nextInterval
         guard !suspended else { return }
         loop = Task { [weak self] in
             while !Task.isCancelled {
@@ -64,7 +67,7 @@ final class MetricsController: ApplicationLifecycleParticipant {
                     self.recordState()
                 }
                 do {
-                    try await Task.sleep(for: .seconds(interval), tolerance: .milliseconds(100))
+                    try await Task.sleep(for: .seconds(interval.rawValue), tolerance: .milliseconds(100))
                 } catch { return }
             }
         }
@@ -75,6 +78,7 @@ final class MetricsController: ApplicationLifecycleParticipant {
         energyObservation.stop()
         loop?.cancel()
         loop = nil
+        scheduledInterval = nil
         observers.removeAll()
         service.setSuspended(true)
     }

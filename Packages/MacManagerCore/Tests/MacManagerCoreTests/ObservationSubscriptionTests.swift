@@ -78,10 +78,9 @@ import Testing
     let policy = EnergyPolicy()
     for lowPower in [false, true] {
         policy.systemLowPower = lowPower
-        policy.metricsVisible = false
+        policy.visibleRequest = .none
         policy.backgroundRequest = .none
         #expect(policy.pausesMetrics && policy.request.isEmpty)
-        policy.metricsVisible = true
         policy.visibleRequest = .overview
         #expect(policy.request == .overview)
         policy.backgroundRequest = .init(kinds: [], cpuTemperature: true, gpuTemperature: false, fans: false)

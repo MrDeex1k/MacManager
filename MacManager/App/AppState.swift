@@ -108,34 +108,25 @@ final class AppState {
         lifecycle.terminate()
     }
 
-    /// Combines the sampling needs of the visible page and menu bar with the background preferences.
+    /// Collects overview metrics and fan speeds throughout the session, with temperatures on demand.
     private func watchEnergyPreferences() {
         energyObservation.start(read: { [weak self] in
             guard let self else { return (true, MetricSamplingRequest.none, false, MetricSamplingRequest.none, 60.0) }
             let mainVisible = mainWindowVisible && mainWindowContentVisible
-            var request: MetricSamplingRequest = .none
-            if mainVisible && displayedSection == .overview { request = request.union(.overview) }
-            if mainVisible && displayedSection == .sensors { request = request.union(.sensors) }
-            if menuBarPanelVisible { request = request.union(.overview) }
+            let request: MetricSamplingRequest = mainVisible && displayedSection == .sensors ? .sensors : .none
             let networkVisible = (mainVisible && displayedSection == .network) ||
                 (menuBarPanelVisible && (preferences.showsLocalIPInMenuBar || preferences.showsPublicIPInMenuBar))
             let display = preferences.appIntegration.menuBar
-            var kinds: Set<MetricKind> = []
-            if display.showsCPU { kinds.insert(.cpu) }
-            if display.showsGPU { kinds.insert(.gpu) }
-            if display.showsRAM { kinds.insert(.memory) }
-            if display.showsPower { kinds.insert(.power) }
-            let background = MetricSamplingRequest(kinds: kinds, cpuTemperature: display.showsCPUTemperature,
-                gpuTemperature: display.showsGPUTemperature, fans: display.showsFans)
+            let background = MetricSamplingRequest(cpuTemperature: display.showsCPUTemperature,
+                gpuTemperature: display.showsGPUTemperature, fans: true)
             let catalogInterval = energy.systemLowPower && preferences.adaptsToLowPower ? 300.0 : 60.0
             return (preferences.adaptsToLowPower, request, networkVisible, background, catalogInterval)
         }, apply: { [weak self] adapts, request, networkVisible, background, catalogInterval in
             guard let self else { return }
             energy.adaptsToLowPower = adapts
-            energy.metricsVisible = !request.isEmpty
-            energy.visibleRequest = request
+            if energy.visibleRequest != request { energy.visibleRequest = request }
             energy.networkVisible = networkVisible
-            energy.backgroundRequest = background
+            if energy.backgroundRequest != background { energy.backgroundRequest = background }
             launcher.catalogRefreshSeconds = catalogInterval
         })
     }

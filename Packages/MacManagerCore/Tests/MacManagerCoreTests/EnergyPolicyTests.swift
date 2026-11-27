@@ -2,21 +2,18 @@ import Foundation
 import Testing
 @testable import MacManagerCore
 
-@MainActor @Test func energyProfilesRestoreSavedSettingsAndRespectDemand() {
+@MainActor @Test func energyProfilesRespectDemandAndSleep() {
     let policy = EnergyPolicy()
-    #expect(policy.metricsInterval(saved: .one) == 1)
     policy.systemLowPower = true
-    #expect(policy.metricsInterval(saved: .one) == 5)
     #expect(policy.localNetworkInterval == 30)
     #expect(policy.publicNetworkInterval == 3600)
     #expect(!policy.allowsAutomaticUpdates)
     #expect(policy.launcherCatalogInterval == 300)
-    policy.metricsVisible = false
+    policy.visibleRequest = .none
     #expect(policy.pausesMetrics)
     policy.backgroundRequest = .init(kinds: [.cpu], cpuTemperature: false, gpuTemperature: false, fans: false)
     #expect(!policy.pausesMetrics)
     #expect(policy.request.kinds == [.cpu])
-    #expect(policy.metricsInterval(saved: .two) == 10)
     policy.networkVisible = true
     #expect(policy.localNetworkInterval == 5)
     policy.sleeping = true
@@ -25,13 +22,12 @@ import Testing
     #expect(!policy.allowsAutomaticUpdates)
     policy.sleeping = false
     #expect(policy.request == policy.backgroundRequest)
-    #expect(policy.metricsInterval(saved: .one) == 1)
     #expect(policy.publicNetworkInterval == 900)
     #expect(policy.allowsAutomaticUpdates)
     policy.adaptsToLowPower = true
-    #expect(policy.metricsInterval(saved: .five) == 10)
+    #expect(!policy.allowsAutomaticUpdates)
     policy.systemLowPower = false
-    #expect(policy.metricsInterval(saved: .five) == 5)
+    #expect(policy.allowsAutomaticUpdates)
 }
 
 @MainActor @Test func networkProfileReschedulesPeriodicButPreservesPathRefresh() async {

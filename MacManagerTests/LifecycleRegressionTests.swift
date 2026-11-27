@@ -278,10 +278,12 @@ private actor DelayedSampler: MetricsSampling {
 
 @MainActor @Test func sameTurnSleepWakeInvalidatesPendingMetricsWithEnergyPolicy() async throws {
     let session = SessionFixture(), sampler = DelayedSampler(), energy = EnergyPolicy()
-    let service = MetricsService(sampler: sampler, now: { 2 })
+    energy.systemLowPower = true
+    let service = MetricsService(sampler: sampler, interval: .one, now: { 2 })
     let controller = MetricsController(service: service, diagnostics: DiagnosticsStore(), energy: energy,
                                        sessionMonitor: session.monitor)
     controller.start()
+    #expect(service.effectiveIntervalSeconds == 1)
     for _ in 0..<1_000 {
         if await sampler.started { break }
         try await Task.sleep(for: .milliseconds(1))
@@ -296,7 +298,7 @@ private actor DelayedSampler: MetricsSampling {
     #expect(service.snapshot[.cpu].value != 77)
     #expect(service.history.points(for: .cpu).isEmpty)
     controller.stop()
-    energy.systemLowPower = true
+    energy.systemLowPower = false
     try await Task.sleep(for: .milliseconds(20))
     #expect(service.suspended)
     session.monitor.stop()
@@ -404,8 +406,8 @@ private actor MusicStub: MusicPlayerAdapter {
     func setAxes(_ axes: ScrollAxes) {}
 }
 
-/// Checks explicit startup and how selection and visibility affect requested sampling.
-@MainActor @Test func injectedAppStateStartsExplicitlyAndTracksVisibleConsumers() async throws {
+/// Checks explicit startup, continuous metrics, and on-demand temperatures.
+@MainActor @Test func injectedAppStateKeepsSamplingIndependentOfMenuBarDisplay() async throws {
     func energyReaches(_ condition: () -> Bool) async -> Bool {
         let deadline = ContinuousClock.now + .seconds(1)
         repeat {
@@ -439,25 +441,29 @@ private actor MusicStub: MusicPlayerAdapter {
     #expect(lifecycleProbe.starts == 0)
     state.start(observeSystemEvents: false); state.start(observeSystemEvents: false)
     #expect(lifecycleProbe.starts == 1)
-    #expect(energy.request == .overview)
+    let background = MetricSamplingRequest(cpuTemperature: false, gpuTemperature: false, fans: true)
+    #expect(energy.request == background)
     state.section = .sensors
-    #expect(await energyReaches { energy.request == .sensors })
-    state.section = nil
-    #expect(await energyReaches { energy.request == .overview })
+    #expect(await energyReaches { energy.request == .full })
     state.mainWindowContentVisible = false
-    #expect(await energyReaches { energy.pausesMetrics })
+    #expect(await energyReaches { energy.request == background && !energy.pausesMetrics })
+    state.section = nil
+    state.setMainWindowVisible(false)
+    preferences.appIntegration.menuBar.showsRAM = true
+    preferences.appIntegration.menuBar.showsPower = true
     state.menuBarPanelVisible = true
-    #expect(await energyReaches { energy.request == .overview && !energy.networkVisible })
     preferences.showsLocalIPInMenuBar = true
-    #expect(await energyReaches { energy.networkVisible })
+    #expect(await energyReaches { energy.request == background && energy.networkVisible })
     state.menuBarPanelVisible = false
     preferences.appIntegration.menuBar.showsCPUTemperature = true
-    #expect(await energyReaches { energy.request.kinds.isEmpty && energy.request.cpuTemperature && !energy.request.fans })
+    var withCPUTemperature = background
+    withCPUTemperature.cpuTemperature = true
+    #expect(await energyReaches { energy.request == withCPUTemperature && !energy.networkVisible })
     state.stop(); state.stop()
     #expect(lifecycleProbe.stops == 1)
-    preferences.appIntegration.menuBar.showsCPU = true
+    preferences.appIntegration.menuBar.showsCPUTemperature = false
     try await Task.sleep(for: .milliseconds(20))
-    #expect(energy.request.kinds.isEmpty)
+    #expect(energy.request == withCPUTemperature)
 }
 
 @MainActor @Test func islandSpaceReachesTheFocusedEditorBeforePlayback() throws {
