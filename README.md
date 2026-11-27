@@ -40,7 +40,7 @@
 See what your Mac is doing without opening a collection of separate utilities.
 
 - **Follow the load.** Live CPU, GPU and RAM readings, plus an estimated power reading when supported.
-- **See the trend.** Five-minute charts with a choice of 1, 2 or 5 second sampling. The default is 2 seconds with Low Power Mode adaptation enabled. Readings are collected for visible screens and the values selected for the menu bar. Sampling pauses when none are needed, and gaps stay visible in history.
+- **See the trend.** CPU, GPU, RAM, power and fan speeds are sampled while Mac Manager is running and the Mac is awake, including in Low Power Mode. Choose a 1, 2 or 5 second interval in Settings (default 2 seconds). Five-minute charts include background readings and show gaps when readings are missing. Temperatures are sampled when the Sensors page is visible or when selected for the menu bar.
 - **Check the hardware.** CPU/GPU temperatures in °C or °F and individual fan speeds. Temperature mapping is currently validated on M4 Pro. CPU and GPU averages include readings above 0 °C and up to and including 120 °C.
 - **Keep essentials in sight.** Choose the readings shown in the menu bar and open the compact panel for a quick check.
 - **Find your connection.** View and copy your local and public IPv4 addresses, with optional visibility in the menu bar panel.

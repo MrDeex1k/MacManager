@@ -54,8 +54,9 @@ struct SettingsView: View {
             Divider()
             Toggle(strings("energy.adapt"), isOn: $preferences.adaptsToLowPower)
                 .accessibilityIdentifier("energy.adapt")
-            Text(state.energy.sleeping || state.energy.pausesMetrics ? strings("energy.paused") : String(format: strings("energy.interval"), state.energy.metricsInterval(saved: preferences.samplingInterval)))
-                .font(.callout).foregroundStyle(.secondary)
+            if state.energy.pausesMetrics {
+                Text(strings("energy.paused")).font(.callout).foregroundStyle(.secondary)
+            }
             Divider()
             LauncherSettingsView()
             Divider()

@@ -4229,22 +4229,6 @@
         }
       }
     },
-    "energy.interval": {
-      "localizations": {
-        "pl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Efektywny interwał odczytów: %.0f s"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Effective sampling interval: %.0f s"
-          }
-        }
-      }
-    },
     "island.title": {
       "localizations": {
         "en": {
